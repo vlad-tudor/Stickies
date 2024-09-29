@@ -10,11 +10,26 @@ type StickyNote = {
   position: [number, number];
   dimensions: [number, number];
   content: string; // markdown
+  color: string;
 };
 
-const stickyNoteStore = createStore({
-  stickies: [],
+const [stickyNoteStore, setStickyNoteStore] = createStore<{
+  stickies: StickyNote[];
+}>({
+  stickies: [
+    {
+      id: "1",
+      position: [50, 50],
+      dimensions: [300, 300],
+      content: "",
+      color: "#e3d46f",
+    },
+  ],
 });
+
+const updateStickyNote = (index: number, update: Partial<StickyNote>) => {
+  setStickyNoteStore("stickies", index, { ...update });
+};
 
 // board where sticky notes are placed and moved around
 // sticky notes are draggable and can be deleted, but that's a detail of the stickies.
@@ -26,12 +41,17 @@ export const Whiteboard = () => {
   );
 };
 
+type StickyProps = {
+  sticky: StickyNote;
+  updateSticky: (update: Partial<StickyNote>) => void;
+};
+
 /**
  * @todo move state into store, and move store outside
  * @todo move sticky logic into its own component file/folder
  * @todo separate drag and resize logic for bespoke CSS reasons
  */
-export const Sticky = () => {
+export const Sticky = ({}) => {
   // const [isDragging, setIsDragging] = createSignal(false);
   const [position, setPosition] = createSignal([50, 50]);
   const [dimensions, setDimensions] = createSignal([300, 300]);
@@ -65,6 +85,11 @@ export const Sticky = () => {
     setPosition([e.clientY - dragOffset[1], e.clientX - dragOffset[0]]);
   };
 
+  const onStickyDragEnd = (e: DragEvent) => {
+    // setPosition([e.clientY - dragOffset[1], e.clientX - dragOffset[0]]);
+    // save the element's position
+  };
+
   let resizeOffset = [0, 0];
   const onStartResize = (e: DragEvent) => {
     e.dataTransfer?.setDragImage(invisibleDragElement, 0, 0);
@@ -85,23 +110,22 @@ export const Sticky = () => {
       dimensions[1] + yLength,
     ]);
     resizeOffset = [e.clientX, e.clientY];
-    // setDimensions([
-    //   e.clientY - position()[0] + resizeOffset[1],
-    //   e.clientX - position()[1] + resizeOffset[0],
-    // ]);
   };
 
   const onResizeEnd = (e: MouseEvent) => {
-    // set the dimenions of the sticky note of the existing clientrect of the sticky note
     setDimensions([stickyNoteRef.clientWidth, stickyNoteRef.clientHeight]);
   };
 
   onMount(() => {
-    withMarkdown({ rootElementRef: stickyNoteContentRef });
+    withMarkdown({
+      rootElementRef: stickyNoteContentRef,
+      onMarkdownUpdated: () => {},
+    });
   });
 
   return (
     <div ref={stickyNoteRef} class="sticky" style={stickyStyle()}>
+      {/* This element is used as a drag handle, to allow the usage of HTML drag API events w/o a ghost */}
       <div
         class="invisible-draggable-element"
         ref={invisibleDragElement}
@@ -109,16 +133,15 @@ export const Sticky = () => {
       >
         &nbsp;
       </div>
+
       <div
         class="sticky-handle"
         draggable="true"
         onDragStart={onStickyDragStart}
-        // onDragEnd={onDragEnd}
+        onDragEnd={onStickyDragEnd}
         onDrag={onStickyDrag}
       ></div>
-      <div ref={stickyNoteContentRef} class="sticky-content">
-        {/* <Markdown /> */}
-      </div>
+      <div ref={stickyNoteContentRef} class="sticky-content"></div>
       <div
         class="sticky-expand-square"
         draggable="true"
