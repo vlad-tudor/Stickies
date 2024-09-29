@@ -46,7 +46,6 @@ export const Sticky = () => {
   let invisibleDragElement!: HTMLDivElement;
   let stickyNoteRef!: HTMLDivElement;
   let stickyNoteContentRef!: HTMLDivElement;
-  let stickyNoteExpandSquareRef!: HTMLDivElement;
 
   let dragOffset = [0, 0];
 
@@ -92,6 +91,11 @@ export const Sticky = () => {
     // ]);
   };
 
+  const onResizeEnd = (e: MouseEvent) => {
+    // set the dimenions of the sticky note of the existing clientrect of the sticky note
+    setDimensions([stickyNoteRef.clientWidth, stickyNoteRef.clientHeight]);
+  };
+
   onMount(() => {
     withMarkdown({ rootElementRef: stickyNoteContentRef });
   });
@@ -119,6 +123,7 @@ export const Sticky = () => {
         class="sticky-expand-square"
         draggable="true"
         onDragStart={onStartResize}
+        onDragEnd={onResizeEnd}
         onDrag={onResize}
       ></div>
     </div>

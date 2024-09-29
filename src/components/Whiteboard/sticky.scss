@@ -1,8 +1,11 @@
 .sticky {
+  --total-sticky-height: 20rem;
+  --total-sticky-handle-height: 2rem;
+
   position: absolute;
   background-color: #e3d46f;
-  min-width: 13rem;
-  min-height: 13rem;
+  min-width: 20rem;
+  min-height: var(--total-sticky-height);
 
   display: flex;
   flex-direction: column;
@@ -10,7 +13,9 @@
   //   top: 20px;
   //   right: 20px;
   .sticky-handle {
-    height: 2rem;
+    min-width: 100%;
+    min-height: 2rem;
+    height: var(--total-sticky-handle-height);
     width: 100%;
     background-color: rgba(0, 0, 0, 0.1);
 
@@ -23,6 +28,10 @@
     flex: auto;
     height: 100%;
     width: 100%;
+    min-height: calc(
+      var(--total-sticky-height) - var(--total-sticky-handle-height)
+    );
+
     text-wrap: wrap;
 
     &:first-child {
