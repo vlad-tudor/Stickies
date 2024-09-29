@@ -8,6 +8,9 @@
     "version": "vinxi version"
   },
   "dependencies": {
+    "@milkdown/crepe": "^7.5.7",
+    "@milkdown/kit": "^7.5.5",
+    "@milkdown/theme-nord": "^7.5.0",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.14.7",
     "@solidjs/start": "^1.0.8",
@@ -16,5 +19,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "sass": "^1.79.4"
   }
 }

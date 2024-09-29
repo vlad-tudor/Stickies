@@ -1,0 +1,52 @@
+.sticky {
+  position: absolute;
+  background-color: #e3d46f;
+  min-width: 13rem;
+  min-height: 13rem;
+
+  display: flex;
+  flex-direction: column;
+
+  //   top: 20px;
+  //   right: 20px;
+  .sticky-handle {
+    height: 2rem;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  .sticky-content {
+    flex: auto;
+    height: 100%;
+    width: 100%;
+    text-wrap: wrap;
+
+    &:first-child {
+      text-wrap: wrap;
+    }
+  }
+
+  .sticky-expand-square {
+    cursor: nwse-resize;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    margin: 0.2rem;
+    height: 1rem;
+    width: 1rem;
+    border-bottom: 2px solid rgb(50, 50, 50);
+    border-right: 2px solid rgb(50, 50, 50);
+    opacity: 0.5;
+    transition: all 0.2s;
+
+    &:hover,
+    &:active {
+      opacity: 1;
+      border-width: 4px;
+    }
+  }
+}
