@@ -3,12 +3,13 @@
   --total-sticky-handle-height: 2rem;
 
   position: absolute;
-  background-color: #e3d46f;
   min-width: 20rem;
   min-height: var(--total-sticky-height);
 
   display: flex;
   flex-direction: column;
+
+  border: 1px solid rgba(0, 0, 0, 0.1);
 
   //   top: 20px;
   //   right: 20px;
@@ -50,7 +51,6 @@
     border-bottom: 2px solid rgb(50, 50, 50);
     border-right: 2px solid rgb(50, 50, 50);
     opacity: 0.5;
-    transition: all 0.2s;
 
     &:hover,
     &:active {

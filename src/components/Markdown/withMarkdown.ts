@@ -3,30 +3,24 @@ import { Crepe } from "@milkdown/crepe";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 
 import "@milkdown/crepe/theme/common/style.css";
-// We have some themes for you to choose
 import "@milkdown/crepe/theme/nord.css";
 
 import "./markdown.scss";
 
-type MarkdownProps = {
+export type MarkdownProps = {
   rootElementRef: HTMLDivElement;
-
-  /**
-   * Usually whatever is saved gets here. Perhaps a default of 'start typing here' or something.
-   */
   previousMarkdown?: string;
   onMarkdownUpdated: (markdown: string) => void;
 };
 
-export const withMarkdown = ({
+export const withMarkdownRecurse = async ({
   previousMarkdown,
   rootElementRef,
   onMarkdownUpdated,
 }: MarkdownProps) => {
-  let crepe!: Crepe;
-
-  crepe = new Crepe({
+  const crepe = new Crepe({
     root: rootElementRef,
+    features: {},
     defaultValue: previousMarkdown,
     featureConfigs: {
       [Crepe.Feature.Placeholder]: {
@@ -42,5 +36,10 @@ export const withMarkdown = ({
       .markdownUpdated((ctx, markdown) => onMarkdownUpdated(markdown));
   });
 
-  crepe.create();
+  await crepe.create();
+
+  return async (props: MarkdownProps) => {
+    await crepe.destroy();
+    return withMarkdownRecurse(props);
+  };
 };
