@@ -1,5 +1,7 @@
 import { createStore } from "solid-js/store";
 
+const LOCAL_STORAGE_KEY = "stickies-storage";
+
 export type StickyNote = {
   id: string;
   position: [number, number];
@@ -8,43 +10,17 @@ export type StickyNote = {
   color: string;
 };
 
+/** store */
 const [stickyNoteStore, setStickyNoteStore] = createStore<{
   stickies: StickyNote[];
 }>({
-  stickies: [
-    // {
-    //   id: "one",
-    //   position: [50, 50],
-    //   dimensions: [300, 300],
-    //   content: "meow",
-    //   color: "#e3d46f",
-    // },
-    // {
-    //   id: "two",
-    //   position: [50, 50],
-    //   dimensions: [300, 300],
-    //   content: "### meow",
-    //   color: "#e3d46f",
-    // },
-    // {
-    //   id: "three",
-    //   position: [50, 50],
-    //   dimensions: [300, 300],
-    //   content: "# meow",
-    //   color: "#e3d46f",
-    // },
-  ],
+  stickies: [],
 });
 
-export const updateStickyNote = (
-  index: number,
-  update: Partial<StickyNote>
-) => {
-  setStickyNoteStore("stickies", index, { ...update });
-  bringToFront(index);
+const persistStickiesToLocalStorage = () => {
+  const stickies = stickyNoteStore.stickies;
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stickies));
 };
-
-export const stickies = () => stickyNoteStore.stickies;
 
 /**
  * Simple way to bring a sticky note to the front of the board,
@@ -54,6 +30,24 @@ const bringToFront = (index: number) => {
   const sticky = stickyNoteStore.stickies[index];
   const stickies = stickyNoteStore.stickies.filter((_, i) => i !== index);
   setStickyNoteStore("stickies", [...stickies, sticky]);
+};
+
+/**
+ * General update function for a sticky note.
+ * Right now, persists every update to local storage.
+ * @note could have an optional param to avoid persisting to local storage
+ * -- might be useful during drag/resize/etc.
+ */
+export const updateStickyNote = (
+  index: number,
+  update: Partial<StickyNote>
+) => {
+  // a little wasteful to have two separate calls to setStickyNoteStore
+  setStickyNoteStore("stickies", index, { ...update });
+  bringToFront(index);
+
+  // persist the sticky note to local storage
+  persistStickiesToLocalStorage();
 };
 
 export const deleteStickyNote = (index: number) => {
@@ -67,4 +61,14 @@ export const clearAllStickies = () => {
 
 export const createStickyNote = (sticky: StickyNote) => {
   setStickyNoteStore("stickies", (prev) => [...prev, sticky]);
+};
+
+export const stickies = () => stickyNoteStore.stickies;
+
+export const loadStickiesFromLocalStorage = () => {
+  const stickies = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (stickies) {
+    const parsedStickies = JSON.parse(stickies) as StickyNote[];
+    setStickyNoteStore("stickies", parsedStickies);
+  }
 };
