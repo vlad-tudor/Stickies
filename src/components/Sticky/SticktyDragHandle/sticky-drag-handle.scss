@@ -1,0 +1,13 @@
+.sticky-drag-handle {
+  min-width: 100%;
+  min-height: 2rem;
+  height: var(--total-sticky-handle-height);
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: flex-end;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+}

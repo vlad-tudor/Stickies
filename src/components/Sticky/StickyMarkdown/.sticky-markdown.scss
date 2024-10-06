@@ -1,0 +1,14 @@
+.sticky-markdown {
+  flex: auto;
+  height: 100%;
+  width: 100%;
+  min-height: calc(
+    var(--total-sticky-height) - var(--total-sticky-handle-height)
+  );
+
+  text-wrap: wrap;
+
+  &:first-child {
+    text-wrap: wrap;
+  }
+}

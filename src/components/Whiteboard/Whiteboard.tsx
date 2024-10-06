@@ -25,7 +25,7 @@ export const Whiteboard = () => {
       id: Date.now().toString(),
       position: [50, 50],
       dimensions: [300, 300],
-      content: "...",
+      content: "",
       color: "#e3d46f",
     });
   };

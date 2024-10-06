@@ -1,8 +1,13 @@
-import { onMount } from "solid-js";
+import { createEffect, createSignal, onMount } from "solid-js";
 import { MarkdownProps, withMarkdownRecurse } from "../Markdown/withMarkdown";
 
-import "./sticky.scss";
+import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
+import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
+import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
 
+import "./sticky.scss";
+import { StickyDragHandle } from "./SticktyDragHandle/SticktyDragHandle";
+import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
 type StickyNote = {
   id: string;
   position: [number, number];
@@ -35,85 +40,22 @@ export const Sticky = (props: StickyProps) => {
     zIndex: props.index,
   });
 
-  let invisibleDragElement!: HTMLDivElement;
   let stickyNoteRef!: HTMLDivElement;
-  let stickyNoteContentRef!: HTMLDivElement;
-
-  /** @note drag logic --  perhaps move to its own component/hook */
-  let dragOffset = [0, 0];
-
-  const onStickyDragStart = ({ dataTransfer, clientX, clientY }: DragEvent) => {
-    onStickyClick();
-    dataTransfer?.setDragImage(invisibleDragElement, 0, 0);
-
-    // get the mouse position relative to the element
-    const rect = stickyNoteRef.getBoundingClientRect();
-
-    // update the dragOffset for during
-    dragOffset = [clientX - rect.left, clientY - rect.top];
-  };
-
-  const onStickyDrag = ({ clientX, clientY }: DragEvent) => {
-    if (clientX === 0 && clientY === 0) {
-      return;
-    }
-    props.updateSticky({
-      position: [clientY - dragOffset[1], clientX - dragOffset[0]],
-    });
-  };
-
-  /** @note resize logic --  perhaps move to its own component/hook */
-  let resizeOffset = [0, 0];
-
-  const onStartResize = ({ dataTransfer, clientX, clientY }: DragEvent) => {
-    onStickyClick();
-    dataTransfer?.setDragImage(invisibleDragElement, 0, 0);
-    // update the resizeOffset for during the resize
-    resizeOffset = [clientX, clientY];
-  };
-
-  const onResize = ({ clientX, clientY }: MouseEvent) => {
-    if (clientX === 0 && clientY === 0) {
-      return;
-    }
-    const xLength = clientX - resizeOffset[0];
-    const yLength = clientY - resizeOffset[1];
-
-    const newDimensions: [number, number] = [
-      props.sticky.dimensions[0] + xLength,
-      props.sticky.dimensions[1] + yLength,
-    ];
-
-    props.updateSticky({ dimensions: newDimensions });
-    resizeOffset = [clientX, clientY];
-  };
-
-  const onResizeEnd = (e: MouseEvent) => {
-    props.updateSticky({
-      dimensions: [stickyNoteRef.clientWidth, stickyNoteRef.clientHeight],
-    });
-  };
-
-  let starMarkdown = async (markdownProps: MarkdownProps) => {
-    starMarkdown = await withMarkdownRecurse(markdownProps);
-    return starMarkdown;
-  };
 
   let shouldDelete = false;
+
   const onStickyClick = () => {
-    if (props.active || !props.sticky || shouldDelete) {
-      return;
+    if (!(props.active || !props.sticky || shouldDelete)) {
+      props.updateSticky({});
     }
-
-    stickyNoteContentRef.innerHTML = "";
-    starMarkdown({
-      rootElementRef: stickyNoteContentRef,
-      previousMarkdown: props.sticky.content,
-      onMarkdownUpdated: (content) => props.updateSticky({ content }),
-    });
-
-    props.updateSticky({});
   };
+
+  const getStickySize = (): [number, number] => [
+    stickyNoteRef.clientWidth,
+    stickyNoteRef.clientHeight,
+  ];
+
+  const getStickyRect = () => stickyNoteRef.getBoundingClientRect();
 
   const onStickyDelete = () => {
     if (confirm("Are you sure you want to delete this sticky note?")) {
@@ -123,10 +65,9 @@ export const Sticky = (props: StickyProps) => {
   };
 
   onMount(() => {
-    if (!props.sticky) {
-      return;
+    if (props.sticky) {
+      onStickyClick();
     }
-    onStickyClick();
   });
 
   return (
@@ -136,47 +77,30 @@ export const Sticky = (props: StickyProps) => {
       style={stickyStyle()}
       onClick={onStickyClick}
     >
-      {/* This element is used as a drag handle, to allow the usage of HTML drag API events w/o a ghost */}
-      <div
-        class="invisible-draggable-element"
-        ref={invisibleDragElement}
-        style={{ opacity: "0", height: "0.01rem" }}
-      >
-        &nbsp;
-      </div>
+      <StickyDragHandle
+        updateStickyPosition={(position) => props.updateSticky({ position })}
+        getStickyRect={getStickyRect}
+      />
 
-      {/* sticky note drag handle -- little dark bit at the top */}
-      <div
-        class="sticky-handle"
-        draggable="true"
-        onDragStart={onStickyDragStart}
-        onDrag={onStickyDrag}
-      >
-        <div class="delete-sticky" onClick={onStickyDelete}>
-          ✖️
-        </div>
-      </div>
+      <StickyDeleteButton deleteSticky={onStickyDelete} />
 
-      <div
-        ref={stickyNoteContentRef}
-        id={"sticky-content-" + props.sticky.id}
-        class="sticky-content"
-        style={{ "pointer-events": props.active ? "all" : "none" }}
-      ></div>
+      <StickyMarkdown
+        sticky={props.sticky}
+        active={props.active}
+        updateStickyMarkdown={(content) => props.updateSticky({ content })}
+      />
 
-      <div
-        class="sticky-expand-square"
-        draggable="true"
-        onDragStart={onStartResize}
-        onDragEnd={onResizeEnd}
-        onDrag={onResize}
-      ></div>
+      <StickyResizeCorner
+        dimensions={props.sticky.dimensions}
+        getStickySize={getStickySize}
+        updateStickyDimensions={(dimensions) =>
+          props.updateSticky({ dimensions })
+        }
+      />
 
-      <input
-        type="color"
-        class="sticky-color-picker"
-        value={props.sticky.color}
-        onInput={(e) => props.updateSticky({ color: e.currentTarget.value })}
+      <StickyColorInput
+        color={props.sticky.color}
+        updateColor={(color) => props.updateSticky({ color })}
       />
     </div>
   );
