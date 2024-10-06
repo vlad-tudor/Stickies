@@ -19,9 +19,15 @@
     height: var(--total-sticky-handle-height);
     width: 100%;
     background-color: rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: flex-end;
 
     &:hover {
       background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .delete-sticky {
+      font-size: 1.5rem;
     }
   }
 
@@ -52,10 +58,28 @@
     border-right: 2px solid rgb(50, 50, 50);
     opacity: 0.5;
 
+    box-shadow: none;
     &:hover,
     &:active {
       opacity: 1;
       border-width: 4px;
+    }
+  }
+
+  .sticky-color-picker {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+
+    opacity: 0.5;
+    border: 0;
+    padding: 0;
+
+    &:hover,
+    &:active {
+      opacity: 1;
     }
   }
 }

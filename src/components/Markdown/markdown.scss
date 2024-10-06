@@ -1,3 +1,4 @@
+// CSS overrides for the crepe markdown editor plugin thing
 .milkdown {
   --crepe-color-background: rgba(0, 0, 0, 0);
   --crepe-color-outline: rgba(0, 0, 0, 0.6);
@@ -8,5 +9,31 @@
     padding: 1rem;
     height: 100%;
     overflow-y: scroll;
+  }
+
+  .ProseMirror blockquote {
+    padding-left: 1rem;
+  }
+
+  milkdown-code-block {
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 0;
+
+    .cm-editor {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+    .cm-gutters {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .cm-content {
+    background-color: rgba(0, 0, 0, 0);
+  }
+  .cm-activeLine {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+  .codemirror-host {
+    background-color: rgba(0, 0, 0, 0.1);
   }
 }

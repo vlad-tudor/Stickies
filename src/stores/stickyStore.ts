@@ -12,27 +12,27 @@ const [stickyNoteStore, setStickyNoteStore] = createStore<{
   stickies: StickyNote[];
 }>({
   stickies: [
-    {
-      id: "one",
-      position: [50, 50],
-      dimensions: [300, 300],
-      content: "meow",
-      color: "#e3d46f",
-    },
-    {
-      id: "two",
-      position: [50, 50],
-      dimensions: [300, 300],
-      content: "### meow",
-      color: "#e3d46f",
-    },
-    {
-      id: "three",
-      position: [50, 50],
-      dimensions: [300, 300],
-      content: "# meow",
-      color: "#e3d46f",
-    },
+    // {
+    //   id: "one",
+    //   position: [50, 50],
+    //   dimensions: [300, 300],
+    //   content: "meow",
+    //   color: "#e3d46f",
+    // },
+    // {
+    //   id: "two",
+    //   position: [50, 50],
+    //   dimensions: [300, 300],
+    //   content: "### meow",
+    //   color: "#e3d46f",
+    // },
+    // {
+    //   id: "three",
+    //   position: [50, 50],
+    //   dimensions: [300, 300],
+    //   content: "# meow",
+    //   color: "#e3d46f",
+    // },
   ],
 });
 
@@ -54,4 +54,17 @@ const bringToFront = (index: number) => {
   const sticky = stickyNoteStore.stickies[index];
   const stickies = stickyNoteStore.stickies.filter((_, i) => i !== index);
   setStickyNoteStore("stickies", [...stickies, sticky]);
+};
+
+export const deleteStickyNote = (index: number) => {
+  const stickies = stickyNoteStore.stickies.filter((_, i) => i !== index);
+  setStickyNoteStore("stickies", stickies);
+};
+
+export const clearAllStickies = () => {
+  setStickyNoteStore("stickies", []);
+};
+
+export const createStickyNote = (sticky: StickyNote) => {
+  setStickyNoteStore("stickies", (prev) => [...prev, sticky]);
 };

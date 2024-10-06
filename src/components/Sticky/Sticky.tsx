@@ -16,14 +16,18 @@ type StickyProps = {
   sticky: StickyNote;
   active: boolean;
   updateSticky: (update: Partial<StickyNote>) => void;
+  deleteSticky: () => void;
 };
 
+/**
+ * NOTE: This has to be split up pronto, it's getting unmanageable
+ */
 export const Sticky = (props: StickyProps) => {
   const stickyStyle = () => ({
-    top: `${props.sticky.position[0]}px`,
-    left: `${props.sticky.position[1]}px`,
-    width: `${props.sticky.dimensions[0]}px`,
-    height: `${props.sticky.dimensions[1]}px`,
+    top: `${props.sticky.position?.[0]}px`,
+    left: `${props.sticky.position?.[1]}px`,
+    width: `${props.sticky.dimensions?.[0]}px`,
+    height: `${props.sticky.dimensions?.[1]}px`,
     ["background-color"]: props.sticky.color,
     border: props.active
       ? "2px solid rgba(0, 0, 0, 0.5)"
@@ -95,8 +99,9 @@ export const Sticky = (props: StickyProps) => {
     return starMarkdown;
   };
 
+  let shouldDelete = false;
   const onStickyClick = () => {
-    if (props.active) {
+    if (props.active || !props.sticky || shouldDelete) {
       return;
     }
 
@@ -110,7 +115,17 @@ export const Sticky = (props: StickyProps) => {
     props.updateSticky({});
   };
 
+  const onStickyDelete = () => {
+    if (confirm("Are you sure you want to delete this sticky note?")) {
+      shouldDelete = true;
+      props.deleteSticky();
+    }
+  };
+
   onMount(() => {
+    if (!props.sticky) {
+      return;
+    }
     onStickyClick();
   });
 
@@ -136,7 +151,11 @@ export const Sticky = (props: StickyProps) => {
         draggable="true"
         onDragStart={onStickyDragStart}
         onDrag={onStickyDrag}
-      ></div>
+      >
+        <div class="delete-sticky" onClick={onStickyDelete}>
+          ✖️
+        </div>
+      </div>
 
       <div
         ref={stickyNoteContentRef}
@@ -152,6 +171,13 @@ export const Sticky = (props: StickyProps) => {
         onDragEnd={onResizeEnd}
         onDrag={onResize}
       ></div>
+
+      <input
+        type="color"
+        class="sticky-color-picker"
+        value={props.sticky.color}
+        onInput={(e) => props.updateSticky({ color: e.currentTarget.value })}
+      />
     </div>
   );
 };
