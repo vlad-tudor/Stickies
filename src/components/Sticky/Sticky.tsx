@@ -4,7 +4,7 @@ import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
 import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
 import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
 
-import { StickyDragHandle } from "./SticktyDragHandle/SticktyDragHandle";
+import { StickyDragHandle } from "./StickyDragHandle/StickyDragHandle";
 import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
 
 import "./sticky.scss";
@@ -26,9 +26,14 @@ type StickyProps = {
 };
 
 /**
- * NOTE: This has to be split up pronto, it's getting unmanageable
+ * @note it's odd that we need the shouldDelete flag to prevent the sticky from lingering
  */
 export const Sticky = (props: StickyProps) => {
+  let stickyNoteRef!: HTMLDivElement;
+
+  // for some reason the updated sticky lingers on
+  let shouldDelete = false;
+
   const stickyStyle = () => ({
     top: `${props.sticky.position?.[0]}px`,
     left: `${props.sticky.position?.[1]}px`,
@@ -41,23 +46,18 @@ export const Sticky = (props: StickyProps) => {
     zIndex: props.index,
   });
 
-  let stickyNoteRef!: HTMLDivElement;
-
-  // for some reason the updated sticky lingers on
-  let shouldDelete = false;
-
-  const onStickyClick = () => {
-    if (!(props.active || !props.sticky || shouldDelete)) {
-      props.updateSticky({});
-    }
-  };
-
   const getStickySize = (): [number, number] => [
     stickyNoteRef.clientWidth,
     stickyNoteRef.clientHeight,
   ];
 
   const getStickyRect = () => stickyNoteRef.getBoundingClientRect();
+
+  const onStickyClick = () => {
+    if (!(props.active || !props.sticky || shouldDelete)) {
+      props.updateSticky({});
+    }
+  };
 
   const onStickyDelete = () => {
     if (confirm("Are you sure you want to delete this sticky note?")) {
