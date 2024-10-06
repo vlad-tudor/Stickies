@@ -1,0 +1,19 @@
+.whiteboard-actions {
+  button {
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid #000;
+    background-color: #f3ebe2;
+    cursor: pointer;
+    font-size: 2rem;
+  }
+  .create-sticky {
+    background-color: lightgreen;
+  }
+  .refresh-stickies-positions {
+    background-color: lightblue;
+  }
+  .clear-all-stickies {
+    background-color: lightcoral;
+  }
+}

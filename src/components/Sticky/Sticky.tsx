@@ -1,13 +1,14 @@
-import { createEffect, createSignal, onMount } from "solid-js";
-import { MarkdownProps, withMarkdownRecurse } from "../Markdown/withMarkdown";
+import { onMount } from "solid-js";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
 import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
 import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
 
-import "./sticky.scss";
 import { StickyDragHandle } from "./SticktyDragHandle/SticktyDragHandle";
 import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
+
+import "./sticky.scss";
+
 type StickyNote = {
   id: string;
   position: [number, number];
@@ -42,6 +43,7 @@ export const Sticky = (props: StickyProps) => {
 
   let stickyNoteRef!: HTMLDivElement;
 
+  // for some reason the updated sticky lingers on
   let shouldDelete = false;
 
   const onStickyClick = () => {
