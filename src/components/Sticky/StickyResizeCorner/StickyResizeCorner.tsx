@@ -38,11 +38,7 @@ export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
 
   return (
     <>
-      <div
-        class="invisible-resize-element"
-        ref={invisibleResizeElement}
-        style={{ opacity: "0", height: "0.01rem", width: "0.01rem" }}
-      >
+      <div class="invisible-resize-element" ref={invisibleResizeElement}>
         &nbsp;
       </div>
 

@@ -17,3 +17,8 @@
     border-width: 4px;
   }
 }
+
+.invisible-resize-element {
+  position: absolute;
+  height: 0.1rem;
+}

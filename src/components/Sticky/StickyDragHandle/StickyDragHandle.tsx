@@ -12,6 +12,7 @@ export const StickyDragHandle = (props: StickyDragHandleProps) => {
   let dragOffset = [0, 0];
 
   const onStickyDragStart = ({ dataTransfer, clientX, clientY }: DragEvent) => {
+    /** @note for some reason on safari you can't do these kinds of shenanigans. I wonder why */
     dataTransfer?.setDragImage(invisibleDragElement, 0, 0);
 
     // get the mouse position relative to the element
@@ -33,11 +34,7 @@ export const StickyDragHandle = (props: StickyDragHandleProps) => {
 
   return (
     <>
-      <div
-        class="invisible-draggable-element"
-        ref={invisibleDragElement}
-        style={{ opacity: "0", height: "0.01rem" }}
-      >
+      <div class="invisible-draggable-element" ref={invisibleDragElement}>
         &nbsp;
       </div>
 

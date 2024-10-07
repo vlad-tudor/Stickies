@@ -1,32 +1,52 @@
-# SolidStart
+# Stickies Project
 
-Everything you need to build a Solid project, powered by [`solid-start`](https://start.solidjs.com);
+This project is built using **SolidStart** and features a sticky notes application. Under the hood, it leverages **milkdown/crepe** for rich text editing capabilities.
 
-## Creating a project
+## Features
 
-```bash
-# create a new project in the current directory
-npm init solid@latest
+- Create and manage sticky notes
+- Rich text editing with milkdown/crepe
+- User-friendly interface for note-taking
 
-# create a new project in my-app
-npm init solid@latest my-app
-```
+## TODOs
 
-## Developing
+Long list of nice-to-haves
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Easy wins:
 
-```bash
-npm run dev
+- [ ] Import/export sticky notes
+- [ ] Sticky colour to influence text colour
+- [ ] Configurable background colour
+- [ ] stickies titles
+- [ ] images
+- [ ] (maybe) milkdown cursor hiding when switching sticky to edit
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+Medium wins:
 
-## Building
+- [ ] Grid organizing
+- [ ] Snap to grid
+- [ ] Working undo across stickies for position adjustments
+- [ ] Multiple stickies boards
+- [ ] Sticky to email
 
-Solid apps are built with _presets_, which optimise your project for deployment to different environments.
+Hard wins:
 
-By default, `npm run build` will generate a Node app that you can run with `npm start`. To use a different preset, add it to the `devDependencies` in `package.json` and specify in your `app.config.js`.
+- [ ] sticky board sharing via url
+- [ ] markdown drag/drop across stickies
+- [ ] collaborative sharing
+- [ ] javascript execution in stickies
 
-## This project was created with the [Solid CLI](https://solid-cli.netlify.app)
+## Getting Started
+
+To get started with the project, follow these steps:
+
+2. Install dependencies using `npm install`
+3. Run the dev server server with `npm run dev`
+
+## Contributing
+
+Feel free to submit issues or pull requests. Contributions are welcome!
+
+## License
+
+This project is licensed under the MIT License.

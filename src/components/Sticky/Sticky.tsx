@@ -34,7 +34,7 @@ export const Sticky = (props: StickyProps) => {
   // for some reason the updated sticky lingers on
   let shouldDelete = false;
 
-  const stickyStyle = () => ({
+  const stickyStyleOverrides = () => ({
     top: `${props.sticky.position?.[0]}px`,
     left: `${props.sticky.position?.[1]}px`,
     width: `${props.sticky.dimensions?.[0]}px`,
@@ -76,7 +76,7 @@ export const Sticky = (props: StickyProps) => {
     <div
       ref={stickyNoteRef}
       class="sticky"
-      style={stickyStyle()}
+      style={stickyStyleOverrides()}
       onClick={onStickyClick}
     >
       <StickyDragHandle
