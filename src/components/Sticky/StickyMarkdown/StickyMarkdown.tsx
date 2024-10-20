@@ -1,9 +1,11 @@
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, onMount } from "solid-js";
 import {
-  MarkdownProps,
-  withMarkdownRecurse,
+  loadMarkdownContent,
+  startMarkdownEditor,
 } from "~/components/Markdown/withMarkdown";
 import { StickyNote } from "~/stores/stickyStore";
+
+import "./sticky-markdown.scss";
 
 type StickyMarkdownProps = {
   sticky: StickyNote;
@@ -15,43 +17,35 @@ export const StickyMarkdown = (props: StickyMarkdownProps) => {
   const [initialised, hasInitialised] = createSignal(false);
   let stickyNoteContentRef!: HTMLDivElement;
 
-  let starMarkdown = async (markdownProps: MarkdownProps) => {
-    starMarkdown = await withMarkdownRecurse(markdownProps);
-    return starMarkdown;
-  };
-
   createEffect(async () => {
     if (props.active && !initialised()) {
-      await initialiseStickyMarkdown();
+      stickyNoteContentRef.innerHTML = "";
+      await startMarkdownEditor({
+        rootElementRef: stickyNoteContentRef,
+        previousMarkdown: props.sticky.content,
+        onMarkdownUpdated: (content) => props.updateStickyMarkdown(content),
+      });
+
       hasInitialised(true);
     } else if (!props.active && initialised()) {
       hasInitialised(false);
     }
   });
 
-  const initialiseStickyMarkdown = async () => {
+  onMount(() => {
     stickyNoteContentRef.innerHTML = "";
-    await starMarkdown({
+    loadMarkdownContent({
       rootElementRef: stickyNoteContentRef,
       previousMarkdown: props.sticky.content,
       onMarkdownUpdated: (content) => props.updateStickyMarkdown(content),
     });
-
-    /**
-     * @note this puts the cursor at the top of the editor.
-     * @note this is a hack to focus the editor when it's initialised.
-     * I'm sure there's a better way to do this using the ProseMirror API.
-     */
-    stickyNoteContentRef
-      .querySelector<HTMLElement>(".ProseMirror.editor")
-      ?.focus();
-  };
+  });
 
   return (
     <div
       ref={stickyNoteContentRef}
       id={"sticky-markdown-" + props.sticky.id}
-      class="sticky-markdown"
+      class={`sticky-markdown ${props.active ? "" : "inactive"}`}
       style={{ "pointer-events": props.active ? "all" : "none" }}
     ></div>
   );

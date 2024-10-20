@@ -36,6 +36,13 @@ export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
     resizeOffset = [clientX, clientY];
   };
 
+  const onResizeEnd = () => {
+    // let resizeOffset = [0, 0];
+    // log out thea actual html element dimensions
+    const stickySize = props.getStickySize();
+    props.updateStickyDimensions(stickySize);
+    // console.log("stickySize", stickySize);
+  };
   return (
     <>
       <div class="invisible-resize-element" ref={invisibleResizeElement}>
@@ -47,6 +54,7 @@ export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
         draggable="true"
         onDragStart={onStartResize}
         onDrag={onResize}
+        onDragEnd={onResizeEnd}
       ></div>
     </>
   );

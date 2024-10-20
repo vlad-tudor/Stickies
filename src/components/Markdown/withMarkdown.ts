@@ -1,6 +1,4 @@
-import { Crepe } from "@milkdown/crepe";
-
-import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
+import { CrepeSessionOrchestrator } from "./withCrepe";
 
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/nord.css";
@@ -10,36 +8,17 @@ import "./markdown.scss";
 export type MarkdownProps = {
   rootElementRef: HTMLDivElement;
   previousMarkdown?: string;
+  onBeforeDestroy?: () => void;
   onMarkdownUpdated: (markdown: string) => void;
 };
 
-export const withMarkdownRecurse = async ({
-  previousMarkdown,
-  rootElementRef,
-  onMarkdownUpdated,
-}: MarkdownProps) => {
-  const crepe = new Crepe({
-    root: rootElementRef,
-    features: {},
-    defaultValue: previousMarkdown,
-    featureConfigs: {
-      [Crepe.Feature.Placeholder]: {
-        text: "...",
-      },
-    },
-  });
+const orchestrator = new CrepeSessionOrchestrator();
 
-  crepe.editor.use(listener);
-  crepe.editor.config((ctx) => {
-    ctx
-      .get(listenerCtx)
-      .markdownUpdated((ctx, markdown) => onMarkdownUpdated(markdown));
-  });
+export const loadMarkdownContent = async (props: MarkdownProps) => {
+  orchestrator.createContentFillingSession(props);
+  // orchestrator.createEditorSession(props);
+};
 
-  await crepe.create();
-
-  return async (props: MarkdownProps) => {
-    await crepe.destroy();
-    return withMarkdownRecurse(props);
-  };
+export const startMarkdownEditor = async (props: MarkdownProps) => {
+  orchestrator.createEditorSession(props);
 };

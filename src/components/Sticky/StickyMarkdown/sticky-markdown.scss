@@ -11,4 +11,11 @@
   &:first-child {
     text-wrap: wrap;
   }
+
+  // MILKDOWN OVERRIDE
+  &.inactive {
+    milkdown-block-handle {
+      display: none;
+    }
+  }
 }
