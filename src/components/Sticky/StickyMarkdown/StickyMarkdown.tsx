@@ -1,8 +1,6 @@
-import { createEffect, createSignal, onMount } from "solid-js";
-import {
-  loadMarkdownContent,
-  startMarkdownEditor,
-} from "~/components/Markdown/withMarkdown";
+import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { untrack } from "solid-js/web";
+import { mountEditor, renderMarkdown } from "~/components/Markdown/markdownEditor";
 import { StickyNote } from "~/stores/stickyStore";
 
 import "./sticky-markdown.scss";
@@ -14,32 +12,35 @@ type StickyMarkdownProps = {
 };
 
 export const StickyMarkdown = (props: StickyMarkdownProps) => {
-  const [initialised, hasInitialised] = createSignal(false);
+  const [editorMounted, setEditorMounted] = createSignal(false);
   let stickyNoteContentRef!: HTMLDivElement;
+  let currentDestroy: (() => Promise<void>) | undefined;
 
-  createEffect(async () => {
-    if (props.active && !initialised()) {
-      stickyNoteContentRef.innerHTML = "";
-      await startMarkdownEditor({
-        rootElementRef: stickyNoteContentRef,
-        previousMarkdown: props.sticky.content,
-        onMarkdownUpdated: (content) => props.updateStickyMarkdown(content),
-      });
+  onMount(() => {
+    renderMarkdown(stickyNoteContentRef, props.sticky.content);
+  });
 
-      hasInitialised(true);
-    } else if (!props.active && initialised()) {
-      hasInitialised(false);
+  createEffect(() => {
+    const isActive = props.active;
+    const isMounted = editorMounted();
+
+    if (isActive && !isMounted) {
+      setEditorMounted(true);
+      const content = untrack(() => props.sticky.content);
+      mountEditor(stickyNoteContentRef, content, props.updateStickyMarkdown)
+        .then((destroy) => { currentDestroy = destroy; });
+    } else if (!isActive && isMounted) {
+      setEditorMounted(false);
+      if (currentDestroy) {
+        const destroy = currentDestroy;
+        currentDestroy = undefined;
+        const content = untrack(() => props.sticky.content);
+        destroy().then(() => renderMarkdown(stickyNoteContentRef, content));
+      }
     }
   });
 
-  onMount(() => {
-    stickyNoteContentRef.innerHTML = "";
-    loadMarkdownContent({
-      rootElementRef: stickyNoteContentRef,
-      previousMarkdown: props.sticky.content,
-      onMarkdownUpdated: (content) => props.updateStickyMarkdown(content),
-    });
-  });
+  onCleanup(() => { currentDestroy?.(); });
 
   return (
     <div
@@ -47,6 +48,6 @@ export const StickyMarkdown = (props: StickyMarkdownProps) => {
       id={"sticky-markdown-" + props.sticky.id}
       class={`sticky-markdown ${props.active ? "" : "inactive"}`}
       style={{ "pointer-events": props.active ? "all" : "none" }}
-    ></div>
+    />
   );
 };
