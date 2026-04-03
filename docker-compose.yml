@@ -1,0 +1,16 @@
+services:
+  stickies:
+    image: stickies:latest
+    restart: unless-stopped
+    networks:
+      - infra-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.stickies.rule=Host(`stickies.${DOMAIN}`)"
+      - "traefik.http.routers.stickies.entrypoints=websecure"
+      - "traefik.http.routers.stickies.tls.certresolver=letsencrypt"
+      - "traefik.http.services.stickies.loadbalancer.server.port=3000"
+
+networks:
+  infra-net:
+    external: true
