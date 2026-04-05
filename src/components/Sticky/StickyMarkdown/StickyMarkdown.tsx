@@ -1,6 +1,6 @@
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import { untrack } from "solid-js/web";
-import { mountEditor, renderMarkdown } from "~/components/Markdown/markdownEditor";
+import { type EditorHandle, mountEditor, renderMarkdown } from "~/components/Markdown/markdownEditor";
 import { StickyNote } from "~/stores/stickyStore";
 
 import "./sticky-markdown.scss";
@@ -8,16 +8,21 @@ import "./sticky-markdown.scss";
 type StickyMarkdownProps = {
   sticky: StickyNote;
   active: boolean;
+  initialHtml?: string;
   updateStickyMarkdown: (content: string) => void;
 };
 
 export const StickyMarkdown = (props: StickyMarkdownProps) => {
   const [editorMounted, setEditorMounted] = createSignal(false);
   let stickyNoteContentRef!: HTMLDivElement;
-  let currentDestroy: (() => Promise<void>) | undefined;
+  let editorHandle: EditorHandle | undefined;
 
   onMount(() => {
-    renderMarkdown(stickyNoteContentRef, props.sticky.content);
+    if (props.initialHtml) {
+      stickyNoteContentRef.innerHTML = props.initialHtml;
+    } else {
+      renderMarkdown(stickyNoteContentRef, props.sticky.content);
+    }
   });
 
   createEffect(() => {
@@ -28,19 +33,18 @@ export const StickyMarkdown = (props: StickyMarkdownProps) => {
       setEditorMounted(true);
       const content = untrack(() => props.sticky.content);
       mountEditor(stickyNoteContentRef, content, props.updateStickyMarkdown)
-        .then((destroy) => { currentDestroy = destroy; });
+        .then((handle) => { editorHandle = handle; });
     } else if (!isActive && isMounted) {
       setEditorMounted(false);
-      if (currentDestroy) {
-        const destroy = currentDestroy;
-        currentDestroy = undefined;
-        const content = untrack(() => props.sticky.content);
-        destroy().then(() => renderMarkdown(stickyNoteContentRef, content));
+      if (editorHandle) {
+        const handle = editorHandle;
+        editorHandle = undefined;
+        handle.destroy();
       }
     }
   });
 
-  onCleanup(() => { currentDestroy?.(); });
+  onCleanup(() => { editorHandle?.destroy(); });
 
   return (
     <div

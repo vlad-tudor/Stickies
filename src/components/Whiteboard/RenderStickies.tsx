@@ -1,32 +1,38 @@
-import { For, onMount } from "solid-js";
+import { createSignal, For, onMount, Show } from "solid-js";
 import {
   stickies,
   updateStickyNote,
   deleteStickyNote,
   loadStickiesFromLocalStorage,
 } from "~/stores/stickyStore";
+import { preRenderAll } from "~/components/Markdown/markdownEditor";
 import { Sticky } from "../Sticky/Sticky";
 
 export const RenderStickies = () => {
-  /**
-   * @note perhaps more suited to load stickies at some grander INIT step later on,
-   *  -- perhaps as the actual stickies page loads?
-   * */
-  onMount(() => {
+  const [preRendered, setPreRendered] = createSignal<Map<string, string> | null>(null);
+
+  onMount(async () => {
     loadStickiesFromLocalStorage();
+    const rendered = await preRenderAll(stickies());
+    setPreRendered(rendered);
   });
 
   return (
-    <For each={stickies()}>
-      {(sticky, index) => (
-        <Sticky
-          index={index()}
-          active={index() === stickies().length - 1}
-          sticky={sticky}
-          updateSticky={(update) => updateStickyNote(index(), update)}
-          deleteSticky={() => deleteStickyNote(index())}
-        />
+    <Show when={preRendered()}>
+      {(htmlMap) => (
+        <For each={stickies()}>
+          {(sticky, index) => (
+            <Sticky
+              index={index()}
+              active={index() === stickies().length - 1}
+              sticky={sticky}
+              initialHtml={htmlMap().get(sticky.id)}
+              updateSticky={(update) => updateStickyNote(index(), update)}
+              deleteSticky={() => deleteStickyNote(index())}
+            />
+          )}
+        </For>
       )}
-    </For>
+    </Show>
   );
 };

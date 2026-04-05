@@ -21,6 +21,7 @@ type StickyProps = {
   index: number;
   sticky: StickyNote;
   active: boolean;
+  initialHtml?: string;
   updateSticky: (update: Partial<StickyNote>) => void;
   deleteSticky: () => void;
 };
@@ -89,6 +90,7 @@ export const Sticky = (props: StickyProps) => {
       <StickyMarkdown
         sticky={props.sticky}
         active={props.active}
+        initialHtml={props.initialHtml}
         updateStickyMarkdown={(content) => props.updateSticky({ content })}
       />
 
