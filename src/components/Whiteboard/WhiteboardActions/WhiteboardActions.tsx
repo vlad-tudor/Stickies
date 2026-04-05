@@ -5,6 +5,7 @@ import {
   importStickies,
   StickyNote,
 } from "~/stores/stickyStore";
+import { downloadJson, readJsonFile } from "~/utils/fileIO";
 import "./whiteboard-actions.scss";
 
 export const WhiteboardActions = () => {
@@ -33,27 +34,16 @@ export const WhiteboardActions = () => {
   };
 
   const onExport = () => {
-    const json = exportStickies();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "stickies.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadJson(exportStickies(), "stickies.json");
   };
 
-  const onFileSelected = (e: Event) => {
+  const onFileSelected = async (e: Event) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const imported = JSON.parse(reader.result as string) as StickyNote[];
-      importStickies(imported);
-      window.location.reload();
-    };
-    reader.readAsText(file);
+    const imported = await readJsonFile<StickyNote[]>(file);
+    importStickies(imported);
+    window.location.reload();
   };
 
   return (

@@ -1,3 +1,4 @@
+import { useDrag } from "~/hooks/useDrag";
 import "./sticky-resize-corner.scss";
 
 type StickyResizeCornerProps = {
@@ -7,55 +8,38 @@ type StickyResizeCornerProps = {
 };
 
 export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
-  let invisibleResizeElement!: HTMLDivElement;
-
-  /** @note resize logic --  perhaps move to its own component/hook */
   let resizeOffset = [0, 0];
 
-  const onStartResize = ({ dataTransfer, clientX, clientY }: DragEvent) => {
-    // onStickyClick();
-    dataTransfer?.setDragImage(invisibleResizeElement, 0, 0);
-    // update the resizeOffset for during the resize
-    resizeOffset = [clientX, clientY];
-  };
+  const drag = useDrag({
+    onStart: (e) => {
+      resizeOffset = [e.clientX, e.clientY];
+    },
+    onMove: (e) => {
+      const xDelta = e.clientX - resizeOffset[0];
+      const yDelta = e.clientY - resizeOffset[1];
+      props.updateStickyDimensions([
+        props.dimensions[0] + xDelta,
+        props.dimensions[1] + yDelta,
+      ]);
+      resizeOffset = [e.clientX, e.clientY];
+    },
+    onEnd: () => {
+      props.updateStickyDimensions(props.getStickySize());
+    },
+  });
 
-  const onResize = ({ clientX, clientY }: MouseEvent) => {
-    if (clientX === 0 && clientY === 0) {
-      return;
-    }
-
-    const xLength = clientX - resizeOffset[0];
-    const yLength = clientY - resizeOffset[1];
-
-    const newDimensions: [number, number] = [
-      props.dimensions[0] + xLength,
-      props.dimensions[1] + yLength,
-    ];
-
-    props.updateStickyDimensions(newDimensions);
-    resizeOffset = [clientX, clientY];
-  };
-
-  const onResizeEnd = () => {
-    // let resizeOffset = [0, 0];
-    // log out thea actual html element dimensions
-    const stickySize = props.getStickySize();
-    props.updateStickyDimensions(stickySize);
-    // console.log("stickySize", stickySize);
-  };
   return (
     <>
-      <div class="invisible-resize-element" ref={invisibleResizeElement}>
+      <div class="invisible-resize-element" ref={drag.setInvisibleEl}>
         &nbsp;
       </div>
-
       <div
         class="sticky-expand-square"
         draggable="true"
-        onDragStart={onStartResize}
-        onDrag={onResize}
-        onDragEnd={onResizeEnd}
-      ></div>
+        onDragStart={drag.onDragStart}
+        onDrag={drag.onDrag}
+        onDragEnd={drag.onDragEnd}
+      />
     </>
   );
 };

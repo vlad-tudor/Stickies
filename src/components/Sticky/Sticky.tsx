@@ -1,4 +1,5 @@
 import { createSignal, onMount, Show } from "solid-js";
+import { StickyNote } from "~/stores/stickyStore";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
 import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
@@ -8,15 +9,6 @@ import { StickyDragHandle } from "./StickyDragHandle/StickyDragHandle";
 import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
 
 import "./sticky.scss";
-
-type StickyNote = {
-  id: string;
-  title?: string;
-  position: [number, number];
-  dimensions: [number, number];
-  content: string; // markdown
-  color: string;
-};
 
 type StickyProps = {
   index: number;
