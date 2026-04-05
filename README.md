@@ -16,10 +16,10 @@ Easy wins:
 
 - [x] Raw markdown toggle per sticky
 - [ ] Copy button per block (clipboard icon on hover for each top-level element)
-- [ ] Import/export sticky notes
+- [x] Import/export sticky notes
 - [ ] Sticky colour to influence text colour
-- [ ] Configurable background colour
-- [ ] stickies titles
+- [ ] Configurable board background colour
+- [x] Stickies titles
 - [ ] images
 - [ ] (maybe) milkdown cursor hiding when switching sticky to edit
 
@@ -32,6 +32,9 @@ Medium wins:
 - [ ] Multiple stickies boards
 - [ ] Sticky to email
 - [ ] Cross-sticky cut/paste (copy block as markdown, cut removes from source)
+- [ ] Prevent stickies from being placed below the viewport (all stickies should be visible)
+- [ ] Click+drag on the board to pan (shortcut: drag all stickies together)
+- [ ] Dot grid / graph-paper texture on the board background
 
 Hard wins:
 
@@ -39,6 +42,12 @@ Hard wins:
 - [ ] markdown drag/drop across stickies
 - [ ] collaborative sharing
 - [ ] javascript execution in stickies
+
+## Styling revisions
+
+- [ ] Tidy sticky note display — add shadows
+- [ ] Expand drag handle cursor change area of effect
+- [ ] Tidy up action buttons
 
 ## Getting Started
 
