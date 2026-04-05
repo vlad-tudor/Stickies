@@ -5,7 +5,6 @@
   min-height: calc(
     var(--total-sticky-height) - var(--total-sticky-handle-height)
   );
-
   text-wrap: wrap;
 
   &:first-child {
