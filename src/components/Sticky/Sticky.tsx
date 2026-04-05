@@ -1,4 +1,4 @@
-import { onMount } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
 import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
@@ -31,6 +31,7 @@ type StickyProps = {
  */
 export const Sticky = (props: StickyProps) => {
   let stickyNoteRef!: HTMLDivElement;
+  const [rawMode, setRawMode] = createSignal(false);
 
   // for some reason the updated sticky lingers on
   let shouldDelete = false;
@@ -85,11 +86,19 @@ export const Sticky = (props: StickyProps) => {
         getStickyRect={getStickyRect}
       />
 
+      <button
+        class={`sticky-raw-toggle ${rawMode() ? "active" : ""}`}
+        onClick={() => setRawMode(!rawMode())}
+      >
+        {"</>"}
+      </button>
+
       <StickyDeleteButton deleteSticky={onStickyDelete} />
 
       <StickyMarkdown
         sticky={props.sticky}
         active={props.active}
+        rawMode={rawMode()}
         initialHtml={props.initialHtml}
         updateStickyMarkdown={(content) => props.updateSticky({ content })}
       />

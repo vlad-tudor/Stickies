@@ -18,3 +18,20 @@
     }
   }
 }
+
+.sticky-markdown-raw {
+  flex: auto;
+  width: 100%;
+  min-height: calc(var(--total-sticky-height) - var(--total-sticky-handle-height));
+  padding: 1rem;
+  background: transparent;
+  border: none;
+  resize: none;
+  font-family: monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  outline: none;
+  overflow-y: auto;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  scrollbar-width: thin;
+}
