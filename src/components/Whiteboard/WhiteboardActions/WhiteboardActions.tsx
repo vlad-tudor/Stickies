@@ -1,7 +1,15 @@
-import { clearAllStickies, createStickyNote } from "~/stores/stickyStore";
+import {
+  clearAllStickies,
+  createStickyNote,
+  exportStickies,
+  importStickies,
+  StickyNote,
+} from "~/stores/stickyStore";
 import "./whiteboard-actions.scss";
 
 export const WhiteboardActions = () => {
+  let fileInputRef!: HTMLInputElement;
+
   const onClearAllStickies = () => {
     if (confirm("Are you sure you want to clear all stickies?")) {
       clearAllStickies();
@@ -24,6 +32,30 @@ export const WhiteboardActions = () => {
     });
   };
 
+  const onExport = () => {
+    const json = exportStickies();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "stickies.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const onFileSelected = (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const imported = JSON.parse(reader.result as string) as StickyNote[];
+      importStickies(imported);
+      window.location.reload();
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div class="whiteboard-actions">
       <button class="create-sticky" onClick={onStickyCreate}>
@@ -35,6 +67,19 @@ export const WhiteboardActions = () => {
       <button class="clear-all-stickies" onClick={onClearAllStickies}>
         🗑️
       </button>
+      <button class="export-stickies" onClick={onExport}>
+        Export
+      </button>
+      <button class="import-stickies" onClick={() => fileInputRef.click()}>
+        Import
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        style={{ display: "none" }}
+        onChange={onFileSelected}
+      />
     </div>
   );
 };

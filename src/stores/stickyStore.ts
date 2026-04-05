@@ -73,3 +73,12 @@ export const loadStickiesFromLocalStorage = () => {
     setStickyNoteStore("stickies", parsedStickies);
   }
 };
+
+export const importStickies = (imported: StickyNote[]) => {
+  setStickyNoteStore("stickies", imported);
+  persistStickiesToLocalStorage();
+};
+
+export const exportStickies = (): string => {
+  return JSON.stringify(stickyNoteStore.stickies, null, 2);
+};
