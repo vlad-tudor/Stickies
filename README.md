@@ -14,6 +14,8 @@ Long list of nice-to-haves
 
 Easy wins:
 
+- [x] Raw markdown toggle per sticky
+- [ ] Copy button per block (clipboard icon on hover for each top-level element)
 - [ ] Import/export sticky notes
 - [ ] Sticky colour to influence text colour
 - [ ] Configurable background colour
@@ -26,8 +28,10 @@ Medium wins:
 - [ ] Grid organizing
 - [ ] Snap to grid
 - [ ] Working undo across stickies for position adjustments
+- [ ] Working undo across stickies for text edits
 - [ ] Multiple stickies boards
 - [ ] Sticky to email
+- [ ] Cross-sticky cut/paste (copy block as markdown, cut removes from source)
 
 Hard wins:
 

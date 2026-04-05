@@ -1,4 +1,4 @@
-import { createSignal, onMount } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
 import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
@@ -11,6 +11,7 @@ import "./sticky.scss";
 
 type StickyNote = {
   id: string;
+  title?: string;
   position: [number, number];
   dimensions: [number, number];
   content: string; // markdown
@@ -31,7 +32,11 @@ type StickyProps = {
  */
 export const Sticky = (props: StickyProps) => {
   let stickyNoteRef!: HTMLDivElement;
+  let titleInputRef!: HTMLInputElement;
   const [rawMode, setRawMode] = createSignal(false);
+  const [editingTitle, setEditingTitle] = createSignal(false);
+
+  const displayTitle = () => props.sticky.title || `Sticky ${props.index + 1}`;
 
   // for some reason the updated sticky lingers on
   let shouldDelete = false;
@@ -92,6 +97,34 @@ export const Sticky = (props: StickyProps) => {
       >
         {"</>"}
       </button>
+
+      <div class="sticky-title-bar">
+        <Show when={editingTitle()} fallback={
+          <>
+            <span class="sticky-title-label">{displayTitle()}</span>
+            <button
+              class="sticky-title-edit"
+              onClick={() => {
+                setEditingTitle(true);
+                requestAnimationFrame(() => titleInputRef?.focus());
+              }}
+            >
+              ...
+            </button>
+          </>
+        }>
+          <input
+            ref={titleInputRef}
+            class="sticky-title-input"
+            type="text"
+            value={props.sticky.title ?? ""}
+            placeholder={`Sticky ${props.index + 1}`}
+            onInput={(e) => props.updateSticky({ title: e.currentTarget.value })}
+            onBlur={() => setEditingTitle(false)}
+            onKeyDown={(e) => { if (e.key === "Enter") titleInputRef?.blur(); }}
+          />
+        </Show>
+      </div>
 
       <StickyDeleteButton deleteSticky={onStickyDelete} />
 

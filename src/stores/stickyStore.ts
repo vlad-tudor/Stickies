@@ -4,6 +4,7 @@ const LOCAL_STORAGE_KEY = "stickies-storage";
 
 export type StickyNote = {
   id: string;
+  title?: string;
   position: [number, number];
   dimensions: [number, number];
   content: string; // markdown
