@@ -2,6 +2,8 @@ import { Crepe } from "@milkdown/crepe";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { replaceAll } from "@milkdown/utils";
 import { marked } from "marked";
+import { SquareDashedMousePointer } from "lucide-static";
+import { blockSelect } from "~/plugins/blockSelect";
 
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/nord.css";
@@ -78,10 +80,11 @@ export async function mountEditor(
     defaultValue: markdown,
     featureConfigs: {
       [Crepe.Feature.Placeholder]: { text: "..." },
+      [Crepe.Feature.BlockEdit]: { handleDragIcon: SquareDashedMousePointer },
     },
   });
 
-  crepe.editor.use(listener);
+  crepe.editor.use(listener).use(blockSelect);
   crepe.editor.config((ctx) => {
     ctx.get(listenerCtx).markdownUpdated((_ctx, md) => onChange(md));
   });

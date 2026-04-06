@@ -2,7 +2,7 @@
 .milkdown {
   --crepe-color-background: transparent;
   --crepe-color-outline: rgba(0, 0, 0, 0.6);
-  --crepe-color-selected: rgba(0, 0, 0, 0.4);
+  --crepe-color-selected: rgba(100, 160, 255, 0.35);
 
   background: transparent;
   height: 100%;
@@ -15,8 +15,10 @@
     scrollbar-width: thin;
   }
 
-  .ProseMirror blockquote {
-    padding-left: 1rem;
+  .ProseMirror {
+    blockquote {
+      padding-left: 1rem;
+    }
   }
 
   milkdown-code-block {
