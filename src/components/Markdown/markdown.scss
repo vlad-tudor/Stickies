@@ -21,25 +21,24 @@
     }
   }
 
-  milkdown-code-block {
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 0;
+  .milkdown-code-block {
+    background: rgba(0, 0, 0, 0.06);
 
     .cm-editor {
-      background-color: rgba(0, 0, 0, 0.1);
+      background: transparent;
     }
     .cm-gutters {
-      background-color: rgba(0, 0, 0, 0.1);
+      background: rgba(0, 0, 0, 0.04);
     }
   }
 
   .cm-content {
-    background-color: rgba(0, 0, 0, 0);
+    background: transparent;
   }
   .cm-activeLine {
-    background-color: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.05);
   }
   .codemirror-host {
-    background-color: rgba(0, 0, 0, 0.1);
+    background: transparent;
   }
 }
