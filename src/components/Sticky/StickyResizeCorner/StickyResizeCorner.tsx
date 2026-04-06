@@ -3,7 +3,6 @@ import "./sticky-resize-corner.scss";
 
 type StickyResizeCornerProps = {
   dimensions: [number, number];
-  getStickySize: () => [number, number];
   updateStickyDimensions: (update: [number, number]) => void;
 };
 
@@ -11,6 +10,7 @@ export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
   let resizeOffset = [0, 0];
 
   const drag = useDrag({
+    cursor: "nwse-resize",
     onStart: (e) => {
       resizeOffset = [e.clientX, e.clientY];
     },
@@ -23,23 +23,12 @@ export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
       ]);
       resizeOffset = [e.clientX, e.clientY];
     },
-    onEnd: () => {
-      props.updateStickyDimensions(props.getStickySize());
-    },
   });
 
   return (
-    <>
-      <div class="invisible-resize-element" ref={drag.setInvisibleEl}>
-        &nbsp;
-      </div>
-      <div
-        class="sticky-expand-square"
-        draggable="true"
-        onDragStart={drag.onDragStart}
-        onDrag={drag.onDrag}
-        onDragEnd={drag.onDragEnd}
-      />
-    </>
+    <div
+      class="sticky-expand-square"
+      onPointerDown={drag.onPointerDown}
+    />
   );
 };

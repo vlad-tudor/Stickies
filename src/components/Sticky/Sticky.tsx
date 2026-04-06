@@ -45,11 +45,6 @@ export const Sticky = (props: StickyProps) => {
     zIndex: props.index,
   });
 
-  const getStickySize = (): [number, number] => [
-    stickyNoteRef.clientWidth,
-    stickyNoteRef.clientHeight,
-  ];
-
   const getStickyRect = () => stickyNoteRef.getBoundingClientRect();
 
   const onStickyClick = () => {
@@ -130,7 +125,6 @@ export const Sticky = (props: StickyProps) => {
 
       <StickyResizeCorner
         dimensions={props.sticky.dimensions}
-        getStickySize={getStickySize}
         updateStickyDimensions={(dimensions) =>
           props.updateSticky({ dimensions })
         }

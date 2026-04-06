@@ -10,6 +10,7 @@ export const StickyDragHandle = (props: StickyDragHandleProps) => {
   let dragOffset = [0, 0];
 
   const drag = useDrag({
+    cursor: "grabbing",
     onStart: (e) => {
       const rect = props.getStickyRect();
       dragOffset = [e.clientX - rect.left, e.clientY - rect.top];
@@ -23,16 +24,9 @@ export const StickyDragHandle = (props: StickyDragHandleProps) => {
   });
 
   return (
-    <>
-      <div class="invisible-draggable-element" ref={drag.setInvisibleEl}>
-        &nbsp;
-      </div>
-      <div
-        class="sticky-drag-handle"
-        draggable="true"
-        onDragStart={drag.onDragStart}
-        onDrag={drag.onDrag}
-      />
-    </>
+    <div
+      class="sticky-drag-handle"
+      onPointerDown={drag.onPointerDown}
+    />
   );
 };

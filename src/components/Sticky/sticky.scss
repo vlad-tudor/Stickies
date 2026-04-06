@@ -22,7 +22,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1;
   pointer-events: none;
 
   > * {
@@ -85,7 +84,6 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  z-index: 1;
 
   &:hover {
     color: rgba(0, 0, 0, 0.7);
