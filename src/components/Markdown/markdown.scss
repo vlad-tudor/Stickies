@@ -1,6 +1,7 @@
 // CSS overrides for the crepe markdown editor plugin thing
 .milkdown {
   --crepe-color-background: transparent;
+  --crepe-color-on-background: inherit;
   --crepe-color-outline: rgba(0, 0, 0, 0.6);
   --crepe-color-selected: rgba(100, 160, 255, 0.35);
 
@@ -22,13 +23,24 @@
   }
 
   .milkdown-code-block {
-    background: rgba(0, 0, 0, 0.06);
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.9);
 
     .cm-editor {
-      background: transparent;
+      background: rgba(0, 0, 0, 0.85);
+      color: rgba(255, 255, 255, 0.9);
     }
     .cm-gutters {
-      background: rgba(0, 0, 0, 0.04);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.35);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .cm-activeLineGutter {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .cm-cursor {
+      border-left-color: rgba(255, 255, 255, 0.9);
     }
   }
 
@@ -36,7 +48,7 @@
     background: transparent;
   }
   .cm-activeLine {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.05);
   }
   .codemirror-host {
     background: transparent;

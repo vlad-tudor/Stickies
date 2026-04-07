@@ -3,12 +3,12 @@
   min-height: 2rem;
   height: var(--total-sticky-handle-height);
   width: 100%;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
   display: flex;
   justify-content: flex-end;
   cursor: pointer;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: color-mix(in srgb, currentColor 20%, transparent);
   }
 }

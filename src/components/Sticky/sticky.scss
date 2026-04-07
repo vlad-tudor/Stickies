@@ -1,7 +1,6 @@
 .sticky {
   --total-sticky-height: 20rem;
   --total-sticky-handle-height: 2rem;
-  --sticky-color: #ffffff;
 
   position: absolute;
   min-width: 20rem;
@@ -10,7 +9,25 @@
   display: flex;
   flex-direction: column;
 
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  &.light {
+    color: rgba(0, 0, 0, 0.85);
+    --crepe-color-on-background: rgba(0, 0, 0, 0.85);
+    border: 2px solid rgba(0, 0, 0, 0.2);
+
+    &.active {
+      border-color: rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  &.dark {
+    color: rgba(255, 255, 255, 0.9);
+    --crepe-color-on-background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+
+    &.active {
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+  }
 }
 
 .sticky-title-bar {
@@ -32,7 +49,7 @@
 .sticky-title-label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.6);
+  opacity: 0.7;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -42,13 +59,13 @@
   background: none;
   border: none;
   font-size: 0.75rem;
-  color: rgba(0, 0, 0, 0.35);
+  opacity: 0.4;
   cursor: pointer;
   padding: 0 0.25rem;
   margin-left: 0.25rem;
 
   &:hover {
-    color: rgba(0, 0, 0, 0.7);
+    opacity: 0.8;
   }
 }
 
@@ -57,15 +74,16 @@
   height: 2rem;
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid currentColor;
   outline: none;
   text-align: center;
   font-size: 0.8rem;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.6);
+  opacity: 0.7;
 
   &::placeholder {
-    color: rgba(0, 0, 0, 0.25);
+    color: inherit;
+    opacity: 0.35;
     font-weight: 400;
   }
 }
@@ -80,17 +98,17 @@
   border: none;
   font-family: monospace;
   font-size: 0.75rem;
-  color: rgba(0, 0, 0, 0.4);
+  opacity: 0.45;
   cursor: pointer;
   display: flex;
   align-items: center;
 
   &:hover {
-    color: rgba(0, 0, 0, 0.7);
+    opacity: 0.8;
   }
 
   &.active {
-    color: rgba(0, 0, 0, 0.8);
-    background: rgba(0, 0, 0, 0.1);
+    opacity: 0.9;
+    background: currentColor;
   }
 }

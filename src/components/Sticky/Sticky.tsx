@@ -7,6 +7,7 @@ import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
 
 import { StickyDragHandle } from "./StickyDragHandle/StickyDragHandle";
 import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
+import { isLightBackground } from "~/utils/color";
 
 import "./sticky.scss";
 
@@ -33,15 +34,17 @@ export const Sticky = (props: StickyProps) => {
   // for some reason the updated sticky lingers on
   let shouldDelete = false;
 
+  const stickyClass = () => {
+    const theme = isLightBackground(props.sticky.color) ? "light" : "dark";
+    return `sticky ${theme}${props.active ? " active" : ""}`;
+  };
+
   const stickyStyleOverrides = () => ({
     top: `${props.sticky.position?.[0]}px`,
     left: `${props.sticky.position?.[1]}px`,
     width: `${props.sticky.dimensions?.[0]}px`,
     height: `${props.sticky.dimensions?.[1]}px`,
     ["background-color"]: props.sticky.color,
-    border: props.active
-      ? "2px solid rgba(0, 0, 0, 0.5)"
-      : "2px solid rgba(0, 0, 0, 0.2)",
     zIndex: props.index,
   });
 
@@ -69,7 +72,7 @@ export const Sticky = (props: StickyProps) => {
   return (
     <div
       ref={stickyNoteRef}
-      class="sticky"
+      class={stickyClass()}
       style={stickyStyleOverrides()}
       onClick={onStickyClick}
     >
