@@ -8,7 +8,12 @@ import {
 import { downloadJson, readJsonFile } from "~/utils/fileIO";
 import "./whiteboard-actions.scss";
 
-export const WhiteboardActions = () => {
+type WhiteboardActionsProps = {
+  bgColor: string;
+  updateBgColor: (color: string) => void;
+};
+
+export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   let fileInputRef!: HTMLInputElement;
 
   const onClearAllStickies = () => {
@@ -69,6 +74,12 @@ export const WhiteboardActions = () => {
         accept=".json"
         style={{ display: "none" }}
         onChange={onFileSelected}
+      />
+      <input
+        type="color"
+        class="whiteboard-bg-picker"
+        value={props.bgColor}
+        onInput={(e) => props.updateBgColor(e.currentTarget.value)}
       />
     </div>
   );
