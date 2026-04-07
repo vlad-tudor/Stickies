@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import {
   clearAllStickies,
   createStickyNote,
@@ -6,6 +7,7 @@ import {
   StickyNote,
 } from "~/stores/stickyStore";
 import { downloadJson, readJsonFile } from "~/utils/fileIO";
+import { Download, Upload } from "lucide-static";
 import "./whiteboard-actions.scss";
 
 type WhiteboardActionsProps = {
@@ -15,6 +17,7 @@ type WhiteboardActionsProps = {
 
 export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   let fileInputRef!: HTMLInputElement;
+  const [open, setOpen] = createSignal(false);
 
   const onClearAllStickies = () => {
     if (confirm("Are you sure you want to clear all stickies?")) {
@@ -52,35 +55,36 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   };
 
   return (
-    <div class="whiteboard-actions">
+    <div class={`whiteboard-actions ${open() ? "open" : ""}`}>
       <button class="create-sticky" onClick={onStickyCreate}>
         +
       </button>
 
-      {/* will cleverly position all the sticky elements under each other */}
-      <button class="refresh-stickies-positions">🔄</button>
-      <button class="clear-all-stickies" onClick={onClearAllStickies}>
-        🗑️
+      <button class="drawer-toggle" onClick={() => setOpen(!open())}>
+        {open() ? "\u2715" : "\u2630"}
       </button>
-      <button class="export-stickies" onClick={onExport}>
-        Export
-      </button>
-      <button class="import-stickies" onClick={() => fileInputRef.click()}>
-        Import
-      </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        style={{ display: "none" }}
-        onChange={onFileSelected}
-      />
-      <input
-        type="color"
-        class="whiteboard-bg-picker"
-        value={props.bgColor}
-        onInput={(e) => props.updateBgColor(e.currentTarget.value)}
-      />
+
+      <div class="drawer-content">
+        <button class="refresh-stickies-positions">{"\uD83D\uDD04"}</button>
+        <button class="clear-all-stickies" onClick={onClearAllStickies}>
+          {"\uD83D\uDDD1\uFE0F"}
+        </button>
+        <button class="export-stickies" title="Export stickies" onClick={onExport} innerHTML={Download} />
+        <button class="import-stickies" title="Import stickies" onClick={() => fileInputRef.click()} innerHTML={Upload} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          style={{ display: "none" }}
+          onChange={onFileSelected}
+        />
+        <input
+          type="color"
+          class="whiteboard-bg-picker"
+          value={props.bgColor}
+          onInput={(e) => props.updateBgColor(e.currentTarget.value)}
+        />
+      </div>
     </div>
   );
 };

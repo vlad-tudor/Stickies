@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 import { WhiteboardActions } from "./WhiteboardActions/WhiteboardActions";
 import { RenderStickies } from "./RenderStickies";
 
@@ -12,9 +12,12 @@ const DEFAULT_BG = "#f3ebe2";
  * Right now there's nothing special about the whiteboard itself
  */
 export const Whiteboard = () => {
-  const [bgColor, setBgColor] = createSignal(
-    localStorage.getItem(BG_KEY) ?? DEFAULT_BG,
-  );
+  const [bgColor, setBgColor] = createSignal(DEFAULT_BG);
+
+  onMount(() => {
+    const stored = localStorage.getItem(BG_KEY);
+    if (stored) setBgColor(stored);
+  });
 
   const updateBgColor = (color: string) => {
     setBgColor(color);

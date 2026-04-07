@@ -1,30 +1,75 @@
 .whiteboard-actions {
-  button {
-    width: 3rem;
-    height: 3rem;
-    border: 1px solid #000;
-    background-color: #f3ebe2;
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1000;
+  display: flex;
+  gap: 0.25rem;
+  align-items: flex-start;
+
+  .create-sticky,
+  .drawer-toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(4px);
     cursor: pointer;
-    font-size: 2rem;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
+
   .create-sticky {
-    background-color: lightgreen;
+    background: rgba(144, 238, 144, 0.85);
   }
-  .refresh-stickies-positions {
-    background-color: lightblue;
+
+  .drawer-content {
+    display: flex;
+    gap: 0.25rem;
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    transition: max-width 0.2s ease, opacity 0.15s ease;
   }
-  .clear-all-stickies {
-    background-color: lightcoral;
+
+  &.open .drawer-content {
+    max-width: 30rem;
+    opacity: 1;
   }
+
+  .drawer-content button {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
   .export-stickies,
   .import-stickies {
-    font-size: 0.8rem;
+    padding: 0.5rem;
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
   }
+
   .whiteboard-bg-picker {
-    width: 3rem;
-    height: 3rem;
-    padding: 0.25rem;
-    border: 1px solid #000;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.2rem;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
     cursor: pointer;
+    flex-shrink: 0;
   }
 }
