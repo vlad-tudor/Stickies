@@ -54,10 +54,12 @@ export const updateStickyNote = (
 export const deleteStickyNote = (index: number) => {
   const stickies = stickyNoteStore.stickies.filter((_, i) => i !== index);
   setStickyNoteStore("stickies", stickies);
+  persistStickiesToLocalStorage();
 };
 
 export const clearAllStickies = () => {
   setStickyNoteStore("stickies", []);
+  persistStickiesToLocalStorage();
 };
 
 export const createStickyNote = (sticky: StickyNote) => {

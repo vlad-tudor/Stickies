@@ -11,6 +11,7 @@ export const StickyColorInput = (props: StickyColorInputProps) => (
     type="color"
     class="sticky-color-input"
     value={props.color}
+    onClick={(e) => e.stopPropagation()}
     onInput={(e) => props.updateColor(e.currentTarget.value)}
   />
 );
