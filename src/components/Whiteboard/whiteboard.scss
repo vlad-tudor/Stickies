@@ -1,8 +1,13 @@
+.whiteboard-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .whiteboard {
   position: relative;
-
-  min-width: 100vw;
-  min-height: 100vh;
+  flex: 1;
+  min-height: calc(100vh - 2.25rem);
   border: 1px solid #000;
   overflow: hidden;
 }

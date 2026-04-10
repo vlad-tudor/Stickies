@@ -1,9 +1,10 @@
-import { createSignal, For, onMount, Show } from "solid-js";
+import { createEffect, createSignal, For, on, onMount, Show } from "solid-js";
 import {
   stickies,
+  activeBoardId,
   updateStickyNote,
   deleteStickyNote,
-  loadStickiesFromLocalStorage,
+  loadBoards,
 } from "~/stores/stickyStore";
 import { preRenderAll } from "~/components/Markdown/markdownEditor";
 import { Sticky } from "../Sticky/Sticky";
@@ -11,11 +12,21 @@ import { Sticky } from "../Sticky/Sticky";
 export const RenderStickies = () => {
   const [preRendered, setPreRendered] = createSignal<Map<string, string> | null>(null);
 
-  onMount(async () => {
-    loadStickiesFromLocalStorage();
+  const reRender = async () => {
+    setPreRendered(null);
     const rendered = await preRenderAll(stickies());
     setPreRendered(rendered);
+  };
+
+  onMount(() => {
+    loadBoards();
+    reRender();
   });
+
+  // re-render stickies when switching boards
+  createEffect(on(activeBoardId, () => {
+    reRender();
+  }, { defer: true }));
 
   return (
     <Show when={preRendered()}>

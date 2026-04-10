@@ -1,6 +1,9 @@
 import { createStore } from "solid-js/store";
 
-const LOCAL_STORAGE_KEY = "stickies-storage";
+const STORAGE_KEY = "stickies-boards";
+const LEGACY_KEY = "stickies-storage";
+const LEGACY_BG_KEY = "whiteboard-bg";
+const DEFAULT_BG = "#f3ebe2";
 
 export type StickyNote = {
   id: string;
@@ -11,76 +14,185 @@ export type StickyNote = {
   color: string;
 };
 
-/** store */
-const [stickyNoteStore, setStickyNoteStore] = createStore<{
+export type Board = {
+  id: string;
+  name: string;
   stickies: StickyNote[];
-}>({
-  stickies: [],
+  bgColor: string;
+};
+
+type BoardStore = {
+  boards: Board[];
+  activeBoardId: string;
+};
+
+const [store, setStore] = createStore<BoardStore>({
+  boards: [],
+  activeBoardId: "",
 });
 
-const persistStickiesToLocalStorage = () => {
-  const stickies = stickyNoteStore.stickies;
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stickies));
+// ── persistence ──
+
+const persist = () => {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ boards: store.boards, activeBoardId: store.activeBoardId })
+  );
 };
 
-/**
- * Simple way to bring a sticky note to the front of the board,
- * which happens whenever a user interaction occurs.
- */
-const bringToFront = (index: number) => {
-  const sticky = stickyNoteStore.stickies[index];
-  const stickies = stickyNoteStore.stickies.filter((_, i) => i !== index);
-  setStickyNoteStore("stickies", [...stickies, sticky]);
-};
+function makeBoard(name: string, stickies: StickyNote[] = [], bgColor = DEFAULT_BG): Board {
+  return { id: Date.now().toString(), name, stickies, bgColor };
+}
 
 /**
- * General update function for a sticky note.
- * Right now, persists every update to local storage.
- * @note could have an optional param to avoid persisting to local storage
- * -- might be useful during drag/resize/etc.
+ * Migrate from the old single-board localStorage format.
+ * Returns a board if legacy data was found, otherwise null.
  */
+function migrateLegacy(): Board | null {
+  const raw = localStorage.getItem(LEGACY_KEY);
+  if (!raw) return null;
+  const stickies = JSON.parse(raw) as StickyNote[];
+  const bgColor = localStorage.getItem(LEGACY_BG_KEY) ?? DEFAULT_BG;
+  localStorage.removeItem(LEGACY_KEY);
+  localStorage.removeItem(LEGACY_BG_KEY);
+  return makeBoard("My Board", stickies, bgColor);
+}
+
+export function loadBoards(): void {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    const data = JSON.parse(raw) as BoardStore;
+    setStore(data);
+    return;
+  }
+
+  // try legacy migration
+  const legacy = migrateLegacy();
+  if (legacy) {
+    setStore({ boards: [legacy], activeBoardId: legacy.id });
+    persist();
+    return;
+  }
+
+  // fresh start
+  const first = makeBoard("Board 1");
+  setStore({ boards: [first], activeBoardId: first.id });
+  persist();
+}
+
+// ── board accessors ──
+
+export const boards = () => store.boards;
+export const activeBoardId = () => store.activeBoardId;
+
+const activeBoardIndex = (): number =>
+  store.boards.findIndex((b) => b.id === store.activeBoardId);
+
+export const activeBoard = (): Board | undefined =>
+  store.boards.find((b) => b.id === store.activeBoardId);
+
+export const stickies = (): StickyNote[] => activeBoard()?.stickies ?? [];
+export const activeBgColor = (): string => activeBoard()?.bgColor ?? DEFAULT_BG;
+
+// ── board CRUD ──
+
+export function createBoard(name?: string): void {
+  const board = makeBoard(name ?? `Board ${store.boards.length + 1}`);
+  setStore("boards", (prev) => [...prev, board]);
+  setStore("activeBoardId", board.id);
+  persist();
+}
+
+export function deleteBoard(id: string): void {
+  if (store.boards.length <= 1) return; // always keep at least one
+  const idx = store.boards.findIndex((b) => b.id === id);
+  if (idx === -1) return;
+
+  setStore("boards", (prev) => prev.filter((b) => b.id !== id));
+
+  // if we deleted the active board, switch to a neighbour
+  if (store.activeBoardId === id) {
+    const next = store.boards[Math.min(idx, store.boards.length - 1)];
+    setStore("activeBoardId", next.id);
+  }
+  persist();
+}
+
+export function renameBoard(id: string, name: string): void {
+  const idx = store.boards.findIndex((b) => b.id === id);
+  if (idx === -1) return;
+  setStore("boards", idx, "name", name);
+  persist();
+}
+
+export function switchBoard(id: string): void {
+  if (store.boards.some((b) => b.id === id)) {
+    setStore("activeBoardId", id);
+    persist();
+  }
+}
+
+export function updateBoardBgColor(color: string): void {
+  const idx = activeBoardIndex();
+  if (idx === -1) return;
+  setStore("boards", idx, "bgColor", color);
+  persist();
+}
+
+// ── sticky CRUD (operates on active board) ──
+
+const bringToFront = (stickyIdx: number) => {
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  const sticky = store.boards[boardIdx].stickies[stickyIdx];
+  const rest = store.boards[boardIdx].stickies.filter((_, i) => i !== stickyIdx);
+  setStore("boards", boardIdx, "stickies", [...rest, sticky]);
+};
+
 export const updateStickyNote = (
   index: number,
   update: Partial<StickyNote>
 ) => {
-  // a little wasteful to have two separate calls to setStickyNoteStore
-  setStickyNoteStore("stickies", index, { ...update });
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  setStore("boards", boardIdx, "stickies", index, { ...update });
   bringToFront(index);
-
-  // persist the sticky note to local storage
-  persistStickiesToLocalStorage();
+  persist();
 };
 
 export const deleteStickyNote = (index: number) => {
-  const stickies = stickyNoteStore.stickies.filter((_, i) => i !== index);
-  setStickyNoteStore("stickies", stickies);
-  persistStickiesToLocalStorage();
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  setStore(
+    "boards",
+    boardIdx,
+    "stickies",
+    (prev) => prev.filter((_, i) => i !== index)
+  );
+  persist();
 };
 
 export const clearAllStickies = () => {
-  setStickyNoteStore("stickies", []);
-  persistStickiesToLocalStorage();
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  setStore("boards", boardIdx, "stickies", []);
+  persist();
 };
 
 export const createStickyNote = (sticky: StickyNote) => {
-  setStickyNoteStore("stickies", (prev) => [...prev, sticky]);
-};
-
-export const stickies = () => stickyNoteStore.stickies;
-
-export const loadStickiesFromLocalStorage = () => {
-  const stickies = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (stickies) {
-    const parsedStickies = JSON.parse(stickies) as StickyNote[];
-    setStickyNoteStore("stickies", parsedStickies);
-  }
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  setStore("boards", boardIdx, "stickies", (prev) => [...prev, sticky]);
+  persist();
 };
 
 export const importStickies = (imported: StickyNote[]) => {
-  setStickyNoteStore("stickies", imported);
-  persistStickiesToLocalStorage();
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  setStore("boards", boardIdx, "stickies", imported);
+  persist();
 };
 
 export const exportStickies = (): string => {
-  return JSON.stringify(stickyNoteStore.stickies, null, 2);
+  return JSON.stringify(stickies(), null, 2);
 };
