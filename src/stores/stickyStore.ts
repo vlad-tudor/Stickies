@@ -205,6 +205,22 @@ export const createStickyNote = (sticky: StickyNote) => {
   persist();
 };
 
+const STACK_LEFT = 50;
+const STACK_TOP = 100;
+const STACK_OFFSET = 30;
+
+export const stackAllStickies = () => {
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  const current = store.boards[boardIdx].stickies;
+  const updated = current.map((s, i) => ({
+    ...s,
+    position: [STACK_TOP + i * STACK_OFFSET, STACK_LEFT + i * STACK_OFFSET] as [number, number],
+  }));
+  setStore("boards", boardIdx, "stickies", updated);
+  persist();
+};
+
 export const importStickies = (imported: StickyNote[]) => {
   const boardIdx = activeBoardIndex();
   if (boardIdx === -1) return;

@@ -4,6 +4,7 @@ import {
   createStickyNote,
   exportStickies,
   importStickies,
+  stackAllStickies,
   activeBoard,
   StickyNote,
 } from "~/stores/stickyStore";
@@ -36,7 +37,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
      */
     createStickyNote({
       id: Date.now().toString(),
-      position: [50, 50],
+      position: [100, 50],
       dimensions: [300, 300],
       content: "",
       color: "#e3d46f",
@@ -47,14 +48,23 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     downloadJson(exportStickies(), "stickies.json");
   };
 
-  const [copied, setCopied] = createSignal(false);
+  const [toast, setToast] = createSignal("");
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2000);
+  };
 
   const onShare = () => {
     const board = activeBoard();
     if (!board) return;
     copyShareUrl(board);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    showToast("Link copied to clipboard");
+  };
+
+  const onStack = () => {
+    stackAllStickies();
+    showToast("Stickies stacked");
   };
 
   const onFileSelected = async (e: Event) => {
@@ -68,7 +78,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
 
   return (
     <>
-    <div class={`share-toast ${copied() ? "visible" : ""}`}>Link copied to clipboard</div>
+    <div class={`share-toast ${toast() ? "visible" : ""}`}>{toast()}</div>
     <div class={`whiteboard-actions ${open() ? "open" : ""}`}>
       <button class="create-sticky" onClick={onStickyCreate}>
         +
@@ -79,7 +89,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       </button>
 
       <div class="drawer-content">
-        <button class="refresh-stickies-positions">{"\uD83D\uDD04"}</button>
+        <button class="refresh-stickies-positions" title="Stack all stickies" onClick={onStack}>{"\uD83D\uDD04"}</button>
         <button class="clear-all-stickies" onClick={onClearAllStickies}>
           {"\uD83D\uDDD1\uFE0F"}
         </button>
