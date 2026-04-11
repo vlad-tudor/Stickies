@@ -26,9 +26,8 @@ export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
   });
 
   return (
-    <div
-      class="sticky-expand-square"
-      onPointerDown={drag.onPointerDown}
-    />
+    <div class="sticky-resize-zone" onPointerDown={drag.onPointerDown}>
+      <div class="sticky-resize-indicator" />
+    </div>
   );
 };

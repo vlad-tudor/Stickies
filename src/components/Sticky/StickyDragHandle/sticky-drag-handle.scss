@@ -6,10 +6,16 @@
   background-color: color-mix(in srgb, currentColor 10%, transparent);
   display: flex;
   justify-content: flex-end;
-  cursor: pointer;
+  cursor: grab;
   touch-action: none;
+  transition: background-color 0.15s ease;
 
   &:hover {
-    background-color: color-mix(in srgb, currentColor 20%, transparent);
+    background-color: color-mix(in srgb, currentColor 30%, transparent);
+  }
+
+  &:active {
+    cursor: grabbing;
+    background-color: color-mix(in srgb, currentColor 35%, transparent);
   }
 }
