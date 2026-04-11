@@ -1,4 +1,5 @@
 import { createStore } from "solid-js/store";
+import { readBoardFromHash, clearHash } from "~/utils/urlState";
 
 const STORAGE_KEY = "stickies-boards";
 const LEGACY_KEY = "stickies-storage";
@@ -59,24 +60,40 @@ function migrateLegacy(): Board | null {
 }
 
 export function loadBoards(): void {
+  // 1. load existing boards from localStorage (or migrate / bootstrap)
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
     const data = JSON.parse(raw) as BoardStore;
     setStore(data);
-    return;
+  } else {
+    const legacy = migrateLegacy();
+    if (legacy) {
+      setStore({ boards: [legacy], activeBoardId: legacy.id });
+    } else {
+      const first = makeBoard("Board 1");
+      setStore({ boards: [first], activeBoardId: first.id });
+    }
   }
 
-  // try legacy migration
-  const legacy = migrateLegacy();
-  if (legacy) {
-    setStore({ boards: [legacy], activeBoardId: legacy.id });
-    persist();
-    return;
+  // 2. if the URL contains a shared board, import it as a new tab
+  const shared = readBoardFromHash();
+  if (shared) {
+    let name = shared.name;
+    const nameExists = store.boards.some((b) => b.name === name);
+    if (nameExists) {
+      const renamed = prompt(
+        `A board named "${name}" already exists. Enter a new name:`,
+        `${name} (shared)`
+      );
+      name = renamed?.trim() || `${name} (shared)`;
+    }
+
+    const board = makeBoard(name, shared.stickies, shared.bgColor);
+    setStore("boards", (prev) => [...prev, board]);
+    setStore("activeBoardId", board.id);
+    clearHash();
   }
 
-  // fresh start
-  const first = makeBoard("Board 1");
-  setStore({ boards: [first], activeBoardId: first.id });
   persist();
 }
 

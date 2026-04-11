@@ -4,10 +4,12 @@ import {
   createStickyNote,
   exportStickies,
   importStickies,
+  activeBoard,
   StickyNote,
 } from "~/stores/stickyStore";
 import { downloadJson, readJsonFile } from "~/utils/fileIO";
-import { Download, Upload } from "lucide-static";
+import { copyShareUrl } from "~/utils/urlState";
+import { Download, Upload, Share2 } from "lucide-static";
 import "./whiteboard-actions.scss";
 
 type WhiteboardActionsProps = {
@@ -45,6 +47,16 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     downloadJson(exportStickies(), "stickies.json");
   };
 
+  const [copied, setCopied] = createSignal(false);
+
+  const onShare = () => {
+    const board = activeBoard();
+    if (!board) return;
+    copyShareUrl(board);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const onFileSelected = async (e: Event) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
@@ -71,6 +83,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         </button>
         <button class="export-stickies" title="Export stickies" onClick={onExport} innerHTML={Download} />
         <button class="import-stickies" title="Import stickies" onClick={() => fileInputRef.click()} innerHTML={Upload} />
+        <button class="share-board" title={copied() ? "Copied!" : "Share board"} onClick={onShare} innerHTML={Share2} />
         <input
           ref={fileInputRef}
           type="file"
