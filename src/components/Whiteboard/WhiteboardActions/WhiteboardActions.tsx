@@ -35,10 +35,11 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
      *  -- could be related ot the async "milkdown" editor creation/deletion.
      *  -- extra largeness accompanied by errors in the console.
      */
+    const mobile = window.innerWidth < 480;
     createStickyNote({
       id: Date.now().toString(),
-      position: [100, 50],
-      dimensions: [300, 300],
+      position: [100, 20],
+      dimensions: mobile ? [200, 200] : [300, 300],
       content: "",
       color: "#e3d46f",
     });

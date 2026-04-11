@@ -9,6 +9,10 @@
   display: flex;
   flex-direction: column;
 
+  @media (max-width: 480px) {
+    min-width: 10rem;
+  }
+
   &.light {
     color: rgba(0, 0, 0, 0.85);
     --crepe-color-on-background: rgba(0, 0, 0, 0.85);

@@ -7,6 +7,7 @@
   display: flex;
   justify-content: flex-end;
   cursor: pointer;
+  touch-action: none;
 
   &:hover {
     background-color: color-mix(in srgb, currentColor 20%, transparent);

@@ -10,4 +10,7 @@
   min-height: calc(100vh - 2.25rem);
   border: 1px solid #000;
   overflow: hidden;
+  // prevent pull-to-refresh and pinch-zoom on mobile
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
 }
