@@ -1,32 +1,26 @@
 {
-  "name": "example-basic",
+  "name": "stickies",
   "type": "module",
   "scripts": {
-    "dev": "vinxi dev",
-    "build": "vinxi build",
-    "start": "vinxi start",
-    "version": "vinxi version"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@milkdown/crepe": "^7.5.7",
     "@milkdown/kit": "^7.5.5",
     "@milkdown/theme-nord": "^7.5.0",
     "@milkdown/utils": "^7.20.0",
-    "@solidjs/meta": "^0.29.4",
-    "@solidjs/router": "^0.14.7",
-    "@solidjs/start": "^1.0.8",
     "lucide-static": "^1.7.0",
     "lz-string": "^1.5.0",
     "marked": "^17.0.5",
-    "solid-js": "^1.9.1",
-    "vinxi": "^0.4.3"
-  },
-  "engines": {
-    "node": ">=18"
+    "solid-js": "^1.9.1"
   },
   "devDependencies": {
     "@types/lz-string": "^1.5.0",
     "@types/marked": "^6.0.0",
-    "sass": "^1.79.4"
+    "sass": "^1.79.4",
+    "vite": "^8.0.0",
+    "vite-plugin-solid": "^2.11.0"
   }
 }

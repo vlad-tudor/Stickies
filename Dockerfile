@@ -5,8 +5,7 @@ RUN bun install --frozen-lockfile
 COPY . .
 RUN bun run build
 
-FROM docker.io/oven/bun:1-slim AS runtime
-WORKDIR /app
-COPY --from=builder /app/.output ./.output
+FROM docker.io/library/nginx:alpine AS runtime
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 3000
-CMD ["bun", ".output/server/index.mjs"]
