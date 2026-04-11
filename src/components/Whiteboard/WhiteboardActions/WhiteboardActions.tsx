@@ -67,6 +67,8 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   };
 
   return (
+    <>
+    <div class={`share-toast ${copied() ? "visible" : ""}`}>Link copied to clipboard</div>
     <div class={`whiteboard-actions ${open() ? "open" : ""}`}>
       <button class="create-sticky" onClick={onStickyCreate}>
         +
@@ -83,7 +85,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         </button>
         <button class="export-stickies" title="Export stickies" onClick={onExport} innerHTML={Download} />
         <button class="import-stickies" title="Import stickies" onClick={() => fileInputRef.click()} innerHTML={Upload} />
-        <button class="share-board" title={copied() ? "Copied!" : "Share board"} onClick={onShare} innerHTML={Share2} />
+        <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
         <input
           ref={fileInputRef}
           type="file"
@@ -99,5 +101,6 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         />
       </div>
     </div>
+    </>
   );
 };

@@ -59,6 +59,14 @@ function migrateLegacy(): Board | null {
   return makeBoard("My Board", stickies, bgColor);
 }
 
+function deduplicateName(base: string, boards: Board[]): string {
+  const names = new Set(boards.map((b) => b.name));
+  if (!names.has(base)) return base;
+  let i = 1;
+  while (names.has(`${base} (${i})`)) i++;
+  return `${base} (${i})`;
+}
+
 export function loadBoards(): void {
   // 1. load existing boards from localStorage (or migrate / bootstrap)
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -78,15 +86,9 @@ export function loadBoards(): void {
   // 2. if the URL contains a shared board, import it as a new tab
   const shared = readBoardFromHash();
   if (shared) {
-    let name = shared.name;
-    const nameExists = store.boards.some((b) => b.name === name);
-    if (nameExists) {
-      const renamed = prompt(
-        `A board named "${name}" already exists. Enter a new name:`,
-        `${name} (shared)`
-      );
-      name = renamed?.trim() || `${name} (shared)`;
-    }
+    let name = deduplicateName(shared.name, store.boards);
+    const renamed = prompt("Name this shared board:", name);
+    name = renamed?.trim() || name;
 
     const board = makeBoard(name, shared.stickies, shared.bgColor);
     setStore("boards", (prev) => [...prev, board]);
