@@ -8,3 +8,13 @@ body {
 * {
   box-sizing: border-box;
 }
+
+.version {
+  position: fixed;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  z-index: 1;
+}
