@@ -6,12 +6,15 @@ import {
   createBoard,
   deleteBoard,
   renameBoard,
+  reorderBoards,
   Board,
 } from "~/stores/stickyStore";
+import { Pencil } from "lucide-static";
 import "./board-tabs.scss";
 
 export const BoardTabs = () => {
   const [editingId, setEditingId] = createSignal<string | null>(null);
+  const [dragId, setDragId] = createSignal<string | null>(null);
   let editInputRef!: HTMLInputElement;
 
   const startRename = (id: string) => {
@@ -38,14 +41,38 @@ export const BoardTabs = () => {
 
   return (
     <div class="board-tabs">
+      <button class="board-tab-add" title="New board" onClick={() => createBoard()}>+</button>
       <div class="board-tabs-list">
         <For each={boards()}>
           {(board) => (
             <div
-              class={`board-tab ${board.id === activeBoardId() ? "active" : ""}`}
+              class={`board-tab ${board.id === activeBoardId() ? "active" : ""} ${dragId() === board.id ? "dragging" : ""}`}
+              draggable={editingId() !== board.id}
               onClick={() => switchBoard(board.id)}
               onDblClick={() => startRename(board.id)}
+              onDragStart={(e) => {
+                setDragId(board.id);
+                e.dataTransfer?.setData("text/plain", board.id);
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                const from = dragId();
+                if (from && from !== board.id) reorderBoards(from, board.id);
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDragEnd={() => setDragId(null)}
             >
+              {board.id === activeBoardId() && editingId() !== board.id && (
+                <button
+                  class="board-tab-edit"
+                  title="Rename board"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startRename(board.id);
+                  }}
+                  innerHTML={Pencil}
+                />
+              )}
               {editingId() === board.id ? (
                 <input
                   ref={editInputRef}
@@ -67,14 +94,13 @@ export const BoardTabs = () => {
                   class="board-tab-close"
                   onClick={(e) => onTabClose(e, board)}
                 >
-                  {"\u2715"}
+                  {"✕"}
                 </button>
               )}
             </div>
           )}
         </For>
       </div>
-      <button class="board-tab-add" onClick={() => createBoard()}>+</button>
     </div>
   );
 };

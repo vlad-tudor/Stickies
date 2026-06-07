@@ -1,14 +1,23 @@
+// ============================================================
+//  WHITEBOARD ACTIONS
+//  Always-visible toolbar bar sitting directly under the board
+//  tabs. Flat ink buttons; the primary "+" is the one tonal accent.
+//  Board-hue dots sit next to the theme toggle.
+// ============================================================
+
 .share-toast {
   position: fixed;
-  top: 3.25rem;
+  top: 5.25rem;          // below both top bars
   left: 50%;
   transform: translateX(-50%) translateY(-0.5rem);
   z-index: 1002;
-  background: #2b2b2b;
-  color: #fff;
+  background: var(--ink);
+  color: var(--paper-soft);
   padding: 0.5rem 1rem;
-  border-radius: 6px;
+  border-radius: var(--radius-chrome);
+  font-family: var(--font-sans);
   font-size: 0.85rem;
+  box-shadow: var(--shadow-2);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -21,77 +30,72 @@
 
 .whiteboard-actions {
   position: fixed;
-  top: 2.75rem;
-  left: 0.5rem;
+  top: 2.25rem;          // directly under the tab bar (height 2.25rem)
+  left: 0;
+  right: 0;
   z-index: 1000;
   display: flex;
-  gap: 0.25rem;
-  align-items: flex-start;
+  align-items: center;
+  gap: 0.15rem;
+  height: 2.5rem;
+  padding: 0 0.5rem;
 
-  .create-sticky,
-  .drawer-toggle {
-    width: 2.5rem;
-    height: 2.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(4px);
+  background: var(--paper-soft);
+  border-bottom: 1px solid var(--rule);
+
+  button {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    background: transparent;
+    color: var(--ink-mid);
+    border-radius: var(--radius-chrome);
     cursor: pointer;
-    font-size: 1.2rem;
+    font-size: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
 
+  // primary action — the one tonal accent
   .create-sticky {
-    background: rgba(144, 238, 144, 0.85);
+    background: var(--accent-soft);
+    color: var(--ink);
+    font-size: 1.25rem;
+    margin-right: 0.35rem;
   }
 
-  .drawer-content {
-    display: flex;
-    gap: 0.25rem;
-    overflow: hidden;
-    max-width: 0;
-    opacity: 0;
-    transition: max-width 0.2s ease, opacity 0.15s ease;
-  }
-
-  &.open .drawer-content {
-    max-width: 30rem;
-    opacity: 1;
-  }
-
-  .drawer-content button {
-    width: 2.5rem;
-    height: 2.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(4px);
-    cursor: pointer;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-  }
-
+  // icon (svg) buttons
   .export-stickies,
   .import-stickies,
-  .share-board {
-    padding: 0.5rem;
-
-    svg {
-      width: 100%;
-      height: 100%;
-    }
+  .share-board,
+  .theme-toggle {
+    padding: 0.4rem;
+    svg { width: 100%; height: 100%; }
   }
 
-  .whiteboard-bg-picker {
-    width: 2.5rem;
-    height: 2.5rem;
-    padding: 0.2rem;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    cursor: pointer;
-    flex-shrink: 0;
+  // board-hue dots — control the board background tone
+  .board-hue {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: 0.4rem;
+    padding-left: 0.55rem;
+    border-left: 1px solid var(--ink-faint);
+
+    .hue-dot {
+      width: 0.9rem;
+      height: 0.9rem;
+      padding: 0;
+      border-radius: 50%;
+      background: var(--swatch, var(--s-cream));
+      border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+
+      &.is-selected {
+        outline: 2px solid var(--ink);
+        outline-offset: 1.5px;
+      }
+    }
   }
 }

@@ -1,49 +1,47 @@
-import { createEffect, createSignal, For, on, onMount, Show } from "solid-js";
+import { createMemo, For } from "solid-js";
 import {
   stickies,
-  activeBoardId,
   updateStickyNote,
+  moveStickyNote,
+  resizeStickyNote,
+  commitStickies,
   deleteStickyNote,
-  loadBoards,
 } from "~/stores/stickyStore";
-import { preRenderAll } from "~/components/Markdown/markdownEditor";
 import { Sticky } from "../Sticky/Sticky";
 
 export const RenderStickies = () => {
-  const [preRendered, setPreRendered] = createSignal<Map<string, string> | null>(null);
-
-  const reRender = async () => {
-    setPreRendered(null);
-    const rendered = await preRenderAll(stickies());
-    setPreRendered(rendered);
-  };
-
-  onMount(() => {
-    loadBoards();
-    reRender();
+  // The stickies array order IS the z-order. Map id -> stacking index so a
+  // raise only changes z-index values, never the rendered DOM order.
+  const stackById = createMemo(() => {
+    const m = new Map<string, number>();
+    stickies().forEach((s, i) => m.set(s.id, i));
+    return m;
   });
 
-  // re-render stickies when switching boards
-  createEffect(on(activeBoardId, () => {
-    reRender();
-  }, { defer: true }));
+  // Render in a STABLE order (by creation id) so <For> never moves DOM nodes
+  // when the z-order changes — that move was eating clicks and breaking drags.
+  const renderList = createMemo(() =>
+    [...stickies()].sort((a, b) => Number(a.id) - Number(b.id))
+  );
 
   return (
-    <Show when={preRendered()}>
-      {(htmlMap) => (
-        <For each={stickies()}>
-          {(sticky, index) => (
-            <Sticky
-              index={index()}
-              active={index() === stickies().length - 1}
-              sticky={sticky}
-              initialHtml={htmlMap().get(sticky.id)}
-              updateSticky={(update) => updateStickyNote(index(), update)}
-              deleteSticky={() => deleteStickyNote(index())}
-            />
-          )}
-        </For>
-      )}
-    </Show>
+    <For each={renderList()}>
+      {(sticky, renderIdx) => {
+        const idx = () => stackById().get(sticky.id) ?? 0; // stacking (z) index
+        return (
+          <Sticky
+            index={idx()}
+            seq={renderIdx() + 1}
+            active={idx() === stickies().length - 1}
+            sticky={sticky}
+            updateSticky={(update) => updateStickyNote(idx(), update)}
+            moveSticky={(position) => moveStickyNote(idx(), position)}
+            resizeSticky={(dimensions) => resizeStickyNote(idx(), dimensions)}
+            commitSticky={() => commitStickies()}
+            deleteSticky={() => deleteStickyNote(idx())}
+          />
+        );
+      }}
+    </For>
   );
 };

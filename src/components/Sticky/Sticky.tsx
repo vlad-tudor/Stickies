@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createMemo } from "solid-js";
 import { StickyNote } from "~/stores/stickyStore";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
@@ -7,16 +7,21 @@ import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
 
 import { StickyDragHandle } from "./StickyDragHandle/StickyDragHandle";
 import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
-import { isLightBackground } from "~/utils/color";
+import { theme } from "~/stores/themeStore";
+import { editingStickyId, editSticky, exitEditing } from "~/stores/uiStore";
+import { toneVar } from "~/utils/tones";
 
 import "./sticky.scss";
 
 type StickyProps = {
   index: number;
+  seq: number;
   sticky: StickyNote;
   active: boolean;
-  initialHtml?: string;
   updateSticky: (update: Partial<StickyNote>) => void;
+  moveSticky: (position: [number, number]) => void;
+  resizeSticky: (dimensions: [number, number]) => void;
+  commitSticky: () => void;
   deleteSticky: () => void;
 };
 
@@ -25,18 +30,26 @@ type StickyProps = {
  */
 export const Sticky = (props: StickyProps) => {
   let stickyNoteRef!: HTMLDivElement;
-  let titleInputRef!: HTMLInputElement;
-  const [rawMode, setRawMode] = createSignal(false);
-  const [editingTitle, setEditingTitle] = createSignal(false);
 
-  const displayTitle = () => props.sticky.title || `Sticky ${props.index + 1}`;
+  // Only one sticky edits at a time (global id) — robust against focus/blur.
+  const editing = () => editingStickyId() === props.sticky.id;
+
+  // Title is derived from the note's text (titles abolished); CSS truncates it.
+  const titleText = createMemo(() => {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = props.sticky.content;
+    const text = (tmp.textContent ?? "").replace(/\s+/g, " ").trim();
+    return text || `Sticky ${props.seq}`;
+  });
 
   // for some reason the updated sticky lingers on
   let shouldDelete = false;
 
+  // Curated tones are all light in light mode, all dark in dark mode, so the
+  // per-sticky ink contrast follows the global chrome theme.
   const stickyClass = () => {
-    const theme = isLightBackground(props.sticky.color) ? "light" : "dark";
-    return `sticky ${theme}${props.active ? " active" : ""}`;
+    const contrast = theme() === "dark" ? "dark" : "light";
+    return `sticky ${contrast}${props.active ? " active" : ""}`;
   };
 
   const stickyStyleOverrides = () => ({
@@ -44,93 +57,57 @@ export const Sticky = (props: StickyProps) => {
     left: `${props.sticky.position?.[1]}px`,
     width: `${props.sticky.dimensions?.[0]}px`,
     height: `${props.sticky.dimensions?.[1]}px`,
-    ["background-color"]: props.sticky.color,
-    zIndex: props.index,
+    ["background-color"]: toneVar(props.sticky.color),
+    // NB: kebab-case — Solid's style object uses setProperty, so camelCase
+    // `zIndex` is silently ignored (stacking now relies on this, not DOM order).
+    ["z-index"]: `${props.index}`,
   });
 
   const getStickyRect = () => stickyNoteRef.getBoundingClientRect();
 
-  const onStickyClick = () => {
-    if (!(props.active || !props.sticky || shouldDelete)) {
-      props.updateSticky({});
-    }
-  };
+  // Single focus entry point: pressing anywhere on the sticky (body, drag band,
+  // buttons, resize corner) raises it AND activates its editor. Everything
+  // bubbles here, so this is the one place that grants focus.
+  const onPointerDown = () => editSticky(props.sticky.id);
 
   const onStickyDelete = () => {
     if (confirm("Are you sure you want to delete this sticky note?")) {
       shouldDelete = true;
+      if (editingStickyId() === props.sticky.id) exitEditing();
       props.deleteSticky();
     }
   };
-
-  onMount(() => {
-    if (props.sticky) {
-      onStickyClick();
-    }
-  });
 
   return (
     <div
       ref={stickyNoteRef}
       class={stickyClass()}
       style={stickyStyleOverrides()}
-      onClick={onStickyClick}
+      onPointerDown={onPointerDown}
     >
       <StickyDragHandle
-        updateStickyPosition={(position) => props.updateSticky({ position })}
+        updateStickyPosition={(position) => props.moveSticky(position)}
         getStickyRect={getStickyRect}
+        onDragEnd={() => props.commitSticky()}
       />
 
-      <button
-        class={`sticky-raw-toggle ${rawMode() ? "active" : ""}`}
-        onClick={() => setRawMode(!rawMode())}
-      >
-        {"</>"}
-      </button>
-
       <div class="sticky-title-bar">
-        <Show when={editingTitle()} fallback={
-          <>
-            <span class="sticky-title-label">{displayTitle()}</span>
-            <button
-              class="sticky-title-edit"
-              onClick={() => {
-                setEditingTitle(true);
-                requestAnimationFrame(() => titleInputRef?.focus());
-              }}
-            >
-              ...
-            </button>
-          </>
-        }>
-          <input
-            ref={titleInputRef}
-            class="sticky-title-input"
-            type="text"
-            value={props.sticky.title ?? ""}
-            placeholder={`Sticky ${props.index + 1}`}
-            onInput={(e) => props.updateSticky({ title: e.currentTarget.value })}
-            onBlur={() => setEditingTitle(false)}
-            onKeyDown={(e) => { if (e.key === "Enter") titleInputRef?.blur(); }}
-          />
-        </Show>
+        <span class="sticky-title-label">{titleText()}</span>
       </div>
 
       <StickyDeleteButton deleteSticky={onStickyDelete} />
 
       <StickyMarkdown
         sticky={props.sticky}
-        active={props.active}
-        rawMode={rawMode()}
-        initialHtml={props.initialHtml}
-        updateStickyMarkdown={(content) => props.updateSticky({ content })}
+        editing={editing()}
+        onExit={exitEditing}
+        updateContent={(content) => props.updateSticky({ content })}
       />
 
       <StickyResizeCorner
         dimensions={props.sticky.dimensions}
-        updateStickyDimensions={(dimensions) =>
-          props.updateSticky({ dimensions })
-        }
+        updateStickyDimensions={(dimensions) => props.resizeSticky(dimensions)}
+        onResizeEnd={() => props.commitSticky()}
       />
 
       <StickyColorInput

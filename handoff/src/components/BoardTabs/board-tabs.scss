@@ -48,41 +48,25 @@
   font-size: 0.8rem;
   font-weight: 500;
   white-space: nowrap;
+  transition: color 0.12s ease, background 0.12s ease;
+
+  &:hover { color: var(--ink); background: var(--tint-hover); }
 
   &.active {
     color: var(--ink);
     background: transparent;
-    padding: 0 1.15rem;   // extra breathing room when selected
     // ink underline
     &::after {
       content: "";
       position: absolute;
-      left: 0.85rem;
-      right: 0.85rem;
+      left: 0.65rem;
+      right: 0.65rem;
       bottom: -1px;
       height: 2px;
       background: var(--ink);
       border-radius: 1px;
     }
   }
-
-  &.dragging { opacity: 0.45; }
-}
-
-// pencil — rename trigger, shown on the active tab to the left of its name
-.board-tab-edit {
-  all: unset;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 0.8rem;
-  height: 0.8rem;
-  flex-shrink: 0;
-  cursor: pointer;
-  color: var(--ink-mid);
-  opacity: 0.7;
-
-  svg { width: 100%; height: 100%; }
 }
 
 .board-tab-name {
@@ -111,7 +95,11 @@
   padding: 0.1rem 0.2rem;
   border-radius: 3px;
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+
+  .board-tab:hover & { opacity: 1; }
+  &:hover { background: var(--tint-press); color: var(--ink); }
 }
 
 .board-tab-add {
@@ -121,8 +109,9 @@
   justify-content: center;
   width: 2.25rem;
   flex-shrink: 0;
-  border-right: 1px solid var(--rule);   // sits first, on the left
   cursor: pointer;
   color: var(--ink-soft);
   font-size: 1.1rem;
+
+  &:hover { background: var(--tint-hover); color: var(--ink); }
 }

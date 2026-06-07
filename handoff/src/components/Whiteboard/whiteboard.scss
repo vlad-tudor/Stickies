@@ -15,28 +15,6 @@
   min-height: 100vh;
 }
 
-// shown when there are no boards at all
-.board-empty {
-  flex: 1;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--paper);
-}
-
-.board-empty-create {
-  padding: 0.7rem 1.4rem;
-  border: 1px solid var(--ink-faint);
-  border-radius: var(--radius-chrome);
-  background: var(--accent-soft);
-  color: var(--ink);
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  cursor: pointer;
-  box-shadow: var(--shadow-1);
-}
-
 .whiteboard {
   position: relative;
   flex: 1;

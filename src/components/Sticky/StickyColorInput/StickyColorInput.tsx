@@ -1,17 +1,27 @@
-// SCSS in sticky.scss:
+import { For } from "solid-js";
+import { TONES, type Tone } from "~/utils/tones";
 import "./sticky-color-input.scss";
 
 type StickyColorInputProps = {
-  color: string;
-  updateColor: (color: string) => void;
+  color: Tone;
+  updateColor: (color: Tone) => void;
 };
 
 export const StickyColorInput = (props: StickyColorInputProps) => (
-  <input
-    type="color"
-    class="sticky-color-input"
-    value={props.color}
-    onClick={(e) => e.stopPropagation()}
-    onInput={(e) => props.updateColor(e.currentTarget.value)}
-  />
+  <div class="sticky-color-input">
+    <For each={TONES}>
+      {(tone) => (
+        <button
+          type="button"
+          class={`sticky-swatch ${props.color === tone ? "is-selected" : ""}`}
+          style={{ "--swatch": `var(--s-${tone})` }}
+          title={tone}
+          onClick={(e) => {
+            e.stopPropagation();
+            props.updateColor(tone);
+          }}
+        />
+      )}
+    </For>
+  </div>
 );

@@ -1,0 +1,167 @@
+// ============================================================
+//  CREPE STATIONARY THEME  (replaces the current markdown.scss)
+//  ------------------------------------------------------------
+//  HOW CREPE THEMING WORKS — the important bit:
+//
+//  Crepe ships its UI (slash menu, bubble toolbar, link tooltip,
+//  placeholder, code blocks, tables, image blocks) styled ENTIRELY
+//  through ~17 CSS custom properties it reads off `.milkdown`.
+//  The theme files you import (common/style.css + nord.css) just
+//  set those variables. So we do NOT redesign Crepe's internals —
+//  we RE-TINT it by overriding the same variables with our tokens.
+//
+//  → You can KEEP importing common/style.css for structure/layout.
+//  → You can DROP the `nord.css` import — this file replaces its
+//    variable block. (Leaving nord.css in is harmless; our block
+//    wins by load order, but removing it is cleaner.)
+//
+//  Authoritative variable list (from crepe nord/style.css):
+//    --crepe-color-background / -on-background
+//    --crepe-color-surface / -surface-low
+//    --crepe-color-on-surface / -on-surface-variant
+//    --crepe-color-outline
+//    --crepe-color-primary
+//    --crepe-color-secondary / -on-secondary
+//    --crepe-color-inverse / -on-inverse
+//    --crepe-color-inline-code
+//    --crepe-color-error
+//    --crepe-color-hover
+//    --crepe-color-selected
+//    --crepe-color-inline-area
+//    --crepe-font-title / -default / -code
+//    --crepe-shadow-1 / -2
+//  Anything Crepe renders inherits from these — that is the whole
+//  surface area of the restyle.
+// ============================================================
+
+.milkdown {
+  /* ---------- editor canvas ----------
+     transparent so the sticky's own paper tone shows through.
+     on-background pulls from the per-sticky ink (set on .sticky
+     as --crepe-color-on-background in sticky.scss). */
+  --crepe-color-background: transparent;
+  --crepe-color-on-background: inherit;
+
+  /* ---------- popovers: slash menu, toolbar, tooltips ----------
+     These float ABOVE the note, so they get real paper chrome
+     (not transparent) using the global theme tokens. */
+  --crepe-color-surface:        var(--paper-soft);
+  --crepe-color-surface-low:    var(--paper-deep);
+  --crepe-color-on-surface:     var(--ink);
+  --crepe-color-on-surface-variant: var(--ink-mid);
+  --crepe-color-outline:        var(--ink-faint);
+
+  /* ---------- accents ---------- */
+  --crepe-color-primary:     var(--ink);          /* carets, active accents = ink */
+  --crepe-color-secondary:   var(--accent-soft);  /* selected slash row, chips */
+  --crepe-color-on-secondary: var(--ink);
+  --crepe-color-inverse:     var(--ink);          /* tooltips */
+  --crepe-color-on-inverse:  var(--paper-soft);
+
+  /* ---------- semantic ---------- */
+  --crepe-color-inline-code: var(--ink);
+  --crepe-color-error:       #a8443a;
+
+  /* ---------- interaction ---------- */
+  --crepe-color-hover:       var(--tint-hover);
+  --crepe-color-selected:    var(--accent-soft);
+  --crepe-color-inline-area: var(--rule-soft);
+
+  /* ---------- type: serif headings, sans body, mono code ---------- */
+  --crepe-font-title:   var(--font-serif);
+  --crepe-font-default: var(--font-sans);
+  --crepe-font-code:    var(--font-mono);
+
+  /* ---------- elevation ---------- */
+  --crepe-shadow-1: var(--shadow-1);
+  --crepe-shadow-2: var(--shadow-2);
+
+  background: transparent;
+  height: 100%;
+
+  .editor {
+    padding: 1rem;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-color: var(--ink-faint) transparent;
+    scrollbar-width: thin;
+  }
+
+  /* ---------- prose polish (beyond the token retint) ---------- */
+  .ProseMirror {
+    h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 600; }
+
+    blockquote {
+      padding-left: 1rem;
+      border-left: 2px solid var(--ink-faint);
+      color: var(--ink-mid);
+      font-style: italic;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: var(--ink-soft);
+      text-underline-offset: 2px;
+    }
+
+    /* inline code: tinted chip rather than red */
+    code:not(.cm-content code) {
+      font-family: var(--font-mono);
+      font-size: 0.85em;
+      background: var(--head-tint);
+      padding: 0.1em 0.4em;
+      border-radius: 3px;
+    }
+  }
+
+  /* ---------- code block (CodeMirror) ----------
+     Quiet "typewriter slip" look that works on any paper tone. */
+  .milkdown-code-block {
+    background: var(--paper-deep);
+    border: 1px solid var(--ink-faint);
+    border-radius: var(--radius-chrome);
+    color: var(--ink);
+    font-family: var(--font-mono);
+
+    .cm-editor    { background: transparent; color: var(--ink); }
+    .cm-gutters   {
+      background: transparent;
+      color: var(--ink-soft);
+      border-right: 1px solid var(--ink-faint);
+    }
+    .cm-activeLineGutter { background: var(--tint-hover); }
+    .cm-cursor    { border-left-color: var(--ink); }
+  }
+
+  .cm-content    { background: transparent; }
+  .cm-activeLine { background: var(--tint-hover); }
+  .codemirror-host { background: transparent; }
+}
+
+/* ============================================================
+   Slash menu / bubble toolbar fine-tuning (OPTIONAL).
+   The token retint above already restyles these. Uncomment only
+   if you want to push corner radius / row rhythm further. Class
+   names are stable in current Crepe (class-based, post Vue-3 move).
+   ============================================================ */
+/*
+.milkdown-slash-menu,
+.milkdown-toolbar,
+.milkdown-link-edit,
+.milkdown-link-preview {
+  border-radius: var(--radius-pop);
+  border: 1px solid var(--ink-faint);
+  box-shadow: var(--shadow-2);
+  font-family: var(--font-sans);
+}
+.milkdown-slash-menu .menu-item { border-radius: var(--radius-chrome); }
+.milkdown-slash-menu .menu-item.active { background: var(--accent-soft); }
+.milkdown-slash-menu .menu-groups .menu-group h6 {  // section label
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+*/

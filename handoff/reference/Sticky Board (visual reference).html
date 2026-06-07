@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sticky Board — Stationary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* paper / ink */
+    --paper:      #f3eee2;   /* board paper, warm off-white */
+    --paper-deep: #e8e0cc;
+    --paper-soft: #faf6ec;
+    --rule:       #d9cfb4;   /* faint rule line */
+    --rule-soft:  #e6dec7;
+    --ink:        #2a2722;   /* near-black ink */
+    --ink-mid:    #6b665b;
+    --ink-soft:   #948e80;
+    --ink-faint:  #c5beac;
+
+    /* sticky paper tones — desaturated, paper-feel */
+    --s-cream:    #f4ecc9;
+    --s-butter:   #f0d98a;
+    --s-sage:     #cfd6b8;
+    --s-rose:     #ecc9bf;
+    --s-sky:      #c5d2d8;
+    --s-grey:     #e2dccb;
+
+    --shadow-1: 0 1px 0 rgba(58,50,30,0.04), 0 2px 4px rgba(58,50,30,0.06), 0 8px 18px rgba(58,50,30,0.08);
+    --shadow-2: 0 1px 0 rgba(58,50,30,0.06), 0 4px 10px rgba(58,50,30,0.10), 0 14px 28px rgba(58,50,30,0.10);
+
+    --rule-r: 160; --rule-g: 140; --rule-b: 90;       /* board rule color, used in rgba */
+    --vignette: rgba(120,100,60,0.035);
+    --head-tint: rgba(0,0,0,0.045);
+    --head-rule: rgba(0,0,0,0.06);
+    --head-sheen: rgba(255,255,255,0.35);
+    --sheen: rgba(255,255,255,0.22);
+    --topbar-hairline: rgba(255,255,255,0.6);
+    --topbar-shadow: 0 6px 14px -8px rgba(58,50,30,0.10);
+    --tool-hover: rgba(42,39,34,0.06);
+    --tool-primary-bg: #e7dcb9;
+    --tool-primary-bg-hover: #ddd0a8;
+    --slash-bg: var(--paper-soft);
+    --slash-border: #d6cba8;
+
+    --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --sans:  "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --mono:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* ───────── Dark mode: desk lamp at night ───────── */
+  :root[data-theme="dark"] {
+    --paper:      #1d1c1a;   /* deep ink-paper */
+    --paper-deep: #15140f;
+    --paper-soft: #232220;
+    --rule:       #34322c;
+    --rule-soft:  #2a2925;
+    --ink:        #ece6d6;   /* warm bone */
+    --ink-mid:    #a09a8a;
+    --ink-soft:   #6f6a5e;
+    --ink-faint:  #3a3833;
+
+    /* dusty, dimmed paper tones — same hues, lower lightness, lower chroma */
+    --s-cream:    #5b5236;
+    --s-butter:   #6e5c2c;
+    --s-sage:     #4a5440;
+    --s-rose:     #6a4a44;
+    --s-sky:      #3f4e57;
+    --s-grey:     #4a4639;
+
+    --shadow-1: 0 1px 0 rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.35), 0 12px 24px rgba(0,0,0,0.40);
+    --shadow-2: 0 1px 0 rgba(0,0,0,0.5), 0 6px 14px rgba(0,0,0,0.45), 0 20px 36px rgba(0,0,0,0.5);
+
+    --rule-r: 230; --rule-g: 210; --rule-b: 160;
+    --vignette: rgba(0,0,0,0.35);
+    --head-tint: rgba(255,255,255,0.06);
+    --head-rule: rgba(0,0,0,0.35);
+    --head-sheen: rgba(255,255,255,0.05);
+    --sheen: rgba(255,255,255,0.04);
+    --topbar-hairline: rgba(255,255,255,0.05);
+    --topbar-shadow: 0 6px 16px -8px rgba(0,0,0,0.6);
+    --tool-hover: rgba(255,255,255,0.06);
+    --tool-primary-bg: #3a3528;
+    --tool-primary-bg-hover: #463f30;
+    --slash-bg: #26241f;
+    --slash-border: #3a3833;
+  }
+  :root[data-theme="dark"] body { color: var(--ink); }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--paper);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ───────── Board background: very faint ruled + grid paper ───────── */
+  .board {
+    position: fixed; inset: 0;
+    background-color: var(--paper);
+    background-image:
+      /* horizontal rules — much fainter */
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 31px,
+        rgba(var(--rule-r), var(--rule-g), var(--rule-b), 0.07) 31px,
+        rgba(var(--rule-r), var(--rule-g), var(--rule-b), 0.07) 32px
+      ),
+      /* faint vertical grid — barely there */
+      repeating-linear-gradient(
+        to right,
+        transparent 0,
+        transparent 31px,
+        rgba(var(--rule-r), var(--rule-g), var(--rule-b), 0.04) 31px,
+        rgba(var(--rule-r), var(--rule-g), var(--rule-b), 0.04) 32px
+      );
+  }
+  /* very subtle paper vignette */
+  .board::after {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 50% 40%, transparent 50%, var(--vignette) 100%);
+  }
+
+  /* ───────── Top bar: connected paper bar with tabs + toolbar ───────── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 30;
+    background: var(--paper-soft);
+    border-bottom: 1px solid var(--rule);
+    box-shadow: 0 1px 0 var(--topbar-hairline) inset, var(--topbar-shadow);
+  }
+  /* hairline above tabs */
+  .topbar::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 1px;
+    background: var(--topbar-hairline);
+  }
+
+  /* notebook-section tabs that sit IN the bar */
+  .tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    padding: 0 12px;
+    height: 34px;
+    border-bottom: 1px solid var(--rule-soft);
+    position: relative;
+  }
+  .tab {
+    position: relative;
+    height: 34px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--serif);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-mid);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    user-select: none;
+    transition: color .12s ease;
+  }
+  .tab + .tab { border-left: 1px solid var(--rule-soft); }
+  .tab:hover { color: var(--ink); }
+  .tab .x {
+    width: 14px; height: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 3px;
+    color: var(--ink-soft);
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity .12s ease, background .12s ease;
+  }
+  .tab:hover .x { opacity: 1; }
+  .tab .x:hover { background: var(--tool-hover); color: var(--ink); }
+
+  .tab.active { color: var(--ink); }
+  /* ink-underline on active tab */
+  .tab.active::after {
+    content: "";
+    position: absolute;
+    left: 10px; right: 10px; bottom: -1px;
+    height: 2px;
+    background: var(--ink);
+    border-radius: 1px;
+  }
+
+  .tab-add {
+    height: 28px; width: 28px;
+    align-self: center;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    margin-left: 6px;
+  }
+  .tab-add:hover { background: var(--tool-hover); color: var(--ink); }
+
+  .tab-add-right {
+    position: absolute;
+    right: 12px; top: 4px;
+    height: 26px; width: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .tab-add-right:hover { background: var(--tool-hover); color: var(--ink); }
+
+  /* tonal toolbar — sits IN the bar */
+  .toolbar {
+    height: 44px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .tool {
+    height: 30px; min-width: 32px;
+    padding: 0 8px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    color: var(--ink-mid);
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    font-weight: 500;
+    background: transparent;
+    border: 0;
+    transition: background .12s ease, color .12s ease;
+  }
+  .tool:hover { background: var(--tool-hover); color: var(--ink); }
+  .tool.primary {
+    color: var(--ink);
+    background: var(--tool-primary-bg);
+  }
+  .tool.primary:hover { background: var(--tool-primary-bg-hover); }
+  .tool .icon { width: 16px; height: 16px; display:inline-block; }
+  .sep { width: 1px; height: 20px; background: var(--ink-faint); margin: 0 4px; }
+
+  /* color swatches in toolbar */
+  .swatches { display: inline-flex; gap: 4px; padding: 0 6px; }
+  .swatch {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--ink-faint);
+    cursor: pointer;
+    box-shadow: inset 0 -1px 1px rgba(0,0,0,0.06);
+    transition: transform .1s ease;
+  }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch.active { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* ───────── Stickies ───────── */
+  .stickies { position: relative; width: 100%; height: 100%; }
+
+  .sticky {
+    position: absolute;
+    width: 240px;
+    min-height: 240px;
+    background: var(--bg, var(--s-cream));
+    color: var(--ink);
+    border-radius: 1px; /* crisp paper */
+    box-shadow: var(--shadow-1);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.55;
+    /* very subtle paper grain — gentle top sheen only */
+    background-image:
+      linear-gradient(180deg, var(--sheen), rgba(0,0,0,0) 22%);
+    transition: box-shadow .15s ease, transform .15s ease;
+  }
+  .sticky:hover { box-shadow: var(--shadow-2); }
+
+  /* curled corner */
+  .sticky::before {
+    content: "";
+    position: absolute;
+    right: 0; bottom: 0;
+    width: 22px; height: 22px;
+    background:
+      linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.10) 50%, rgba(0,0,0,0.18) 56%, transparent 60%),
+      linear-gradient(135deg, transparent 50%, var(--head-sheen) 50%);
+    border-bottom-right-radius: 1px;
+    pointer-events: none;
+  }
+  .sticky::after {
+    content: "";
+    position: absolute;
+    right: 0; bottom: 0;
+    width: 22px; height: 22px;
+    background: var(--paper);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    box-shadow: -1px -1px 2px rgba(0,0,0,0.05) inset;
+  }
+
+  /* drag-handle band: subtly darker tint of the paper */
+  .sticky-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 6px 0 12px;
+    background: var(--head-tint);
+    border-bottom: 1px solid var(--head-rule);
+    cursor: grab;
+    /* faint stitched/perforated feel from a thin top inner highlight */
+    box-shadow: inset 0 1px 0 var(--head-sheen);
+    border-top-left-radius: 1px;
+    border-top-right-radius: 1px;
+    user-select: none;
+  }
+  .sticky-head:active { cursor: grabbing; }
+  .sticky-title {
+    flex: 1;
+    font-family: var(--serif);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink);
+    background: transparent;
+    border: 0;
+    outline: none;
+    padding: 2px 4px;
+    margin-left: -4px;
+    border-radius: 3px;
+    min-width: 0;
+    cursor: text;
+  }
+  .sticky-title:focus { background: var(--head-sheen); }
+  .sticky-title::placeholder { color: var(--ink-soft); }
+
+  .sticky-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity .12s ease;
+  }
+  .sticky:hover .sticky-actions,
+  .sticky:focus-within .sticky-actions { opacity: 1; }
+
+  .sa-btn {
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0; background: transparent;
+    color: var(--ink-soft);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .sa-btn:hover { background: var(--tool-hover); color: var(--ink); }
+
+  .sticky-body {
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.55;
+    min-height: 160px;
+    outline: none;
+    white-space: pre-wrap;
+    padding: 12px 16px 18px;
+  }
+  .sticky-body h1, .sticky-body h2, .sticky-body h3 {
+    font-family: var(--serif); font-weight: 600; margin: .4em 0 .2em;
+  }
+  .sticky-body h1 { font-size: 18px; }
+  .sticky-body h2 { font-size: 16px; }
+  .sticky-body ul { padding-left: 18px; margin: .4em 0; }
+  .sticky-body li { margin: 2px 0; }
+  .sticky-body code {
+    font-family: var(--mono); font-size: 12.5px;
+    background: var(--head-tint); padding: 1px 5px; border-radius: 3px;
+  }
+  .sticky-body a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--ink-soft); text-underline-offset: 2px; }
+
+  /* tiny color bar at bottom */
+  .sticky-foot {
+    position: absolute;
+    left: 16px; bottom: 12px;
+    display: inline-flex; gap: 4px;
+    opacity: 0;
+    transition: opacity .12s ease;
+  }
+  .sticky:hover .sticky-foot { opacity: 1; }
+  .mini-swatch {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 1px solid var(--ink-faint);
+    cursor: pointer;
+  }
+
+  /* resize handle hint */
+  .resize-hint {
+    position: absolute;
+    right: 4px; bottom: 4px;
+    width: 8px; height: 8px;
+    border-right: 1.5px solid rgba(42,39,34,0.25);
+    border-bottom: 1.5px solid rgba(42,39,34,0.25);
+    pointer-events: none;
+  }
+
+  /* ───────── Crepe slash menu (restyled mock) ───────── */
+  .slash {
+    position: absolute;
+    width: 280px;
+    background: var(--slash-bg);
+    border: 1px solid var(--slash-border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-2);
+    font-family: var(--sans);
+    color: var(--ink);
+    overflow: hidden;
+  }
+  .slash-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 8px 8px 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .slash-tab {
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-mid);
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+  }
+  .slash-tab.active { background: var(--tool-primary-bg); color: var(--ink); }
+  .slash-section {
+    padding: 10px 12px 4px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+  .slash-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px;
+    margin: 0 6px 2px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .slash-item:hover { background: var(--tool-hover); }
+  .slash-item.active { background: var(--tool-primary-bg); }
+  .slash-item .ic {
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--ink-faint);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-mid);
+    background: var(--paper);
+  }
+  .slash-item .label { font-family: var(--serif); font-size: 13.5px; }
+  .slash-item .kbd {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-soft);
+  }
+  .slash-foot { height: 8px; }
+
+  /* ───────── tiny SVG icon styling ───────── */
+  svg.ic { display: block; }
+
+  /* small label legend at bottom-left of board */
+  .legend {
+    position: fixed;
+    left: 16px; bottom: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+  }
+
+  /* selection */
+  ::selection { background: rgba(214,196,140,0.6); color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="board" data-screen-label="01 Board"></div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="tabs" role="tablist">
+    <div class="tab" role="tab"><span>Konk</span><span class="x" title="Close">×</span></div>
+    <div class="tab active" role="tab" aria-selected="true"><span>Board 2</span><span class="x" title="Close">×</span></div>
+    <div class="tab" role="tab"><span>Sketches</span><span class="x" title="Close">×</span></div>
+    <div class="tab-add" title="New board">＋</div>
+  </div>
+
+  <div class="toolbar" role="toolbar" aria-label="Board tools">
+    <button class="tool primary" title="New sticky">
+      <svg class="ic" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+      <span>New</span>
+    </button>
+    <span class="sep"></span>
+    <button class="tool" title="Select">
+      <svg class="ic" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 2"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/></svg>
+    </button>
+    <button class="tool" title="Clear board">
+      <svg class="ic" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+    </button>
+    <button class="tool" title="Reset view">
+      <svg class="ic" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a5 5 0 1 0 1.5-3.5"/><path d="M3 3v3h3"/></svg>
+    </button>
+    <span class="sep"></span>
+    <button class="tool" title="Import">
+      <svg class="ic" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v8M5 8l3 3 3-3"/><path d="M3 13h10"/></svg>
+    </button>
+    <button class="tool" title="Export">
+      <svg class="ic" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12V4M5 7l3-3 3 3"/><path d="M3 13h10"/></svg>
+    </button>
+    <button class="tool" title="Share">
+      <svg class="ic" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="8" r="1.6"/><circle cx="12" cy="4" r="1.6"/><circle cx="12" cy="12" r="1.6"/><path d="M5.4 7.2l5.2-2.4M5.4 8.8l5.2 2.4"/></svg>
+    </button>
+    <span class="sep"></span>
+    <span class="swatches" title="Board paper">
+      <span class="swatch active" style="background:var(--paper)"></span>
+      <span class="swatch" style="background:var(--paper-deep)"></span>
+      <span class="swatch" style="background:var(--paper-soft)"></span>
+    </span>
+    <span class="sep"></span>
+    <button class="tool" id="theme-toggle" title="Toggle theme">
+      <svg class="ic icon-sun" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M3.3 12.7l1.4-1.4M11.3 4.7l1.4-1.4"/></svg>
+      <svg class="ic icon-moon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M13 9.5A5 5 0 1 1 6.5 3a4 4 0 0 0 6.5 6.5z"/></svg>
+    </button>
+  </div>
+
+  <div class="tab-add-right" title="New board">＋</div>
+</div>
+
+<!-- Stickies layer -->
+<div class="stickies" id="stickies">
+
+  <!-- Sticky 1 -->
+  <article class="sticky" style="--bg: var(--s-cream); top: 110px; left: 320px; width: 260px; min-height: 260px;">
+    <header class="sticky-head">
+      <input class="sticky-title" value="Monday — design notes" />
+      <div class="sticky-actions">
+        <button class="sa-btn" title="Markdown source">
+          <svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l-3 3 3 3M11 5l3 3-3 3"/></svg>
+        </button>
+        <button class="sa-btn" title="More">
+          <svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg>
+        </button>
+        <button class="sa-btn" title="Close">
+          <svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+    </header>
+    <div class="sticky-body" contenteditable="true" spellcheck="false"><h2>Stationary direction</h2>Warm paper, soft rule lines, ink type. Limit color picker to a curated set so the board stays calm.</div>
+    <div class="sticky-foot">
+      <span class="mini-swatch" data-color="var(--s-cream)" style="background:var(--s-cream)"></span>
+      <span class="mini-swatch" data-color="var(--s-butter)" style="background:var(--s-butter)"></span>
+      <span class="mini-swatch" data-color="var(--s-sage)" style="background:var(--s-sage)"></span>
+      <span class="mini-swatch" data-color="var(--s-rose)" style="background:var(--s-rose)"></span>
+      <span class="mini-swatch" data-color="var(--s-sky)" style="background:var(--s-sky)"></span>
+      <span class="mini-swatch" data-color="var(--s-grey)" style="background:var(--s-grey)"></span>
+    </div>
+    <span class="resize-hint"></span>
+  </article>
+
+  <!-- Sticky 2 -->
+  <article class="sticky" style="--bg: var(--s-butter); top: 250px; left: 60px; width: 240px; min-height: 220px;">
+    <header class="sticky-head">
+      <input class="sticky-title" value="Sticko." />
+      <div class="sticky-actions">
+        <button class="sa-btn" title="Markdown source"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l-3 3 3 3M11 5l3 3-3 3"/></svg></button>
+        <button class="sa-btn" title="More"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+        <button class="sa-btn" title="Close"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+    </header>
+    <div class="sticky-body" contenteditable="true" spellcheck="false">A small note on the desk. <code>cmd+k</code> to search.</div>
+    <div class="sticky-foot">
+      <span class="mini-swatch" data-color="var(--s-cream)" style="background:var(--s-cream)"></span>
+      <span class="mini-swatch" data-color="var(--s-butter)" style="background:var(--s-butter)"></span>
+      <span class="mini-swatch" data-color="var(--s-sage)" style="background:var(--s-sage)"></span>
+      <span class="mini-swatch" data-color="var(--s-rose)" style="background:var(--s-rose)"></span>
+      <span class="mini-swatch" data-color="var(--s-sky)" style="background:var(--s-sky)"></span>
+      <span class="mini-swatch" data-color="var(--s-grey)" style="background:var(--s-grey)"></span>
+    </div>
+    <span class="resize-hint"></span>
+  </article>
+
+  <!-- Sticky 3 -->
+  <article class="sticky" style="--bg: var(--s-sage); top: 420px; left: 380px; width: 250px; min-height: 230px;">
+    <header class="sticky-head">
+      <input class="sticky-title" value="Groceries" />
+      <div class="sticky-actions">
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l-3 3 3 3M11 5l3 3-3 3"/></svg></button>
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+    </header>
+    <div class="sticky-body" contenteditable="true" spellcheck="false"><ul><li>brown rice</li><li>miso, white</li><li>kabocha</li><li>tofu — silken</li><li>scallions</li></ul></div>
+    <span class="resize-hint"></span>
+  </article>
+
+  <!-- Sticky 4 with slash menu open -->
+  <article class="sticky" style="--bg: var(--s-rose); top: 130px; left: 660px; width: 270px; min-height: 280px;">
+    <header class="sticky-head">
+      <input class="sticky-title" value="Reading list" />
+      <div class="sticky-actions">
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l-3 3 3 3M11 5l3 3-3 3"/></svg></button>
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+    </header>
+    <div class="sticky-body" contenteditable="true" spellcheck="false">One<br/>/<span style="color:var(--ink-soft)">|</span></div>
+    <span class="resize-hint"></span>
+  </article>
+
+  <!-- Restyled Crepe slash menu, anchored under sticky 4 -->
+  <div class="slash" style="top: 240px; left: 660px;">
+    <div class="slash-tabs">
+      <div class="slash-tab active">Text</div>
+      <div class="slash-tab">List</div>
+      <div class="slash-tab">Advanced</div>
+    </div>
+    <div class="slash-section">Text</div>
+    <div class="slash-item active">
+      <span class="ic" style="font-family:var(--serif); font-size:13px;">T</span>
+      <span class="label">Text</span>
+      <span class="kbd">⏎</span>
+    </div>
+    <div class="slash-item">
+      <span class="ic">H1</span>
+      <span class="label" style="font-size:15px;">Heading 1</span>
+    </div>
+    <div class="slash-item">
+      <span class="ic">H2</span>
+      <span class="label" style="font-size:14.5px;">Heading 2</span>
+    </div>
+    <div class="slash-item">
+      <span class="ic">H3</span>
+      <span class="label">Heading 3</span>
+    </div>
+    <div class="slash-item">
+      <span class="ic">"</span>
+      <span class="label" style="font-style: italic;">Quote</span>
+    </div>
+    <div class="slash-item">
+      <span class="ic" style="font-family:var(--mono);">{ }</span>
+      <span class="label">Code block</span>
+    </div>
+    <div class="slash-foot"></div>
+  </div>
+
+  <!-- Sticky 5 (small, behind) -->
+  <article class="sticky" style="--bg: var(--s-sky); top: 470px; left: 700px; width: 210px; min-height: 180px;">
+    <header class="sticky-head">
+      <input class="sticky-title" value="Quote" />
+      <div class="sticky-actions">
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l-3 3 3 3M11 5l3 3-3 3"/></svg></button>
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+    </header>
+    <div class="sticky-body" contenteditable="true" spellcheck="false" style="font-family:var(--serif); font-style: italic;">Less, but better.</div>
+    <span class="resize-hint"></span>
+  </article>
+
+  <!-- Sticky 6 -->
+  <article class="sticky" style="--bg: var(--s-grey); top: 510px; left: 100px; width: 230px; min-height: 200px;">
+    <header class="sticky-head">
+      <input class="sticky-title" value="Todo — week" />
+      <div class="sticky-actions">
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l-3 3 3 3M11 5l3 3-3 3"/></svg></button>
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+        <button class="sa-btn"><svg class="ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+    </header>
+    <div class="sticky-body" contenteditable="true" spellcheck="false">
+      <div>☐ ship sticky redesign</div>
+      <div>☐ port crepe theme tokens</div>
+      <div>☑ pick palette</div>
+      <div>☐ write changelog</div>
+    </div>
+    <span class="resize-hint"></span>
+  </article>
+
+</div>
+
+<div class="legend">stationary · 6 papers · ruled board</div>
+
+<script>
+  // tiny interactivity: drag stickies, tab switching
+  (function () {
+    // Drag
+    let active = null, off = {x:0,y:0};
+    document.querySelectorAll('.sticky').forEach(el => {
+      const head = el.querySelector('.sticky-head');
+      if (!head) return;
+      head.addEventListener('mousedown', (e) => {
+        if (e.target.closest('input,button')) return;
+        active = el;
+        const r = el.getBoundingClientRect();
+        off.x = e.clientX - r.left;
+        off.y = e.clientY - r.top;
+        el.style.zIndex = 50;
+        e.preventDefault();
+      });
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!active) return;
+      active.style.left = (e.clientX - off.x) + 'px';
+      active.style.top  = (e.clientY - off.y) + 'px';
+    });
+    window.addEventListener('mouseup', () => {
+      if (active) active.style.zIndex = '';
+      active = null;
+    });
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', (e) => {
+        if (e.target.closest('.x')) return;
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+      });
+    });
+
+    // Swatches in mini foot — change sticky bg
+    document.querySelectorAll('.sticky-foot').forEach(foot => {
+      foot.querySelectorAll('.mini-swatch').forEach(s => {
+        s.addEventListener('click', () => {
+          foot.closest('.sticky').style.setProperty('--bg', s.dataset.color || s.style.background);
+        });
+      });
+    });
+
+    // Slash item activate
+    document.querySelectorAll('.slash-item').forEach(it => {
+      it.addEventListener('mouseenter', () => {
+        document.querySelectorAll('.slash-item').forEach(x => x.classList.remove('active'));
+        it.classList.add('active');
+      });
+    });
+    document.querySelectorAll('.slash-tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.slash-tab').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+      });
+    });
+
+    // Theme toggle
+    const root = document.documentElement;
+    const saved = localStorage.getItem('sticky-theme');
+    if (saved === 'dark') root.setAttribute('data-theme', 'dark');
+    const toggle = document.getElementById('theme-toggle');
+    function syncIcon() {
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      toggle.querySelector('.icon-sun').style.display  = isDark ? 'none' : '';
+      toggle.querySelector('.icon-moon').style.display = isDark ? '' : 'none';
+    }
+    syncIcon();
+    toggle.addEventListener('click', () => {
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      if (isDark) root.removeAttribute('data-theme');
+      else root.setAttribute('data-theme', 'dark');
+      localStorage.setItem('sticky-theme', isDark ? 'light' : 'dark');
+      syncIcon();
+    });
+  })();
+</script>
+
+</body>
+</html>

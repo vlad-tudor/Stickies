@@ -7,7 +7,7 @@ type StickyDeleteButtonProps = {
 export const StickyDeleteButton = (props: StickyDeleteButtonProps) => {
   return (
     <div class="sticky-delete-button" onClick={props.deleteSticky}>
-      ✖️
+      ✕
     </div>
   );
 };

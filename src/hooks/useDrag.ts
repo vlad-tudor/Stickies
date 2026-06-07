@@ -1,8 +1,11 @@
 type UseDragOptions = {
   cursor?: string;
+  threshold?: number;        // px of movement before it counts as a drag (default 3)
+  preventDefault?: boolean;  // default true
   onStart?: (e: PointerEvent) => void;
   onMove: (e: PointerEvent) => void;
   onEnd?: (e: PointerEvent) => void;
+  onTap?: (e: PointerEvent) => void; // released within threshold (no drag)
 };
 
 type PointerDragHandlers = {
@@ -12,29 +15,42 @@ type PointerDragHandlers = {
 export function useDrag(options: UseDragOptions): PointerDragHandlers {
   return {
     onPointerDown: (e: PointerEvent) => {
-      e.preventDefault();
       const target = e.currentTarget as HTMLElement;
+      if (options.preventDefault !== false) e.preventDefault();
       target.setPointerCapture(e.pointerId);
 
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const threshold = options.threshold ?? 3;
+      let dragging = false;
       let cursorOverride: HTMLStyleElement | null = null;
-      if (options.cursor) {
-        cursorOverride = document.createElement("style");
-        cursorOverride.textContent = `* { cursor: ${options.cursor} !important; }`;
-        document.head.appendChild(cursorOverride);
-      }
 
-      options.onStart?.(e);
-
-      const onPointerMove = (e: PointerEvent) => {
-        options.onMove(e);
+      const onPointerMove = (ev: PointerEvent) => {
+        if (!dragging) {
+          if (
+            Math.abs(ev.clientX - startX) < threshold &&
+            Math.abs(ev.clientY - startY) < threshold
+          ) {
+            return;
+          }
+          dragging = true;
+          if (options.cursor) {
+            cursorOverride = document.createElement("style");
+            cursorOverride.textContent = `* { cursor: ${options.cursor} !important; }`;
+            document.head.appendChild(cursorOverride);
+          }
+          options.onStart?.(ev);
+        }
+        options.onMove(ev);
       };
 
-      const onPointerUp = (e: PointerEvent) => {
-        target.releasePointerCapture(e.pointerId);
+      const onPointerUp = (ev: PointerEvent) => {
+        target.releasePointerCapture(ev.pointerId);
         target.removeEventListener("pointermove", onPointerMove);
         target.removeEventListener("pointerup", onPointerUp);
         cursorOverride?.remove();
-        options.onEnd?.(e);
+        if (dragging) options.onEnd?.(ev);
+        else options.onTap?.(ev);
       };
 
       target.addEventListener("pointermove", onPointerMove);

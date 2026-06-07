@@ -4,6 +4,7 @@ import "./sticky-resize-corner.scss";
 type StickyResizeCornerProps = {
   dimensions: [number, number];
   updateStickyDimensions: (update: [number, number]) => void;
+  onResizeEnd?: () => void;
 };
 
 export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
@@ -23,6 +24,7 @@ export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
       ]);
       resizeOffset = [e.clientX, e.clientY];
     },
+    onEnd: () => props.onResizeEnd?.(),
   });
 
   return (

@@ -1,6 +1,6 @@
 // ============================================================
 //  STICKY DELETE BUTTON  (replaces current sticky-delete-button.scss)
-//  Quiet ink "×" at the top-right of the band; always visible.
+//  Quiet ink "×" at the top-right of the band; reveals on hover.
 // ============================================================
 
 .sticky-delete-button {
@@ -19,5 +19,11 @@
   line-height: 1;
   cursor: pointer;
   border-radius: var(--radius-paper);
-  opacity: 0.5;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+
+  .sticky:hover &,
+  .sticky.active & { opacity: 0.55; }
+
+  &:hover { opacity: 0.95; background: var(--tint-hover); }
 }

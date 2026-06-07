@@ -1,0 +1,62 @@
+// ============================================================
+//  STICKY COLOR INPUT  (replaces current sticky-color-input.scss)
+//  ------------------------------------------------------------
+//  DESIGN-ONLY note: the constrained palette (swapping the raw
+//  <input type="color"> for curated swatches) is YOUR task — it
+//  touches StickyColorInput.tsx. This file only restyles the
+//  control's footprint so it sits cleanly in the new design.
+//
+//  When you build the swatch row, target the six --s-* tokens from
+//  tokens.css. Suggested markup the styles below already anticipate:
+//
+//    <div class="sticky-color-input">
+//      <button class="sticky-swatch" style="--swatch: var(--s-cream)" />
+//      … one per tone, .is-selected on the active one …
+//    </div>
+// ============================================================
+
+.sticky-color-input {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.5rem;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+
+  // reveal on note hover/focus (kept subtle, like the title controls)
+  .sticky:hover &,
+  .sticky.active & { opacity: 0.9; }
+}
+
+// --- swatch styling for the curated palette you'll build ---
+.sticky-swatch {
+  all: unset;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background: var(--swatch, var(--s-cream));
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+
+  &:hover { transform: scale(1.18); }
+  &.is-selected {
+    outline: 2px solid currentColor;
+    outline-offset: 1.5px;
+  }
+}
+
+// --- fallback: if the raw <input type="color"> stays for now ---
+input.sticky-color-input {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  opacity: 0.5;
+  cursor: pointer;
+  &:active { opacity: 1; }
+}

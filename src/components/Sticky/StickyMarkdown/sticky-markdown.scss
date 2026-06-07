@@ -1,37 +1,149 @@
 .sticky-markdown {
   flex: auto;
-  height: 100%;
   width: 100%;
   min-height: calc(
     var(--total-sticky-height) - var(--total-sticky-handle-height)
   );
-  text-wrap: wrap;
-
-  &:first-child {
-    text-wrap: wrap;
-  }
-
-  // MILKDOWN OVERRIDE
-  &.inactive {
-    milkdown-block-handle {
-      display: none;
-    }
-  }
+  overflow-y: auto;
+  scrollbar-color: var(--ink-faint) transparent;
+  scrollbar-width: thin;
 }
 
-.sticky-markdown-raw {
-  flex: auto;
-  width: 100%;
-  min-height: calc(var(--total-sticky-height) - var(--total-sticky-handle-height));
-  padding: 1rem;
-  background: transparent;
-  border: none;
-  resize: none;
-  font-family: monospace;
-  font-size: 0.875rem;
-  line-height: 1.5;
+.sticky-markdown.rendered {
+  cursor: text; // hint: click to edit
+  // reserve the toolbar strip so text sits at the same Y in view + edit
+  padding-top: calc(var(--toolbar-h) + 0.5rem);
+}
+
+// ---- shared prose: rendered view AND the WYSIWYG editor surface ----
+// Identical styling so entering/leaving edit causes no visible reflow.
+.sticky-markdown.rendered,
+.sticky-editor .ProseMirror {
+  padding: 0.5rem 1rem 1rem;
+  overflow-wrap: break-word;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: inherit;
   outline: none;
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0.6em 0 0.3em;
+  }
+  h1 { font-size: 1.3rem; }
+  h2 { font-size: 1.15rem; }
+  h3 { font-size: 1.02rem; }
+
+  p { margin: 0.5em 0; }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--ink-soft);
+    text-underline-offset: 2px;
+  }
+
+  blockquote {
+    margin: 0.5em 0;
+    padding-left: 1rem;
+    border-left: 2px solid var(--ink-faint);
+    color: var(--ink-mid);
+    font-style: italic;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--head-tint);
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+  }
+
+  pre {
+    background: var(--head-tint);
+    padding: 0.75rem;
+    border-radius: var(--radius-chrome);
+    overflow-x: auto;
+
+    code { background: none; padding: 0; }
+  }
+
+  ul, ol { padding-left: 1.25rem; margin: 0.5em 0; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.5em 0;
+
+    th, td {
+      border: 1px solid var(--ink-faint);
+      padding: 0.25em 0.5em;
+      text-align: left;
+    }
+    th { background: var(--head-tint); font-weight: 600; }
+  }
+
+  img { max-width: 100%; }
+
+  &:first-child { margin-top: 0; }
+}
+
+// ---- editor (note being edited): toolbar on top, scrolling surface below ----
+.sticky-editor {
+  flex: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(
+    var(--total-sticky-height) - var(--total-sticky-handle-height)
+  );
+  overflow: hidden;
+}
+
+.sticky-markdown-edit {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  scrollbar-color: var(--ink-faint) transparent;
   scrollbar-width: thin;
+
+  .ProseMirror { min-height: 100%; }
+  // selected table cell highlight
+  .selectedCell { background: var(--tint-press); }
+}
+
+.sticky-toolbar {
+  display: flex;
+  flex-wrap: nowrap;          // fixed height; scroll if too narrow (no content push)
+  gap: 0.1rem;
+  height: var(--toolbar-h);
+  box-sizing: border-box;
+  padding: 0.2rem 0.4rem;
+  border-bottom: 1px solid var(--head-rule);
+  background: var(--head-tint);
+  overflow-x: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+.sticky-tool {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: inherit;
+  border-radius: var(--radius-paper);
+  cursor: pointer;
+  opacity: 0.65;
+
+  svg { width: 100%; height: 100%; }
+
+  &.is-active { opacity: 1; background: var(--tint-press); }
 }

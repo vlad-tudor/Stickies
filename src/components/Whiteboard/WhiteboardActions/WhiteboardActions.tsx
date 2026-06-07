@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, For } from "solid-js";
 import {
   clearAllStickies,
   createStickyNote,
@@ -6,21 +6,24 @@ import {
   importStickies,
   stackAllStickies,
   activeBoard,
+  stickies,
   StickyNote,
 } from "~/stores/stickyStore";
 import { downloadJson, readJsonFile } from "~/utils/fileIO";
 import { copyShareUrl } from "~/utils/urlState";
-import { Download, Upload, Share2 } from "lucide-static";
+import { TONES, type Tone } from "~/utils/tones";
+import { theme, toggleTheme } from "~/stores/themeStore";
+import { editSticky } from "~/stores/uiStore";
+import { Download, Upload, Share2, Sun, Moon } from "lucide-static";
 import "./whiteboard-actions.scss";
 
 type WhiteboardActionsProps = {
-  bgColor: string;
-  updateBgColor: (color: string) => void;
+  bgColor: Tone;
+  updateBgColor: (color: Tone) => void;
 };
 
 export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   let fileInputRef!: HTMLInputElement;
-  const [open, setOpen] = createSignal(false);
 
   const onClearAllStickies = () => {
     if (confirm("Are you sure you want to clear all stickies?")) {
@@ -36,13 +39,24 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
      *  -- extra largeness accompanied by errors in the console.
      */
     const mobile = window.innerWidth < 480;
+    // Cascade the spawn down-right while that exact spot is occupied — so
+    // pressing "+" repeatedly without moving the new note stacks them in a
+    // staggered pile instead of exactly overlapping.
+    const STEP = 30;
+    const taken = new Set(stickies().map((s) => `${s.position[0]},${s.position[1]}`));
+    let position: [number, number] = [100, 20];
+    while (taken.has(`${position[0]},${position[1]}`)) {
+      position = [position[0] + STEP, position[1] + STEP];
+    }
+    const id = Date.now().toString();
     createStickyNote({
-      id: Date.now().toString(),
-      position: [100, 20],
+      id,
+      position,
       dimensions: mobile ? [200, 200] : [300, 300],
       content: "",
-      color: "#e3d46f",
+      color: "butter",
     });
+    editSticky(id); // select + open the new note straight into the editor
   };
 
   const onExport = () => {
@@ -80,37 +94,45 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   return (
     <>
     <div class={`share-toast ${toast() ? "visible" : ""}`}>{toast()}</div>
-    <div class={`whiteboard-actions ${open() ? "open" : ""}`}>
-      <button class="create-sticky" onClick={onStickyCreate}>
+    <div class="whiteboard-actions">
+      <button class="create-sticky" title="New sticky" onClick={onStickyCreate}>
         +
       </button>
-
-      <button class="drawer-toggle" onClick={() => setOpen(!open())}>
-        {open() ? "\u2715" : "\u2630"}
+      <button class="refresh-stickies-positions" title="Stack all stickies" onClick={onStack}>{"🔄"}</button>
+      <button class="clear-all-stickies" title="Clear all stickies" onClick={onClearAllStickies}>
+        {"🗑️"}
       </button>
+      <button class="export-stickies" title="Export stickies" onClick={onExport} innerHTML={Download} />
+      <button class="import-stickies" title="Import stickies" onClick={() => fileInputRef.click()} innerHTML={Upload} />
+      <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
+      <button
+        class="theme-toggle"
+        title={theme() === "dark" ? "Light mode" : "Dark mode"}
+        onClick={toggleTheme}
+        innerHTML={theme() === "dark" ? Sun : Moon}
+      />
 
-      <div class="drawer-content">
-        <button class="refresh-stickies-positions" title="Stack all stickies" onClick={onStack}>{"\uD83D\uDD04"}</button>
-        <button class="clear-all-stickies" onClick={onClearAllStickies}>
-          {"\uD83D\uDDD1\uFE0F"}
-        </button>
-        <button class="export-stickies" title="Export stickies" onClick={onExport} innerHTML={Download} />
-        <button class="import-stickies" title="Import stickies" onClick={() => fileInputRef.click()} innerHTML={Upload} />
-        <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          style={{ display: "none" }}
-          onChange={onFileSelected}
-        />
-        <input
-          type="color"
-          class="whiteboard-bg-picker"
-          value={props.bgColor}
-          onInput={(e) => props.updateBgColor(e.currentTarget.value)}
-        />
+      <div class="board-hue" title="Board color">
+        <For each={TONES}>
+          {(tone) => (
+            <button
+              type="button"
+              class={`hue-dot ${props.bgColor === tone ? "is-selected" : ""}`}
+              style={{ "--swatch": `var(--s-${tone})` }}
+              title={tone}
+              onClick={() => props.updateBgColor(tone)}
+            />
+          )}
+        </For>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        style={{ display: "none" }}
+        onChange={onFileSelected}
+      />
     </div>
     </>
   );

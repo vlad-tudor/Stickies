@@ -9,7 +9,6 @@
 .sticky {
   --total-sticky-height: 20rem;
   --total-sticky-handle-height: 2rem;
-  --toolbar-h: 2rem;   // editor toolbar height (reserved at content top)
 
   position: absolute;
   min-width: 20rem;
@@ -23,6 +22,9 @@
   box-shadow: var(--shadow-1);
   // gentle top sheen over the note's own (inline) background color
   background-image: linear-gradient(180deg, var(--sheen), rgba(0,0,0,0) 22%);
+  transition: box-shadow 0.15s ease;
+
+  &:hover { box-shadow: var(--shadow-2); }
 
   @media (max-width: 480px) {
     min-width: 10rem;
@@ -45,9 +47,9 @@
   }
 }
 
-// ---- top band: title (center), delete (right) ----
-// The tonal fill lives on .sticky-drag-handle (see its file); this bar sits
-// above it and holds the title. The left of the band is bare grip.
+// ---- top band: title (center), raw toggle (left), delete (right) ----
+// The tonal fill lives on .sticky-drag-handle (see its file); this
+// bar sits above it and holds the title.
 .sticky-title-bar {
   position: absolute;
   top: 0;
@@ -57,10 +59,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;   // derived title is read-only; band drags through it
+  pointer-events: none;
+
+  > * { pointer-events: auto; }
 }
 
-// Derived, read-only title (first of the note's text, truncated).
 .sticky-title-label {
   font-family: var(--font-serif);
   font-size: 0.82rem;
@@ -69,4 +72,60 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sticky-title-edit {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 0.75rem;
+  opacity: 0.4;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  margin-left: 0.25rem;
+  &:hover { opacity: 0.8; }
+}
+
+.sticky-title-input {
+  width: 100%;
+  height: var(--total-sticky-handle-height);
+  background: none;
+  border: none;
+  border-bottom: 1px solid currentColor;
+  outline: none;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: inherit;
+  opacity: 0.85;
+
+  &::placeholder {
+    color: inherit;
+    opacity: 0.35;
+    font-weight: 400;
+  }
+}
+
+// ---- markdown / raw source toggle (top-left, monospace) ----
+.sticky-raw-toggle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: var(--total-sticky-handle-height);
+  padding: 0 0.5rem;
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  opacity: 0.5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-paper);
+  transition: opacity 0.12s ease, background 0.12s ease;
+
+  &:hover { opacity: 0.9; background: var(--tint-hover); }
+  &.active { opacity: 0.95; background: var(--tint-press); }
 }

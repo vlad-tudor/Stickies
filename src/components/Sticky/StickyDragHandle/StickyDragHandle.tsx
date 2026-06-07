@@ -4,6 +4,7 @@ import "./sticky-drag-handle.scss";
 type StickyDragHandleProps = {
   updateStickyPosition: (position: [number, number]) => void;
   getStickyRect: () => DOMRect;
+  onDragEnd?: () => void;
 };
 
 export const StickyDragHandle = (props: StickyDragHandleProps) => {
@@ -21,6 +22,7 @@ export const StickyDragHandle = (props: StickyDragHandleProps) => {
         e.clientX - dragOffset[0],
       ]);
     },
+    onEnd: () => props.onDragEnd?.(),
   });
 
   return (

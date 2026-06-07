@@ -27,6 +27,7 @@
   touch-action: none;
   transition: background-color 0.15s ease;
 
+  &:hover  { background-color: color-mix(in srgb, currentColor 12%, transparent); }
   &:active {
     cursor: grabbing;
     background-color: color-mix(in srgb, currentColor 16%, transparent);

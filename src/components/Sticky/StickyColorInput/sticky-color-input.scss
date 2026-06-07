@@ -1,15 +1,33 @@
+// ============================================================
+//  STICKY COLOR INPUT
+//  ------------------------------------------------------------
+//  Curated swatch row over the six --s-* tokens. Revealed on note
+//  hover/focus at the bottom-left, like the title controls.
+// ============================================================
+
 .sticky-color-input {
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 2rem;
-  height: 2rem;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.5rem;
+  opacity: 0.9;
+}
 
-  opacity: 0.5;
-  border: 0;
-  padding: 0;
+.sticky-swatch {
+  all: unset;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background: var(--swatch, var(--s-cream));
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  cursor: pointer;
 
-  &:active {
-    opacity: 1;
+  &.is-selected {
+    outline: 2px solid currentColor;
+    outline-offset: 1.5px;
   }
 }
