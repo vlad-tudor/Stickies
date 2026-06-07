@@ -17,9 +17,12 @@ import "./whiteboard.scss";
 export const Whiteboard = () => {
   onMount(() => loadBoards());
 
-  // clicking the bare board (not a sticky) exits any open editor
+  // Exit editing only when pressing the bare board surface itself. Identity
+  // check (not closest('.sticky')): pressing a note's text swaps it to the
+  // editor mid-dispatch, detaching the event target — closest() would then
+  // wrongly return null and close the editor the instant it opened.
   const onBoardPointerDown = (e: PointerEvent) => {
-    if (!(e.target as HTMLElement).closest(".sticky")) exitEditing();
+    if (e.target === e.currentTarget) exitEditing();
   };
 
   return (
