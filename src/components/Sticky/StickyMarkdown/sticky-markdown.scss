@@ -9,11 +9,7 @@
   scrollbar-width: thin;
 }
 
-.sticky-markdown.rendered {
-  cursor: text; // hint: click to edit
-  // reserve the toolbar strip so text sits at the same Y in view + edit
-  padding-top: calc(var(--toolbar-h) + 0.5rem);
-}
+.sticky-markdown.rendered { cursor: text; } // hint: click to edit
 
 // ---- shared prose: rendered view AND the WYSIWYG editor surface ----
 // Identical styling so entering/leaving edit causes no visible reflow.
@@ -91,11 +87,19 @@
   &:first-child { margin-top: 0; }
 }
 
-// ---- editor (note being edited): toolbar on top, scrolling surface below ----
+// Reserve the toolbar strip on the rendered view (declared AFTER the shared
+// `padding` shorthand so it isn't clobbered). Matches editor text Y exactly:
+// editor = toolbar(--toolbar-h) + ProseMirror padding-top(0.5rem); rendered =
+// the same total — so entering edit never shifts the text.
+.sticky-markdown.rendered { padding-top: calc(var(--toolbar-h) + 0.5rem); }
+
+// ---- editor (note being edited) ----
+// Toolbar and text are fully decoupled: the toolbar is absolutely positioned in
+// the top strip (zero layout influence), and the scroll surface is absolutely
+// positioned to START below it. Nothing one does can shift the other.
 .sticky-editor {
   flex: auto;
-  display: flex;
-  flex-direction: column;
+  position: relative;
   min-height: calc(
     var(--total-sticky-height) - var(--total-sticky-handle-height)
   );
@@ -103,8 +107,8 @@
 }
 
 .sticky-markdown-edit {
-  flex: 1;
-  min-height: 0;
+  position: absolute;
+  inset: var(--toolbar-h) 0 0 0;   // start below the toolbar strip
   overflow-y: auto;
   scrollbar-color: var(--ink-faint) transparent;
   scrollbar-width: thin;
@@ -115,8 +119,13 @@
 }
 
 .sticky-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
   display: flex;
-  flex-wrap: nowrap;          // fixed height; scroll if too narrow (no content push)
+  flex-wrap: nowrap;          // fixed height; scroll if too narrow
   gap: 0.1rem;
   height: var(--toolbar-h);
   box-sizing: border-box;
