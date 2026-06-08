@@ -2,6 +2,7 @@ import { createMemo } from "solid-js";
 import { StickyNote, addThread } from "~/stores/stickyStore";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
+import { StickyTableStrip } from "./StickyTableStrip/StickyTableStrip";
 import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
 import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
 
@@ -141,6 +142,8 @@ export const Sticky = (props: StickyProps) => {
       </div>
 
       <StickyDeleteButton deleteSticky={onStickyDelete} />
+
+      <StickyTableStrip stickyId={props.sticky.id} />
 
       <StickyMarkdown
         sticky={props.sticky}

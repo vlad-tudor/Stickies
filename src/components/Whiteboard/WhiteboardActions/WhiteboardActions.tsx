@@ -2,22 +2,18 @@ import { createSignal, For } from "solid-js";
 import {
   clearAllStickies,
   createStickyNote,
-  exportStickies,
-  importStickies,
   stackAllStickies,
   activeBoard,
   stickies,
   MIN_STICKY_WIDTH,
   MIN_STICKY_HEIGHT,
-  StickyNote,
 } from "~/stores/stickyStore";
-import { downloadJson, readJsonFile } from "~/utils/fileIO";
 import { copyShareUrl } from "~/utils/urlState";
 import { TONES, type Tone } from "~/utils/tones";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky } from "~/stores/uiStore";
 import { pan, zoom, screenToWorld } from "~/stores/viewportStore";
-import { Download, Upload, Share2, Sun, Moon } from "lucide-static";
+import { Share2, Sun, Moon } from "lucide-static";
 import "./whiteboard-actions.scss";
 
 // screen-space anchor for new notes: just under the "+" button
@@ -29,7 +25,6 @@ type WhiteboardActionsProps = {
 };
 
 export const WhiteboardActions = (props: WhiteboardActionsProps) => {
-  let fileInputRef!: HTMLInputElement;
   // remember the last spawn so we only stagger when nothing has changed since
   let lastSpawn: { id: string; pos: [number, number]; px: number; py: number; z: number } | null = null;
 
@@ -83,10 +78,6 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     editSticky(id); // select + open the new note straight into the editor
   };
 
-  const onExport = () => {
-    downloadJson(exportStickies(), "stickies.json");
-  };
-
   const [toast, setToast] = createSignal("");
 
   const showToast = (msg: string) => {
@@ -106,15 +97,6 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     showToast("Stickies stacked");
   };
 
-  const onFileSelected = async (e: Event) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-
-    const imported = await readJsonFile<StickyNote[]>(file);
-    importStickies(imported);
-    window.location.reload();
-  };
-
   return (
     <>
     <div class={`share-toast ${toast() ? "visible" : ""}`}>{toast()}</div>
@@ -126,8 +108,6 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       <button class="clear-all-stickies" title="Clear all stickies" onClick={onClearAllStickies}>
         {"🗑️"}
       </button>
-      <button class="export-stickies" title="Export stickies" onClick={onExport} innerHTML={Download} />
-      <button class="import-stickies" title="Import stickies" onClick={() => fileInputRef.click()} innerHTML={Upload} />
       <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
       <button
         class="theme-toggle"
@@ -149,14 +129,6 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
           )}
         </For>
       </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        style={{ display: "none" }}
-        onChange={onFileSelected}
-      />
 
       <span class="app-version">v{__APP_VERSION__}</span>
     </div>

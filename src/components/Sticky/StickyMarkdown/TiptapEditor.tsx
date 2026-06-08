@@ -18,6 +18,7 @@ import {
   SquareCode,
   Table as TableIcon,
 } from "lucide-static";
+import { setActiveEditor, bumpEditorTick } from "~/stores/editorStore";
 
 type TiptapEditorProps = {
   content: string;
@@ -53,12 +54,22 @@ export const TiptapEditor = (props: TiptapEditorProps) => {
         },
       },
       onUpdate: ({ editor }) => props.onChange(editor.getHTML()),
-      onSelectionUpdate: () => setTick((t) => t + 1),
-      onTransaction: () => setTick((t) => t + 1),
+      onSelectionUpdate: () => {
+        setTick((t) => t + 1);
+        bumpEditorTick();
+      },
+      onTransaction: () => {
+        setTick((t) => t + 1);
+        bumpEditorTick();
+      },
     });
     ed.commands.focus("end");
     setEditor(ed);
-    onCleanup(() => ed.destroy());
+    setActiveEditor(ed); // expose to sticky-level chrome (the table strip)
+    onCleanup(() => {
+      ed.destroy();
+      setActiveEditor((cur) => (cur === ed ? null : cur));
+    });
   });
 
   const active = (name: string, attrs?: Record<string, unknown>): boolean => {

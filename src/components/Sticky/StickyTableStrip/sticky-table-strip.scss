@@ -1,0 +1,64 @@
+// Table controls that grow out of the note's LEFT edge — same tone as the note,
+// sitting just outside it, sliding in/out as the cursor enters/leaves a table.
+.table-strip {
+  position: absolute;
+  right: 100%;                              // hang off the sticky's left edge
+  top: var(--total-sticky-handle-height);  // align below the title band
+  z-index: 2;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.25rem;
+
+  background-color: inherit;               // same tone as the note
+  border: 1px solid var(--ink-faint);
+  border-right: none;                       // merge flush with the note's edge
+  border-radius: var(--radius-paper) 0 0 var(--radius-paper);
+  box-shadow: var(--shadow-2);
+  color: inherit;
+
+  // slide / fade: tucked behind the note's left edge when closed
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+
+  &.is-open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+// groups (rows / columns / header) separated by a hairline
+.table-strip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+
+  &:not(:last-child) {
+    padding-bottom: 0.2rem;
+    margin-bottom: 0.2rem;
+    border-bottom: 1px solid var(--ink-faint);
+  }
+}
+
+.table-strip-btn {
+  width: 1.55rem;
+  height: 1.55rem;
+  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: inherit;
+  border-radius: var(--radius-paper);
+  cursor: pointer;
+  opacity: 0.7;
+
+  svg { width: 100%; height: 100%; }
+
+  &:hover { opacity: 1; background: var(--tint-press); }
+}
