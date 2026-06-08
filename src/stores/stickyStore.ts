@@ -40,6 +40,15 @@ export const stickyCenter = (
   y: s.position[0] + s.dimensions[1] / 2,
 });
 
+// Where a thread attaches: the connect dot — horizontal center, band middle.
+// 16 = half the band height (--total-sticky-handle-height, 2rem) in sticky.scss.
+export const threadAnchor = (
+  s: Pick<StickyNote, "position" | "dimensions">
+): { x: number; y: number } => ({
+  x: s.position[1] + s.dimensions[0] / 2,
+  y: s.position[0] + 16,
+});
+
 type BoardStore = {
   boards: Board[];
   activeBoardId: string;

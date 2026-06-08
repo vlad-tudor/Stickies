@@ -12,6 +12,12 @@ export const [pendingThread, setPendingThread] = createSignal<
   { from: string; to: { x: number; y: number } } | null
 >(null);
 
+// selected thread (for the delete popover): its id + the SCREEN point where it
+// was clicked (the popover anchors there), or null.
+export const [selectedThread, setSelectedThread] = createSignal<
+  { id: string; x: number; y: number } | null
+>(null);
+
 // ── Interaction intents (the only places that mutate selection/edit state) ──
 
 // Select on press: raise to the top and close any OTHER editor — but don't open
@@ -19,6 +25,7 @@ export const [pendingThread, setPendingThread] = createSignal<
 // incl. the first finger of a pinch and the start of a drag.
 export function selectSticky(id: string): void {
   if (editingStickyId() !== id) setEditingStickyId(null);
+  setSelectedThread(null); // interacting with a note dismisses the thread popover
   raiseStickyById(id);
 }
 

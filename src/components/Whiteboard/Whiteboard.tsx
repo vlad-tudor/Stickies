@@ -2,6 +2,7 @@ import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { WhiteboardActions } from "./WhiteboardActions/WhiteboardActions";
 import { RenderStickies } from "./RenderStickies";
 import { RenderThreads } from "./RenderThreads";
+import { ThreadPopover } from "./ThreadPopover";
 import { OffscreenIndicators } from "./OffscreenIndicators";
 import { BoardTabs } from "../BoardTabs/BoardTabs";
 import {
@@ -11,7 +12,7 @@ import {
   createBoard,
   loadBoards,
 } from "~/stores/stickyStore";
-import { exitEditing } from "~/stores/uiStore";
+import { exitEditing, setSelectedThread } from "~/stores/uiStore";
 import { pan, zoom, panBy, zoomAt, resetView, setIsPinching } from "~/stores/viewportStore";
 import { toneVar } from "~/utils/tones";
 
@@ -75,6 +76,7 @@ export const Whiteboard = () => {
     if (onBoard) {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       exitEditing(); // bare-board press closes any editor
+      setSelectedThread(null); // ...and dismisses the thread popover
     }
     if (pointers.size >= 2) {
       setIsPinching(true); // 2 fingers => board pinch, even over a note
@@ -166,6 +168,7 @@ export const Whiteboard = () => {
           </div>
 
           <OffscreenIndicators size={size} />
+          <ThreadPopover />
 
           <div class="board-zoom">
             <button title="Zoom out" onClick={() => zoomCentered(1 / 1.2)}>−</button>

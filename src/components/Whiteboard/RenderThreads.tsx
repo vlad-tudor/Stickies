@@ -1,15 +1,8 @@
 import { createMemo, For, Show } from "solid-js";
-import { stickies, threads, deleteThread, type StickyNote } from "~/stores/stickyStore";
-import { pendingThread } from "~/stores/uiStore";
+import { stickies, threads, threadAnchor, type StickyNote } from "~/stores/stickyStore";
+import { pendingThread, selectedThread, setSelectedThread } from "~/stores/uiStore";
 
-const BAND_HALF = 16; // band center (where the connect dot sits), world px
 const VIEW = 32000; // half-span of the svg coord area (matches the grid)
-
-// Thread anchor = the connect dot: horizontal center, vertical middle of the band.
-const anchor = (s: StickyNote) => ({
-  x: s.position[1] + s.dimensions[0] / 2,
-  y: s.position[0] + BAND_HALF,
-});
 
 type Rect = { minX: number; minY: number; maxX: number; maxY: number };
 type Seg = { tid: string; x1: number; y1: number; x2: number; y2: number };
@@ -68,8 +61,8 @@ export const RenderThreads = () => {
       const a = map.get(t.from);
       const b = map.get(t.to);
       if (!a || !b) continue;
-      const p1 = anchor(a);
-      const p2 = anchor(b);
+      const p1 = threadAnchor(a);
+      const p2 = threadAnchor(b);
 
       // over-note intervals (merged)
       const ints: [number, number][] = [];
@@ -112,14 +105,19 @@ export const RenderThreads = () => {
     if (!p) return null;
     const a = byId().get(p.from);
     if (!a) return null;
-    const p1 = anchor(a);
+    const p1 = threadAnchor(a);
     return { x1: p1.x, y1: p1.y, x2: p.to.x, y2: p.to.y };
   });
 
   return (
     <svg class="thread-layer" viewBox={`${-VIEW} ${-VIEW} ${VIEW * 2} ${VIEW * 2}`}>
       <For each={segs().over}>
-        {(s) => <line class="thread-seg faded" x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} />}
+        {(s) => (
+          <line
+            class={`thread-seg faded${selectedThread()?.id === s.tid ? " selected" : ""}`}
+            x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
+          />
+        )}
       </For>
       <For each={segs().gaps}>
         {(s) => (
@@ -130,9 +128,12 @@ export const RenderThreads = () => {
               y1={s.y1}
               x2={s.x2}
               y2={s.y2}
-              onClick={() => deleteThread(s.tid)}
+              onClick={(e) => setSelectedThread({ id: s.tid, x: e.clientX, y: e.clientY })}
             />
-            <line class="thread-seg" x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} />
+            <line
+              class={`thread-seg${selectedThread()?.id === s.tid ? " selected" : ""}`}
+              x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
+            />
           </g>
         )}
       </For>

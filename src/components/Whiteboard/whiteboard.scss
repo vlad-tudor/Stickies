@@ -118,6 +118,13 @@
       stroke-dasharray: 6 5;         // ...and dashed
     }
     &.pending { stroke-opacity: 0.6; }
+
+    // selected thread (popover open): bolder + fully opaque, even the faded parts
+    &.selected {
+      stroke-width: 4;
+      stroke-opacity: 1;
+      stroke-dasharray: none;
+    }
   }
 
   .thread-hit {
@@ -126,6 +133,39 @@
     fill: none;
     pointer-events: stroke;
     cursor: pointer;
+  }
+}
+
+// menu shown at the point a thread was clicked (delete, future options)
+.thread-popover {
+  position: fixed;
+  z-index: 1100;
+  transform: translate(-50%, -130%);   // float just above the click point
+  background: var(--paper-soft);
+  border: 1px solid var(--ink-faint);
+  border-radius: var(--radius-chrome);
+  box-shadow: var(--shadow-2);
+  padding: 0.2rem;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    border: none;
+    background: none;
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    cursor: pointer;
+    border-radius: var(--radius-paper);
+
+    .ico {
+      display: flex;
+      width: 0.95rem;
+      height: 0.95rem;
+      svg { width: 100%; height: 100%; }
+    }
   }
 }
 
