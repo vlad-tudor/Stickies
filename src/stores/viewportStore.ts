@@ -5,8 +5,8 @@ import { createSignal } from "solid-js";
 // Stored sticky positions are NEVER mutated by navigation — only this transform
 // changes. Drag/resize deltas divide by zoom; pan is in screen px.
 
-const MIN_ZOOM = 0.25;
-const MAX_ZOOM = 3;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2;
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 export const [pan, setPan] = createSignal<{ x: number; y: number }>({ x: 0, y: 0 });

@@ -1,11 +1,14 @@
 import { createMemo, For } from "solid-js";
 import { stickies } from "~/stores/stickyStore";
 import { pan, zoom, setPan } from "~/stores/viewportStore";
+import { toneVar, type Tone } from "~/utils/tones";
+import { ChevronRight } from "lucide-static";
 
 const MARGIN = 22; // keep markers off the very edge
-const TOP_INSET = 100; // clear the tab + actions bars (marker is centered on this y)
+const CHROME_TOP = 76; // tab + actions bars cover the top — visible area starts here
+const TOP_INSET = 100; // clear those bars (marker is centered on this y)
 
-type Marker = { id: string; x: number; y: number; angle: number };
+type Marker = { id: string; x: number; y: number; angle: number; tone: Tone };
 
 // World center of a sticky. position = [top, left], dimensions = [width, height].
 const worldCenter = (s: { position: [number, number]; dimensions: [number, number] }) => ({
@@ -27,8 +30,9 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
       const top = p.y + s.position[0] * z;
       const right = left + s.dimensions[0] * z;
       const bottom = top + s.dimensions[1] * z;
-      // only when the ENTIRE note is outside the viewport (no intersection)
-      const fullyOff = right < 0 || left > w || bottom < 0 || top > h;
+      // ENTIRE note outside the *visible* area (top boundary is the toolbar bottom,
+      // so a note hidden behind the toolbar counts as off-screen)
+      const fullyOff = right < 0 || left > w || bottom < CHROME_TOP || top > h;
       if (!fullyOff) continue;
 
       const c = worldCenter(s);
@@ -39,6 +43,7 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
         x: Math.max(MARGIN, Math.min(w - MARGIN, sx)),
         y: Math.max(TOP_INSET, Math.min(h - MARGIN, sy)),
         angle: (Math.atan2(sy - cyv, sx - cxv) * 180) / Math.PI,
+        tone: s.color,
       });
     }
     return out;
@@ -59,11 +64,15 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
       {(m) => (
         <button
           class="offscreen-indicator"
-          style={{ left: `${m.x}px`, top: `${m.y}px` }}
+          style={{ left: `${m.x}px`, top: `${m.y}px`, background: toneVar(m.tone) }}
           title="Jump to off-screen note"
           onClick={() => centerOn(m.id)}
         >
-          <span class="arrow" style={{ transform: `rotate(${m.angle}deg)` }} />
+          <span
+            class="arrow"
+            style={{ transform: `rotate(${m.angle}deg)` }}
+            innerHTML={ChevronRight}
+          />
         </button>
       )}
     </For>

@@ -92,8 +92,8 @@
   position: absolute;
   z-index: 900;
   transform: translate(-50%, -50%);   // centre on the computed edge point
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 2.4rem;
+  height: 2.4rem;
   padding: 0;
   display: flex;
   align-items: center;
@@ -105,14 +105,14 @@
   cursor: pointer;
 
   .arrow {
-    // right-pointing triangle at 0deg; rotated per-marker toward the note
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 0.3rem 0 0.3rem 0.5rem;
-    border-color: transparent transparent transparent var(--ink-mid);
+    // chevron pointing right at 0deg; rotated per-marker toward the note
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-mid);
     transform-origin: center;
-    margin-left: 0.1rem;
+
+    svg { width: 1.3rem; height: 1.3rem; display: block; }
   }
 }
 
@@ -139,20 +139,22 @@
   &:focus-within { opacity: 1; }
 
   button {
-    min-width: 1.7rem;
+    flex: none;            // never shrink/grow with content
+    width: 1.7rem;
     height: 1.7rem;
-    padding: 0 0.4rem;
+    padding: 0;
     border: none;
     background: none;
     color: var(--ink-mid);
     font-family: var(--font-sans);
     font-size: 0.9rem;
+    text-align: center;
     cursor: pointer;
     border-radius: var(--radius-paper);
   }
 
   .board-zoom-reset {
-    min-width: 2.6rem;
+    width: 2.9rem;         // fixed: fits "200%"/"100%" so the row stays put
     font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
   }
