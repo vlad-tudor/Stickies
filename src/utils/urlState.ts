@@ -6,12 +6,13 @@ import type { Board } from "~/stores/stickyStore";
 
 const HASH_PREFIX = "board=";
 
-type SharedBoard = Pick<Board, "name" | "stickies" | "bgColor">;
+type SharedBoard = Pick<Board, "name" | "stickies" | "threads" | "bgColor">;
 
 export function serializeBoardToHash(board: Board): string {
   const payload: SharedBoard = {
     name: board.name,
     stickies: board.stickies,
+    threads: board.threads,
     bgColor: board.bgColor,
   };
   const compressed = compressToEncodedURIComponent(JSON.stringify(payload));

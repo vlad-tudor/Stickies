@@ -1,6 +1,7 @@
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { WhiteboardActions } from "./WhiteboardActions/WhiteboardActions";
 import { RenderStickies } from "./RenderStickies";
+import { RenderThreads } from "./RenderThreads";
 import { OffscreenIndicators } from "./OffscreenIndicators";
 import { BoardTabs } from "../BoardTabs/BoardTabs";
 import {
@@ -161,6 +162,7 @@ export const Whiteboard = () => {
           >
             <div class="board-grid" />
             <RenderStickies />
+            <RenderThreads />
           </div>
 
           <OffscreenIndicators size={size} />

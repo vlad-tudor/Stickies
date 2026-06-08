@@ -56,6 +56,34 @@
   pointer-events: none;          // derived title is read-only; band drags through it
 }
 
+// Connect node — centered in the band's cleared center; drag to another note.
+.sticky-connect {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: var(--total-sticky-handle-height);
+  width: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: crosshair;
+  touch-action: none;   // drag from it on touch instead of scrolling
+  opacity: 0.5;
+
+  &::before {
+    content: "";
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
 // Derived, read-only title (first of the note's text, truncated).
 .sticky-title-label {
   font-family: var(--font-serif);

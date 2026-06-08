@@ -1,5 +1,5 @@
 import { createMemo } from "solid-js";
-import { StickyNote } from "~/stores/stickyStore";
+import { StickyNote, addThread } from "~/stores/stickyStore";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
 import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
@@ -8,7 +8,14 @@ import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
 import { StickyDragHandle } from "./StickyDragHandle/StickyDragHandle";
 import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
 import { theme } from "~/stores/themeStore";
-import { editingStickyId, selectSticky, editSticky, exitEditing } from "~/stores/uiStore";
+import {
+  editingStickyId,
+  selectSticky,
+  editSticky,
+  exitEditing,
+  setPendingThread,
+} from "~/stores/uiStore";
+import { screenToWorld } from "~/stores/viewportStore";
 import { toneVar } from "~/utils/tones";
 
 import "./sticky.scss";
@@ -59,7 +66,8 @@ export const Sticky = (props: StickyProps) => {
     height: `${props.sticky.dimensions?.[1]}px`,
     ["background-color"]: toneVar(props.sticky.color),
     // NB: kebab-case — Solid's style object uses setProperty, so camelCase
-    // `zIndex` is silently ignored (stacking now relies on this, not DOM order).
+    // `zIndex` is silently ignored (stacking relies on this, not DOM order).
+    // Notes are >= 0; finished threads sit behind at z -1, grid at -2.
     ["z-index"]: `${props.index}`,
   });
 
@@ -68,6 +76,32 @@ export const Sticky = (props: StickyProps) => {
   // keyboard only appears on an intentional tap.
   const onPointerDown = () => selectSticky(props.sticky.id);
   const onClick = () => editSticky(props.sticky.id);
+
+  // Drag the band's connect node onto another note to link them.
+  const startConnect = (e: PointerEvent) => {
+    e.stopPropagation(); // don't select/drag/edit the source note
+    e.preventDefault();
+    const node = e.currentTarget as HTMLElement;
+    node.setPointerCapture(e.pointerId);
+
+    const track = (ev: PointerEvent) =>
+      setPendingThread({ from: props.sticky.id, to: screenToWorld({ x: ev.clientX, y: ev.clientY }) });
+    track(e);
+
+    const onMove = (ev: PointerEvent) => track(ev);
+    const onUp = (ev: PointerEvent) => {
+      node.releasePointerCapture(ev.pointerId);
+      node.removeEventListener("pointermove", onMove);
+      node.removeEventListener("pointerup", onUp);
+      const target = document
+        .elementFromPoint(ev.clientX, ev.clientY)
+        ?.closest<HTMLElement>("[data-sticky-id]")?.dataset.stickyId;
+      if (target && target !== props.sticky.id) addThread(props.sticky.id, target);
+      setPendingThread(null);
+    };
+    node.addEventListener("pointermove", onMove);
+    node.addEventListener("pointerup", onUp);
+  };
 
   const onStickyDelete = () => {
     if (confirm("Are you sure you want to delete this sticky note?")) {
@@ -79,6 +113,7 @@ export const Sticky = (props: StickyProps) => {
 
   return (
     <div
+      data-sticky-id={props.sticky.id}
       class={stickyClass()}
       style={stickyStyleOverrides()}
       onPointerDown={onPointerDown}
@@ -92,6 +127,13 @@ export const Sticky = (props: StickyProps) => {
           ])
         }
         onDragEnd={() => props.commitSticky()}
+      />
+
+      <button
+        class="sticky-connect"
+        title="Drag to link to another note"
+        onPointerDown={startConnect}
+        onClick={(e) => e.stopPropagation()}
       />
 
       <div class="sticky-title-bar">

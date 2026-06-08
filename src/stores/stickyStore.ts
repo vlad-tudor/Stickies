@@ -21,10 +21,14 @@ export type StickyNote = {
   color: Tone;
 };
 
+// A link between two stickies (by id).
+export type Thread = { id: string; from: string; to: string };
+
 export type Board = {
   id: string;
   name: string;
   stickies: StickyNote[];
+  threads: Thread[];
   bgColor: Tone;
 };
 
@@ -55,9 +59,24 @@ const persist = () => {
   );
 };
 
-function makeBoard(name: string, stickies: StickyNote[] = [], bgColor: Tone = DEFAULT_TONE): Board {
-  return { id: Date.now().toString(), name, stickies, bgColor };
+function makeBoard(
+  name: string,
+  stickies: StickyNote[] = [],
+  bgColor: Tone = DEFAULT_TONE,
+  threads: Thread[] = []
+): Board {
+  return { id: Date.now().toString(), name, stickies, threads, bgColor };
 }
+
+// Drop threads whose endpoints no longer exist (deleted/replaced stickies).
+const normalizeThreads = (
+  threads: Thread[] | undefined,
+  stickies: StickyNote[]
+): Thread[] => {
+  if (!threads) return [];
+  const ids = new Set(stickies.map((s) => s.id));
+  return threads.filter((t) => ids.has(t.from) && ids.has(t.to));
+};
 
 // Content is HTML. Legacy notes stored markdown — convert them once on ingest.
 const looksLikeHtml = (s: string): boolean => /<\/?[a-z][\s\S]*>/i.test(s);
@@ -68,11 +87,15 @@ const asHtml = (content: string): string =>
 const normalizeStickies = (stickies: StickyNote[]): StickyNote[] =>
   stickies.map((s) => ({ ...s, color: asTone(s.color), content: asHtml(s.content) }));
 
-const normalizeBoard = (b: Board): Board => ({
-  ...b,
-  bgColor: asTone(b.bgColor),
-  stickies: normalizeStickies(b.stickies),
-});
+const normalizeBoard = (b: Board): Board => {
+  const stickies = normalizeStickies(b.stickies);
+  return {
+    ...b,
+    bgColor: asTone(b.bgColor),
+    stickies,
+    threads: normalizeThreads(b.threads, stickies),
+  };
+};
 
 /**
  * Migrate from the old single-board localStorage format.
@@ -127,7 +150,13 @@ export function loadBoards(): void {
     const renamed = prompt("Name this shared board:", name);
     name = renamed?.trim() || name;
 
-    const board = makeBoard(name, normalizeStickies(shared.stickies), asTone(shared.bgColor));
+    const sharedStickies = normalizeStickies(shared.stickies);
+    const board = makeBoard(
+      name,
+      sharedStickies,
+      asTone(shared.bgColor),
+      normalizeThreads(shared.threads, sharedStickies)
+    );
     setStore("boards", (prev) => [...prev, board]);
     setStore("activeBoardId", board.id);
     clearHash();
@@ -148,6 +177,7 @@ export const activeBoard = (): Board | undefined =>
   store.boards.find((b) => b.id === store.activeBoardId);
 
 export const stickies = (): StickyNote[] => activeBoard()?.stickies ?? [];
+export const threads = (): Thread[] => activeBoard()?.threads ?? [];
 export const activeBgColor = (): Tone => activeBoard()?.bgColor ?? DEFAULT_TONE;
 
 // ── board CRUD ──
@@ -210,6 +240,31 @@ export function updateBoardBgColor(color: Tone): void {
   persist();
 }
 
+// ── thread CRUD (operates on active board) ──
+
+export function addThread(from: string, to: string): void {
+  if (from === to) return;
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  const existing = store.boards[boardIdx].threads;
+  // skip duplicates (either direction)
+  if (existing.some((t) => (t.from === from && t.to === to) || (t.from === to && t.to === from))) {
+    return;
+  }
+  setStore("boards", boardIdx, "threads", (prev) => [
+    ...prev,
+    { id: Date.now().toString(), from, to },
+  ]);
+  persist();
+}
+
+export function deleteThread(id: string): void {
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  setStore("boards", boardIdx, "threads", (prev) => prev.filter((t) => t.id !== id));
+  persist();
+}
+
 // ── sticky CRUD (operates on active board) ──
 
 const bringToFront = (stickyIdx: number) => {
@@ -262,12 +317,18 @@ export const raiseStickyById = (id: string) => {
 export const deleteStickyNote = (index: number) => {
   const boardIdx = activeBoardIndex();
   if (boardIdx === -1) return;
+  const removed = store.boards[boardIdx].stickies[index];
   setStore(
     "boards",
     boardIdx,
     "stickies",
     (prev) => prev.filter((_, i) => i !== index)
   );
+  if (removed) {
+    setStore("boards", boardIdx, "threads", (prev) =>
+      prev.filter((t) => t.from !== removed.id && t.to !== removed.id)
+    );
+  }
   persist();
 };
 
@@ -275,6 +336,7 @@ export const clearAllStickies = () => {
   const boardIdx = activeBoardIndex();
   if (boardIdx === -1) return;
   setStore("boards", boardIdx, "stickies", []);
+  setStore("boards", boardIdx, "threads", []);
   persist();
 };
 
@@ -304,7 +366,9 @@ export const stackAllStickies = () => {
 export const importStickies = (imported: StickyNote[]) => {
   const boardIdx = activeBoardIndex();
   if (boardIdx === -1) return;
-  setStore("boards", boardIdx, "stickies", normalizeStickies(imported));
+  const next = normalizeStickies(imported);
+  setStore("boards", boardIdx, "stickies", next);
+  setStore("boards", boardIdx, "threads", (prev) => normalizeThreads(prev, next));
   persist();
 };
 

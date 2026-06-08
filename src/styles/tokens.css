@@ -55,6 +55,9 @@
   --sticky-ink-dark:  rgba(42, 39, 34, 0.88);   /* ink on light notes */
   --sticky-ink-light: rgba(245, 240, 226, 0.92); /* ink on dark notes */
 
+  /* ---- Thread (link line between notes) ---- */
+  --thread: #c0392b;
+
   /* ---- Elevation (subtle — stickies take center stage) ---- */
   --shadow-1: 0 1px 2px rgba(58,50,30,0.06);
   --shadow-2: 0 2px 8px rgba(58,50,30,0.10);
@@ -116,6 +119,8 @@
 
   --sticky-ink-dark:  rgba(20, 18, 14, 0.85);
   --sticky-ink-light: rgba(236, 230, 214, 0.92);
+
+  --thread: #e8685a;   /* brighter red — reads on the dark board */
 
   --shadow-1: 0 1px 3px rgba(0,0,0,0.35);
   --shadow-2: 0 3px 10px rgba(0,0,0,0.45);

@@ -6,6 +6,12 @@ import { raiseStickyById } from "./stickyStore";
 // unreliable because our drag handles call preventDefault.
 export const [editingStickyId, setEditingStickyId] = createSignal<string | null>(null);
 
+// in-progress thread drag: source sticky id + current cursor in WORLD coords,
+// or null when not connecting. Drives the live "rubber-band" line.
+export const [pendingThread, setPendingThread] = createSignal<
+  { from: string; to: { x: number; y: number } } | null
+>(null);
+
 // ── Interaction intents (the only places that mutate selection/edit state) ──
 
 // Select on press: raise to the top and close any OTHER editor — but don't open
