@@ -15,8 +15,6 @@ import { toneVar } from "~/utils/tones";
 
 import "./whiteboard.scss";
 
-const GRID = 32; // px between grid lines at zoom 1
-
 export const Whiteboard = () => {
   onMount(() => loadBoards());
 
@@ -56,15 +54,9 @@ export const Whiteboard = () => {
     zoomAt(factor, rect.width / 2, rect.height / 2);
   };
 
-  const boardStyle = () => {
-    const z = zoom();
-    const p = pan();
-    return {
-      "background-color": toneVar(activeBgColor()),
-      "background-position": `${p.x}px ${p.y}px`,
-      "background-size": `${GRID * z}px ${GRID * z}px`,
-    };
-  };
+  // grid + stickies share the viewport transform, so the board only needs the
+  // base paper fill here.
+  const boardStyle = () => ({ "background-color": toneVar(activeBgColor()) });
 
   return (
     <div class="whiteboard-container">
@@ -92,6 +84,7 @@ export const Whiteboard = () => {
             class="board-viewport"
             style={{ transform: `translate(${pan().x}px, ${pan().y}px) scale(${zoom()})` }}
           >
+            <div class="board-grid" />
             <RenderStickies />
           </div>
 
