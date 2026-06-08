@@ -5,6 +5,7 @@
     var(--total-sticky-height) - var(--total-sticky-handle-height)
   );
   overflow-y: auto;
+  touch-action: pan-y;   // the note content is the only touch-scrollable thing
   scrollbar-color: var(--ink-faint) transparent;
   scrollbar-width: thin;
 }
@@ -110,6 +111,7 @@
   position: absolute;
   inset: var(--toolbar-h) 0 0 0;   // start below the toolbar strip
   overflow-y: auto;
+  touch-action: pan-y;             // editor content scrolls on touch
   scrollbar-color: var(--ink-faint) transparent;
   scrollbar-width: thin;
 

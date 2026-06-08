@@ -1,6 +1,6 @@
 import { createMemo, For } from "solid-js";
-import { stickies } from "~/stores/stickyStore";
-import { pan, zoom, setPan } from "~/stores/viewportStore";
+import { stickies, stickyCenter } from "~/stores/stickyStore";
+import { zoom, setPan, worldToScreen } from "~/stores/viewportStore";
 import { toneVar, type Tone } from "~/utils/tones";
 import { ChevronRight } from "lucide-static";
 
@@ -10,39 +10,29 @@ const TOP_INSET = 100; // clear those bars (marker is centered on this y)
 
 type Marker = { id: string; x: number; y: number; angle: number; tone: Tone };
 
-// World center of a sticky. position = [top, left], dimensions = [width, height].
-const worldCenter = (s: { position: [number, number]; dimensions: [number, number] }) => ({
-  x: s.position[1] + s.dimensions[0] / 2,
-  y: s.position[0] + s.dimensions[1] / 2,
-});
-
 export const OffscreenIndicators = (props: { size: () => { w: number; h: number } }) => {
   const markers = createMemo<Marker[]>(() => {
     const { w, h } = props.size();
-    const z = zoom();
-    const p = pan();
     const cxv = w / 2;
     const cyv = h / 2;
     const out: Marker[] = [];
     for (const s of stickies()) {
-      // screen-space rect of the whole note
-      const left = p.x + s.position[1] * z;
-      const top = p.y + s.position[0] * z;
-      const right = left + s.dimensions[0] * z;
-      const bottom = top + s.dimensions[1] * z;
-      // ENTIRE note outside the *visible* area (top boundary is the toolbar bottom,
-      // so a note hidden behind the toolbar counts as off-screen)
-      const fullyOff = right < 0 || left > w || bottom < CHROME_TOP || top > h;
+      // note's rect in screen space
+      const tl = worldToScreen({ x: s.position[1], y: s.position[0] });
+      const br = worldToScreen({
+        x: s.position[1] + s.dimensions[0],
+        y: s.position[0] + s.dimensions[1],
+      });
+      // ENTIRE note outside the visible area (top boundary = toolbar bottom)
+      const fullyOff = br.x < 0 || tl.x > w || br.y < CHROME_TOP || tl.y > h;
       if (!fullyOff) continue;
 
-      const c = worldCenter(s);
-      const sx = p.x + c.x * z; // screen position of the note's center
-      const sy = p.y + c.y * z;
+      const c = worldToScreen(stickyCenter(s)); // note's center in screen space
       out.push({
         id: s.id,
-        x: Math.max(MARGIN, Math.min(w - MARGIN, sx)),
-        y: Math.max(TOP_INSET, Math.min(h - MARGIN, sy)),
-        angle: (Math.atan2(sy - cyv, sx - cxv) * 180) / Math.PI,
+        x: Math.max(MARGIN, Math.min(w - MARGIN, c.x)),
+        y: Math.max(TOP_INSET, Math.min(h - MARGIN, c.y)),
+        angle: (Math.atan2(c.y - cyv, c.x - cxv) * 180) / Math.PI,
         tone: s.color,
       });
     }
@@ -55,7 +45,7 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
     if (!s) return;
     const { w, h } = props.size();
     const z = zoom();
-    const c = worldCenter(s);
+    const c = stickyCenter(s);
     setPan({ x: w / 2 - c.x * z, y: h / 2 - c.y * z });
   };
 

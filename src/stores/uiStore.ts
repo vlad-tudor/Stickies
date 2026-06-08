@@ -8,8 +8,17 @@ export const [editingStickyId, setEditingStickyId] = createSignal<string | null>
 
 // ── Interaction intents (the only places that mutate selection/edit state) ──
 
-// Focus a sticky: raise it to the top AND activate its editor. Called from the
-// sticky root pointerdown, so any press (body, band, buttons, resize) focuses.
+// Select on press: raise to the top and close any OTHER editor — but don't open
+// this one. Cheap (no editor mount / focus), so it's safe on every pointerdown
+// incl. the first finger of a pinch and the start of a drag.
+export function selectSticky(id: string): void {
+  if (editingStickyId() !== id) setEditingStickyId(null);
+  raiseStickyById(id);
+}
+
+// Enter edit: open this sticky's editor (mount + focus). Triggered by a real
+// tap/click — never by a pinch or a drag — so the iOS keyboard only appears on
+// an intentional tap, and inside a user gesture so it actually shows.
 export function editSticky(id: string): void {
   raiseStickyById(id);
   setEditingStickyId(id);

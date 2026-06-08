@@ -7,6 +7,8 @@ import {
   stackAllStickies,
   activeBoard,
   stickies,
+  MIN_STICKY_WIDTH,
+  MIN_STICKY_HEIGHT,
   StickyNote,
 } from "~/stores/stickyStore";
 import { downloadJson, readJsonFile } from "~/utils/fileIO";
@@ -14,7 +16,7 @@ import { copyShareUrl } from "~/utils/urlState";
 import { TONES, type Tone } from "~/utils/tones";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky } from "~/stores/uiStore";
-import { pan, zoom } from "~/stores/viewportStore";
+import { pan, zoom, screenToWorld } from "~/stores/viewportStore";
 import { Download, Upload, Share2, Sun, Moon } from "lucide-static";
 import "./whiteboard-actions.scss";
 
@@ -49,10 +51,8 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     const p = pan();
 
     // default: just under the "+" button, converted screen -> world coords
-    let position: [number, number] = [
-      (SPAWN_ANCHOR.y - p.y) / z, // top
-      (SPAWN_ANCHOR.x - p.x) / z, // left
-    ];
+    const aw = screenToWorld({ x: SPAWN_ANCHOR.x, y: SPAWN_ANCHOR.y });
+    let position: [number, number] = [aw.y, aw.x]; // [top, left]
 
     // Stagger from the previous spawn ONLY if nothing has changed since: the
     // previous note still exists, hasn't been moved, and the view hasn't
@@ -74,7 +74,8 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     createStickyNote({
       id,
       position,
-      dimensions: mobile ? [200, 200] : [300, 300],
+      // never narrower than the editor toolbar
+      dimensions: mobile ? [MIN_STICKY_WIDTH, MIN_STICKY_HEIGHT] : [300, MIN_STICKY_HEIGHT],
       content: "",
       color: "butter",
     });

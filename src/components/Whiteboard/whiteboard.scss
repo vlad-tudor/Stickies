@@ -12,13 +12,15 @@
 .whiteboard-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;        // fallback
+  height: 100dvh;       // device height (accounts for mobile browser chrome)
+  overflow: hidden;
 }
 
 // shown when there are no boards at all
 .board-empty {
   flex: 1;
-  min-height: 100vh;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -40,8 +42,10 @@
 .whiteboard {
   position: relative;
   flex: 1;
-  min-height: 100vh;
-  overflow: hidden;   // clip panned / zoomed-out stickies
+  min-height: 0;
+  overflow: hidden;          // clip panned / zoomed-out stickies
+  touch-action: none;        // touch pan/drag instead of native page scroll
+  // (2-finger content scroll is additionally blocked via a touchmove guard in Whiteboard.tsx)
 
   // base paper fill (user/board color)
   background-color: var(--board-bg, var(--paper));

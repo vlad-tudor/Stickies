@@ -8,7 +8,7 @@ import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
 import { StickyDragHandle } from "./StickyDragHandle/StickyDragHandle";
 import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
 import { theme } from "~/stores/themeStore";
-import { editingStickyId, editSticky, exitEditing } from "~/stores/uiStore";
+import { editingStickyId, selectSticky, editSticky, exitEditing } from "~/stores/uiStore";
 import { toneVar } from "~/utils/tones";
 
 import "./sticky.scss";
@@ -63,10 +63,11 @@ export const Sticky = (props: StickyProps) => {
     ["z-index"]: `${props.index}`,
   });
 
-  // Single focus entry point: pressing anywhere on the sticky (body, drag band,
-  // buttons, resize corner) raises it AND activates its editor. Everything
-  // bubbles here, so this is the one place that grants focus.
-  const onPointerDown = () => editSticky(props.sticky.id);
+  // Press selects/raises (cheap, no editor). A real tap (click) opens the
+  // editor — clicks don't fire for a 2-finger pinch or a drag, so the iOS
+  // keyboard only appears on an intentional tap.
+  const onPointerDown = () => selectSticky(props.sticky.id);
+  const onClick = () => editSticky(props.sticky.id);
 
   const onStickyDelete = () => {
     if (confirm("Are you sure you want to delete this sticky note?")) {
@@ -81,6 +82,7 @@ export const Sticky = (props: StickyProps) => {
       class={stickyClass()}
       style={stickyStyleOverrides()}
       onPointerDown={onPointerDown}
+      onClick={onClick}
     >
       <StickyDragHandle
         moveBy={([dTop, dLeft]) =>

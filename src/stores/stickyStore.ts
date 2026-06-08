@@ -7,6 +7,11 @@ const STORAGE_KEY = "stickies-boards";
 const LEGACY_KEY = "stickies-storage";
 const LEGACY_BG_KEY = "whiteboard-bg";
 
+// Minimum sticky size (px). Width must fit the editor toolbar; height mirrors
+// --total-sticky-height in sticky.scss — keep these in sync.
+export const MIN_STICKY_WIDTH = 256;
+export const MIN_STICKY_HEIGHT = 320;
+
 export type StickyNote = {
   id: string;
   title?: string;
@@ -22,6 +27,14 @@ export type Board = {
   stickies: StickyNote[];
   bgColor: Tone;
 };
+
+// World-space center of a note (encapsulates position=[top,left], dims=[w,h]).
+export const stickyCenter = (
+  s: Pick<StickyNote, "position" | "dimensions">
+): { x: number; y: number } => ({
+  x: s.position[1] + s.dimensions[0] / 2,
+  y: s.position[0] + s.dimensions[1] / 2,
+});
 
 type BoardStore = {
   boards: Board[];

@@ -1,10 +1,21 @@
 @import "./styles/tokens.css";
 
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;            /* the page itself never scrolls */
+  overscroll-behavior: none;   /* no rubber-band / pull-to-refresh on mobile */
+}
+
 body {
   font-family: Gordita, Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
     "Helvetica Neue", sans-serif;
+}
 
-  margin: 0;
+#app,
+main {
+  height: 100%;
 }
 
 * {

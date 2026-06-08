@@ -12,7 +12,7 @@
   --toolbar-h: 2rem;   // editor toolbar height (reserved at content top)
 
   position: absolute;
-  min-width: 20rem;
+  min-width: 16rem;   // == MIN_STICKY_WIDTH (256px): fits the editor toolbar
   min-height: var(--total-sticky-height);
 
   display: flex;
@@ -23,10 +23,6 @@
   box-shadow: var(--shadow-1);
   // gentle top sheen over the note's own (inline) background color
   background-image: linear-gradient(180deg, var(--sheen), rgba(0,0,0,0) 22%);
-
-  @media (max-width: 480px) {
-    min-width: 10rem;
-  }
 
   // ---- per-sticky ink contrast (decided by isLightBackground) ----
   // Sets BOTH the chrome ink and the Crepe editor ink for this note.

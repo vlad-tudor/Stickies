@@ -11,7 +11,7 @@ import {
   loadBoards,
 } from "~/stores/stickyStore";
 import { exitEditing } from "~/stores/uiStore";
-import { pan, zoom, panBy, zoomAt, resetView } from "~/stores/viewportStore";
+import { pan, zoom, panBy, zoomAt, resetView, setIsPinching } from "~/stores/viewportStore";
 import { toneVar } from "~/utils/tones";
 
 import "./whiteboard.scss";
@@ -27,28 +27,90 @@ export const Whiteboard = () => {
     loadBoards();
     const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener("resize", onResize);
-    onCleanup(() => window.removeEventListener("resize", onResize));
+
+    // Two-finger gestures are board pinch — stop the browser from also scrolling
+    // note content underneath. Non-passive so preventDefault takes effect; only
+    // blocks on 2+ touches, so single-finger content scroll still works.
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length >= 2) e.preventDefault();
+    };
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    onCleanup(() => {
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("touchmove", onTouchMove);
+    });
   });
 
-  // Pressing the bare board: exit any editor, then pan by pointer movement.
-  const onBoardPointerDown = (e: PointerEvent) => {
-    if (e.target !== e.currentTarget) return; // a sticky/child was pressed
-    exitEditing();
+  // Board gestures. We track EVERY pointer that reaches the board (incl. ones
+  // that started on a note), so a 2nd finger anywhere becomes a board pinch —
+  // it "passes through" the note rather than editing it. 1 finger only pans
+  // when it started on the bare board; otherwise the note handles it.
+  type P = { x: number; y: number; onBoard: boolean };
+  const pointers = new Map<number, P>();
+  let gestureMid: { x: number; y: number } | null = null;
+  let gestureDist = 0;
 
-    const el = e.currentTarget as HTMLElement;
-    el.setPointerCapture(e.pointerId);
-    let last = [e.clientX, e.clientY];
-    const onMove = (ev: PointerEvent) => {
-      panBy(ev.clientX - last[0], ev.clientY - last[1]);
-      last = [ev.clientX, ev.clientY];
-    };
-    const onUp = (ev: PointerEvent) => {
-      el.releasePointerCapture(ev.pointerId);
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerup", onUp);
-    };
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerup", onUp);
+  const mid = (a: P, b: P) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  const dist = (a: P, b: P) => Math.hypot(b.x - a.x, b.y - a.y);
+
+  const resetGesture = () => {
+    const pts = [...pointers.values()];
+    if (pts.length >= 2) {
+      gestureMid = mid(pts[0], pts[1]);
+      gestureDist = dist(pts[0], pts[1]);
+    } else if (pts.length === 1) {
+      gestureMid = { x: pts[0].x, y: pts[0].y };
+      gestureDist = 0;
+    } else {
+      gestureMid = null;
+      gestureDist = 0;
+    }
+  };
+
+  const onBoardPointerDown = (e: PointerEvent) => {
+    const onBoard = e.target === e.currentTarget;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, onBoard });
+    if (onBoard) {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      exitEditing(); // bare-board press closes any editor
+    }
+    if (pointers.size >= 2) {
+      setIsPinching(true); // 2 fingers => board pinch, even over a note
+      exitEditing();
+    }
+    resetGesture();
+  };
+
+  const onBoardPointerMove = (e: PointerEvent) => {
+    const rec = pointers.get(e.pointerId);
+    if (!rec) return;
+    rec.x = e.clientX;
+    rec.y = e.clientY;
+    const pts = [...pointers.values()];
+    if (pts.length >= 2 && gestureMid) {
+      const m = mid(pts[0], pts[1]);
+      const d = dist(pts[0], pts[1]);
+      panBy(m.x - gestureMid.x, m.y - gestureMid.y); // follow the two fingers
+      if (gestureDist > 0) {
+        const rect = boardRef.getBoundingClientRect();
+        zoomAt(d / gestureDist, m.x - rect.left, m.y - rect.top); // pinch scale
+      }
+      gestureMid = m;
+      gestureDist = d;
+    } else if (pts.length === 1 && pts[0].onBoard && gestureMid) {
+      panBy(e.clientX - gestureMid.x, e.clientY - gestureMid.y);
+      gestureMid = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const onBoardPointerUp = (e: PointerEvent) => {
+    const rec = pointers.get(e.pointerId);
+    if (!rec) return;
+    if (rec.onBoard) (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) setIsPinching(false);
+    resetGesture(); // 2->1 resumes pan from the remaining finger; 1->0 clears
   };
 
   const onWheel = (e: WheelEvent) => {
@@ -86,6 +148,9 @@ export const Whiteboard = () => {
           class="whiteboard"
           style={boardStyle()}
           onPointerDown={onBoardPointerDown}
+          onPointerMove={onBoardPointerMove}
+          onPointerUp={onBoardPointerUp}
+          onPointerCancel={onBoardPointerUp}
           onWheel={onWheel}
         >
           <WhiteboardActions bgColor={activeBgColor()} updateBgColor={updateBoardBgColor} />
