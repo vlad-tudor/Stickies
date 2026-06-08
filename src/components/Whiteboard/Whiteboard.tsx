@@ -1,6 +1,7 @@
-import { onMount, Show } from "solid-js";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { WhiteboardActions } from "./WhiteboardActions/WhiteboardActions";
 import { RenderStickies } from "./RenderStickies";
+import { OffscreenIndicators } from "./OffscreenIndicators";
 import { BoardTabs } from "../BoardTabs/BoardTabs";
 import {
   activeBoard,
@@ -16,9 +17,18 @@ import { toneVar } from "~/utils/tones";
 import "./whiteboard.scss";
 
 export const Whiteboard = () => {
-  onMount(() => loadBoards());
-
   let boardRef!: HTMLDivElement;
+
+  // Board viewport size — drives off-screen indicator math. Board fills the
+  // window (chrome bars are fixed overlays), so window size is a good proxy.
+  const [size, setSize] = createSignal({ w: window.innerWidth, h: window.innerHeight });
+
+  onMount(() => {
+    loadBoards();
+    const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    onCleanup(() => window.removeEventListener("resize", onResize));
+  });
 
   // Pressing the bare board: exit any editor, then pan by pointer movement.
   const onBoardPointerDown = (e: PointerEvent) => {
@@ -87,6 +97,8 @@ export const Whiteboard = () => {
             <div class="board-grid" />
             <RenderStickies />
           </div>
+
+          <OffscreenIndicators size={size} />
 
           <div class="board-zoom">
             <button title="Zoom out" onClick={() => zoomCentered(1 / 1.2)}>−</button>

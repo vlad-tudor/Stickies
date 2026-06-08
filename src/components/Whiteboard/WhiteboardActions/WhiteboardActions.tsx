@@ -14,8 +14,12 @@ import { copyShareUrl } from "~/utils/urlState";
 import { TONES, type Tone } from "~/utils/tones";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky } from "~/stores/uiStore";
+import { pan, zoom } from "~/stores/viewportStore";
 import { Download, Upload, Share2, Sun, Moon } from "lucide-static";
 import "./whiteboard-actions.scss";
+
+// screen-space anchor for new notes: just under the "+" button
+const SPAWN_ANCHOR = { x: 16, y: 96 };
 
 type WhiteboardActionsProps = {
   bgColor: Tone;
@@ -24,6 +28,8 @@ type WhiteboardActionsProps = {
 
 export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   let fileInputRef!: HTMLInputElement;
+  // remember the last spawn so we only stagger when nothing has changed since
+  let lastSpawn: { id: string; pos: [number, number]; px: number; py: number; z: number } | null = null;
 
   const onClearAllStickies = () => {
     if (confirm("Are you sure you want to clear all stickies?")) {
@@ -39,15 +45,31 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
      *  -- extra largeness accompanied by errors in the console.
      */
     const mobile = window.innerWidth < 480;
-    // Cascade the spawn down-right while that exact spot is occupied — so
-    // pressing "+" repeatedly without moving the new note stacks them in a
-    // staggered pile instead of exactly overlapping.
-    const STEP = 30;
-    const taken = new Set(stickies().map((s) => `${s.position[0]},${s.position[1]}`));
-    let position: [number, number] = [100, 20];
-    while (taken.has(`${position[0]},${position[1]}`)) {
-      position = [position[0] + STEP, position[1] + STEP];
+    const z = zoom();
+    const p = pan();
+
+    // default: just under the "+" button, converted screen -> world coords
+    let position: [number, number] = [
+      (SPAWN_ANCHOR.y - p.y) / z, // top
+      (SPAWN_ANCHOR.x - p.x) / z, // left
+    ];
+
+    // Stagger from the previous spawn ONLY if nothing has changed since: the
+    // previous note still exists, hasn't been moved, and the view hasn't
+    // panned/zoomed. Otherwise drop the new note fresh under the "+".
+    if (lastSpawn) {
+      const prev = stickies().find((s) => s.id === lastSpawn!.id);
+      const unmoved =
+        prev &&
+        prev.position[0] === lastSpawn.pos[0] &&
+        prev.position[1] === lastSpawn.pos[1];
+      const viewSame = p.x === lastSpawn.px && p.y === lastSpawn.py && z === lastSpawn.z;
+      if (unmoved && viewSame) {
+        const step = 30 / z; // ~30 screen px down-right
+        position = [lastSpawn.pos[0] + step, lastSpawn.pos[1] + step];
+      }
     }
+
     const id = Date.now().toString();
     createStickyNote({
       id,
@@ -56,6 +78,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       content: "",
       color: "butter",
     });
+    lastSpawn = { id, pos: position, px: p.x, py: p.y, z };
     editSticky(id); // select + open the new note straight into the editor
   };
 
