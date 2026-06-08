@@ -92,26 +92,40 @@
   background-size: 32px 32px;
 }
 
-// thread = straight line between two notes (its own element so it can carry a
-// per-thread z-index). The 2px line is painted in the middle of a taller box so
-// it's easy to click; z-index is set inline. Lives in the (transformed) viewport.
-.thread {
+// Threads: one SVG layer ON TOP of the notes (in the transformed viewport).
+// Each thread is split into solid (gap) + faded (over-note) segments, so the
+// over-note faintness is uniform regardless of how many notes are stacked.
+// Layer is pointer-events:none; only the gap hit-lines catch clicks.
+.thread-layer {
   position: absolute;
-  z-index: -1;            // finished threads sit BEHIND the notes (above the grid)
-  height: 12px;
-  transform-origin: 0 50%;
-  cursor: pointer;
-  background: linear-gradient(
-    to bottom,
-    transparent calc(50% - 1px),
-    var(--thread) calc(50% - 1px),
-    var(--thread) calc(50% + 1px),
-    transparent calc(50% + 1px)
-  );
+  left: -32000px;
+  top: -32000px;
+  width: 64000px;
+  height: 64000px;
+  z-index: 100000;        // above notes; still inside the viewport (below chrome)
+  overflow: visible;
+  pointer-events: none;
 
-  &.pending {
-    pointer-events: none;   // never blocks the drop hit-test
-    opacity: 0.6;
+  .thread-seg {
+    stroke: var(--thread);
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    pointer-events: none;
+
+    &.faded {
+      stroke-opacity: 0.12;          // where it crosses a note (very faint)
+      stroke-dasharray: 6 5;         // ...and dashed
+    }
+    &.pending { stroke-opacity: 0.6; }
+  }
+
+  .thread-hit {
+    stroke: transparent;
+    stroke-width: 12;     // generous click target over the gap segments only
+    fill: none;
+    pointer-events: stroke;
+    cursor: pointer;
   }
 }
 

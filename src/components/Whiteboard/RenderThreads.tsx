@@ -3,6 +3,7 @@ import { stickies, threads, deleteThread, type StickyNote } from "~/stores/stick
 import { pendingThread } from "~/stores/uiStore";
 
 const BAND_HALF = 16; // band center (where the connect dot sits), world px
+const VIEW = 32000; // half-span of the svg coord area (matches the grid)
 
 // Thread anchor = the connect dot: horizontal center, vertical middle of the band.
 const anchor = (s: StickyNote) => ({
@@ -10,7 +11,38 @@ const anchor = (s: StickyNote) => ({
   y: s.position[0] + BAND_HALF,
 });
 
-type Line = { id: string; x: number; y: number; len: number; angle: number };
+type Rect = { minX: number; minY: number; maxX: number; maxY: number };
+type Seg = { tid: string; x1: number; y1: number; x2: number; y2: number };
+
+// Liang–Barsky: param interval [t0,t1] of segment A->B that lies inside the
+// rect, or null if it never enters.
+function rectInterval(
+  ax: number, ay: number, bx: number, by: number, r: Rect
+): [number, number] | null {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const p = [-dx, dx, -dy, dy];
+  const q = [ax - r.minX, r.maxX - ax, ay - r.minY, r.maxY - ay];
+  let t0 = 0;
+  let t1 = 1;
+  for (let i = 0; i < 4; i++) {
+    if (p[i] === 0) {
+      if (q[i] < 0) return null; // parallel and outside this edge
+    } else {
+      const t = q[i] / p[i];
+      if (p[i] < 0) {
+        if (t > t1) return null;
+        if (t > t0) t0 = t;
+      } else {
+        if (t < t0) return null;
+        if (t < t1) t1 = t;
+      }
+    }
+  }
+  return t0 < t1 ? [t0, t1] : null;
+}
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export const RenderThreads = () => {
   const byId = createMemo(() => {
@@ -19,73 +51,94 @@ export const RenderThreads = () => {
     return m;
   });
 
-  const lines = createMemo<Line[]>(() => {
+  // Split each thread into gap segments (solid, clickable) and over-note
+  // segments (faded). Over-note intensity is constant: drawn once, on top.
+  const segs = createMemo(() => {
     const map = byId();
-    const out: Line[] = [];
+    const rects: Rect[] = stickies().map((s) => ({
+      minX: s.position[1],
+      minY: s.position[0],
+      maxX: s.position[1] + s.dimensions[0],
+      maxY: s.position[0] + s.dimensions[1],
+    }));
+
+    const gaps: Seg[] = [];
+    const over: Seg[] = [];
     for (const t of threads()) {
       const a = map.get(t.from);
       const b = map.get(t.to);
       if (!a || !b) continue;
       const p1 = anchor(a);
       const p2 = anchor(b);
-      out.push({
-        id: t.id,
-        x: p1.x,
-        y: p1.y,
-        len: Math.hypot(p2.x - p1.x, p2.y - p1.y),
-        angle: (Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180) / Math.PI,
-      });
+
+      // over-note intervals (merged)
+      const ints: [number, number][] = [];
+      for (const r of rects) {
+        const iv = rectInterval(p1.x, p1.y, p2.x, p2.y, r);
+        if (iv) ints.push(iv);
+      }
+      ints.sort((m, n) => m[0] - n[0]);
+      const merged: [number, number][] = [];
+      for (const iv of ints) {
+        const last = merged[merged.length - 1];
+        if (last && iv[0] <= last[1]) last[1] = Math.max(last[1], iv[1]);
+        else merged.push([iv[0], iv[1]]);
+      }
+
+      const push = (arr: Seg[], t0: number, t1: number) =>
+        arr.push({
+          tid: t.id,
+          x1: lerp(p1.x, p2.x, t0),
+          y1: lerp(p1.y, p2.y, t0),
+          x2: lerp(p1.x, p2.x, t1),
+          y2: lerp(p1.y, p2.y, t1),
+        });
+
+      // over-note pieces + complementary gaps
+      let cursor = 0;
+      for (const [t0, t1] of merged) {
+        if (t0 > cursor) push(gaps, cursor, t0);
+        push(over, t0, t1);
+        cursor = Math.max(cursor, t1);
+      }
+      if (cursor < 1) push(gaps, cursor, 1);
     }
-    return out;
+    return { gaps, over };
   });
 
-  // live rubber-band line from the source note's edge to the cursor
-  const pending = createMemo(() => {
+  // live rubber-band line from the source note's dot to the cursor
+  const pendingLine = createMemo(() => {
     const p = pendingThread();
     if (!p) return null;
     const a = byId().get(p.from);
     if (!a) return null;
     const p1 = anchor(a);
-    return {
-      x: p1.x,
-      y: p1.y,
-      len: Math.hypot(p.to.x - p1.x, p.to.y - p1.y),
-      angle: (Math.atan2(p.to.y - p1.y, p.to.x - p1.x) * 180) / Math.PI,
-    };
+    return { x1: p1.x, y1: p1.y, x2: p.to.x, y2: p.to.y };
   });
 
   return (
-    <>
-      <For each={lines()}>
-        {(l) => (
-          <div
-            class="thread"
-            style={{
-              left: `${l.x}px`,
-              top: `${l.y - 6}px`,
-              width: `${l.len}px`,
-              transform: `rotate(${l.angle}deg)`,
-            }}
-            title="Click to remove link"
-            onClick={() => deleteThread(l.id)}
-          />
+    <svg class="thread-layer" viewBox={`${-VIEW} ${-VIEW} ${VIEW * 2} ${VIEW * 2}`}>
+      <For each={segs().over}>
+        {(s) => <line class="thread-seg faded" x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} />}
+      </For>
+      <For each={segs().gaps}>
+        {(s) => (
+          <g>
+            <line
+              class="thread-hit"
+              x1={s.x1}
+              y1={s.y1}
+              x2={s.x2}
+              y2={s.y2}
+              onClick={() => deleteThread(s.tid)}
+            />
+            <line class="thread-seg" x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} />
+          </g>
         )}
       </For>
-
-      <Show when={pending()}>
-        {(p) => (
-          <div
-            class="thread pending"
-            style={{
-              left: `${p().x}px`,
-              top: `${p().y - 6}px`,
-              width: `${p().len}px`,
-              transform: `rotate(${p().angle}deg)`,
-              "z-index": "99999", // rubber-band stays on top of all notes
-            }}
-          />
-        )}
+      <Show when={pendingLine()}>
+        {(p) => <line class="thread-seg pending" x1={p().x1} y1={p().y1} x2={p().x2} y2={p().y2} />}
       </Show>
-    </>
+    </svg>
   );
 };
