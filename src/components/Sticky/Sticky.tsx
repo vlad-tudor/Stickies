@@ -34,12 +34,14 @@ export const Sticky = (props: StickyProps) => {
   // Only one sticky edits at a time (global id) — robust against focus/blur.
   const editing = () => editingStickyId() === props.sticky.id;
 
-  // Title is derived from the note's text (titles abolished); CSS truncates it.
+  // Title is derived from the note's text (titles abolished), capped at 10 chars
+  // and left-aligned so the center of the band stays clear (for thread anchors).
   const titleText = createMemo(() => {
     const tmp = document.createElement("div");
     tmp.innerHTML = props.sticky.content;
     const text = (tmp.textContent ?? "").replace(/\s+/g, " ").trim();
-    return text || `Sticky ${props.seq}`;
+    const base = text || `Sticky ${props.seq}`;
+    return base.length > 10 ? base.slice(0, 10).trimEnd() + "…" : base;
   });
 
   // for some reason the updated sticky lingers on

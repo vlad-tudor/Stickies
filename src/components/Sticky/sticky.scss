@@ -51,13 +51,13 @@
 .sticky-title-bar {
   position: absolute;
   top: 0;
-  left: 2rem;
-  right: 2rem;
+  left: 0.6rem;
+  right: 2rem;            // leave the top-right for the delete button
   height: var(--total-sticky-handle-height);
   display: flex;
   align-items: center;
-  justify-content: center;
-  pointer-events: none;   // derived title is read-only; band drags through it
+  justify-content: flex-start;   // left-aligned; center of the band stays clear
+  pointer-events: none;          // derived title is read-only; band drags through it
 }
 
 // Derived, read-only title (first of the note's text, truncated).

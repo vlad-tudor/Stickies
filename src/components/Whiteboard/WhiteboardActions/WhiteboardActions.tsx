@@ -133,6 +133,8 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         style={{ display: "none" }}
         onChange={onFileSelected}
       />
+
+      <span class="app-version">v{__APP_VERSION__}</span>
     </div>
     </>
   );
