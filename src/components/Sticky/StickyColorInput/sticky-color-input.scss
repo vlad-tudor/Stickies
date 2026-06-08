@@ -12,22 +12,5 @@
   min-height: 2rem;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
   padding: 0 0.5rem;
-  opacity: 0.9;
-}
-
-.sticky-swatch {
-  all: unset;
-  width: 0.85rem;
-  height: 0.85rem;
-  border-radius: 50%;
-  background: var(--swatch, var(--s-cream));
-  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-  cursor: pointer;
-
-  &.is-selected {
-    outline: 2px solid currentColor;
-    outline-offset: 1.5px;
-  }
 }

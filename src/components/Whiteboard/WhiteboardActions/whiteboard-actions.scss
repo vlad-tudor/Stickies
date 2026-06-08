@@ -88,27 +88,12 @@
     user-select: none;
   }
 
-  // board-hue dots — control the board background tone
+  // board-hue picker — controls the board background tone
   .board-hue {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
     margin-left: 0.4rem;
     padding-left: 0.55rem;
     border-left: 1px solid var(--ink-faint);
-
-    .hue-dot {
-      width: 0.9rem;
-      height: 0.9rem;
-      padding: 0;
-      border-radius: 50%;
-      background: var(--swatch, var(--s-cream));
-      border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
-
-      &.is-selected {
-        outline: 2px solid var(--ink);
-        outline-offset: 1.5px;
-      }
-    }
   }
 }

@@ -11,10 +11,12 @@ import {
   updateBoardBgColor,
   createBoard,
   loadBoards,
+  stickies,
 } from "~/stores/stickyStore";
 import { exitEditing, setSelectedThread } from "~/stores/uiStore";
-import { pan, zoom, panBy, zoomAt, resetView, setIsPinching } from "~/stores/viewportStore";
+import { pan, zoom, panBy, zoomAt, resetView, fitView, setIsPinching } from "~/stores/viewportStore";
 import { toneVar } from "~/utils/tones";
+import { Maximize } from "lucide-static";
 
 import "./whiteboard.scss";
 
@@ -129,6 +131,16 @@ export const Whiteboard = () => {
     zoomAt(factor, rect.width / 2, rect.height / 2);
   };
 
+  const fitAll = () => {
+    const rects = stickies().map((s) => ({
+      x: s.position[1],
+      y: s.position[0],
+      w: s.dimensions[0],
+      h: s.dimensions[1],
+    }));
+    fitView(rects, size());
+  };
+
   // grid + stickies share the viewport transform, so the board only needs the
   // base paper fill here.
   const boardStyle = () => ({ "background-color": toneVar(activeBgColor()) });
@@ -171,6 +183,7 @@ export const Whiteboard = () => {
           <ThreadPopover />
 
           <div class="board-zoom">
+            <button class="board-zoom-fit" title="Fit all notes" onClick={fitAll} innerHTML={Maximize} />
             <button title="Zoom out" onClick={() => zoomCentered(1 / 1.2)}>−</button>
             <button class="board-zoom-reset" title="Reset view" onClick={resetView}>
               {Math.round(zoom() * 100)}%

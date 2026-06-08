@@ -155,9 +155,9 @@ export function loadBoards(): void {
   // 2. if the URL contains a shared board, import it as a new tab
   const shared = readBoardFromHash();
   if (shared) {
-    let name = deduplicateName(shared.name, store.boards);
-    const renamed = prompt("Name this shared board:", name);
-    name = renamed?.trim() || name;
+    // auto-name with the import date (no prompt); rename via the tab if wanted
+    const stamp = new Date().toLocaleDateString();
+    const name = deduplicateName(`${shared.name} (imported ${stamp})`, store.boards);
 
     const sharedStickies = normalizeStickies(shared.stickies);
     const board = makeBoard(

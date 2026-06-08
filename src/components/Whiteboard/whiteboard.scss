@@ -129,10 +129,15 @@
 
   .thread-hit {
     stroke: transparent;
-    stroke-width: 12;     // generous click target over the gap segments only
+    stroke-width: 14;     // generous click target over the gap segments only
     fill: none;
     pointer-events: stroke;
     cursor: pointer;
+  }
+
+  // fatter tap target on touch devices (no precise cursor)
+  @media (pointer: coarse) {
+    .thread-hit { stroke-width: 28; }
   }
 }
 
@@ -239,5 +244,10 @@
     width: 2.9rem;         // fixed: fits "200%"/"100%" so the row stays put
     font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
+  }
+
+  .board-zoom-fit {
+    padding: 0.42rem;
+    svg { width: 100%; height: 100%; }
   }
 }

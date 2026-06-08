@@ -88,6 +88,15 @@
 
   img { max-width: 100%; }
 
+  // In the static rendered view, empty text blocks have no trailing <br> (the
+  // editor inserts one), so they collapse — making tables/code/paragraphs squish
+  // when the note loses focus. A zero-width space gives the empty block a real
+  // line box of exactly `line-height`, matching the editor's <br> to the pixel.
+  // (Editor empties contain a <br>, so :empty never matches there.)
+  p:empty::after,
+  h1:empty::after, h2:empty::after, h3:empty::after, h4:empty::after,
+  pre code:empty::after { content: "\200b"; }
+
   &:first-child { margin-top: 0; }
 }
 
@@ -122,8 +131,15 @@
   // selected table cell highlight
   .selectedCell { background: var(--tint-press); }
 
-  // wide tables scroll inside the note instead of overflowing it
-  .tableWrapper { overflow-x: auto; }
+  // wide tables scroll inside the note instead of overflowing it. The wrapper is
+  // a block-formatting context (overflow), which would otherwise CONTAIN the
+  // table's own margins and add space the rendered view lacks — so carry the
+  // block margin on the wrapper and zero it on the table, matching rendered.
+  .tableWrapper {
+    overflow-x: auto;
+    margin: 0.5em 0;
+  }
+  .tableWrapper > table { margin: 0; }
 
   // cells need a positioning context for the resize handle + a grabbable min size
   .ProseMirror td,

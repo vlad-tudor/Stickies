@@ -3,10 +3,10 @@ import type { Editor } from "@tiptap/core";
 import { activeEditor, editorTick } from "~/stores/editorStore";
 import { editingStickyId } from "~/stores/uiStore";
 import {
-  BetweenHorizontalStart,
-  BetweenHorizontalEnd,
-  BetweenVerticalStart,
-  BetweenVerticalEnd,
+  ArrowUpToLine,
+  ArrowDownToLine,
+  ArrowLeftToLine,
+  ArrowRightToLine,
   PanelTop,
   Trash2,
 } from "lucide-static";
@@ -54,17 +54,17 @@ export const StickyTableStrip = (props: StickyTableStripProps) => {
       >
         <div class="table-strip-group">
           <button class="table-strip-btn" title="Add row above"
-            onClick={addRowAbove} innerHTML={BetweenHorizontalStart} />
+            onClick={addRowAbove} innerHTML={ArrowUpToLine} />
           <button class="table-strip-btn" title="Add row below"
-            onClick={() => run((c) => c.addRowAfter())} innerHTML={BetweenHorizontalEnd} />
+            onClick={() => run((c) => c.addRowAfter())} innerHTML={ArrowDownToLine} />
           <button class="table-strip-btn" title="Delete row"
             onClick={() => run((c) => c.deleteRow())} innerHTML={Trash2} />
         </div>
         <div class="table-strip-group">
           <button class="table-strip-btn" title="Add column left"
-            onClick={() => run((c) => c.addColumnBefore())} innerHTML={BetweenVerticalStart} />
+            onClick={() => run((c) => c.addColumnBefore())} innerHTML={ArrowLeftToLine} />
           <button class="table-strip-btn" title="Add column right"
-            onClick={() => run((c) => c.addColumnAfter())} innerHTML={BetweenVerticalEnd} />
+            onClick={() => run((c) => c.addColumnAfter())} innerHTML={ArrowRightToLine} />
           <button class="table-strip-btn" title="Delete column"
             onClick={() => run((c) => c.deleteColumn())} innerHTML={Trash2} />
         </div>

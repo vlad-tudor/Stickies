@@ -1,5 +1,5 @@
-import { For } from "solid-js";
-import { TONES, type Tone } from "~/utils/tones";
+import { TonePicker } from "~/components/TonePicker/TonePicker";
+import { type Tone } from "~/utils/tones";
 import "./sticky-color-input.scss";
 
 type StickyColorInputProps = {
@@ -9,19 +9,11 @@ type StickyColorInputProps = {
 
 export const StickyColorInput = (props: StickyColorInputProps) => (
   <div class="sticky-color-input">
-    <For each={TONES}>
-      {(tone) => (
-        <button
-          type="button"
-          class={`sticky-swatch ${props.color === tone ? "is-selected" : ""}`}
-          style={{ "--swatch": `var(--s-${tone})` }}
-          title={tone}
-          onClick={(e) => {
-            e.stopPropagation();
-            props.updateColor(tone);
-          }}
-        />
-      )}
-    </For>
+    <TonePicker
+      value={props.color}
+      onChange={props.updateColor}
+      title="Note color"
+      direction="down"
+    />
   </div>
 );

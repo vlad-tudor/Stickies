@@ -36,12 +36,14 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  margin-top: 0.25rem;             // sit the tab body off the bar's top edge
   padding: 0 0.85rem;
   min-width: 0;
   max-width: 12rem;
   cursor: pointer;
 
   border-right: 1px solid var(--rule-soft);
+  border-radius: var(--radius-chrome) var(--radius-chrome) 0 0;  // chrome-style top
   background: transparent;
   color: var(--ink-mid);
   font-family: var(--font-serif);
@@ -49,21 +51,16 @@
   font-weight: 500;
   white-space: nowrap;
 
+  // selected tab = raised paper that connects to the board surface below
   &.active {
     color: var(--ink);
-    background: transparent;
-    padding: 0 1.15rem;   // extra breathing room when selected
-    // ink underline
-    &::after {
-      content: "";
-      position: absolute;
-      left: 0.85rem;
-      right: 0.85rem;
-      bottom: -1px;
-      height: 2px;
-      background: var(--ink);
-      border-radius: 1px;
-    }
+    background: var(--paper);
+    padding: 0 1.15rem;             // extra breathing room when selected
+    border-right-color: transparent;
+    box-shadow: inset 0 1px 0 var(--topbar-hairline);
+    // bleed over the bar's bottom border so the tab merges with the content
+    margin-bottom: -1px;
+    padding-bottom: 1px;
   }
 
   &.dragging { opacity: 0.45; }

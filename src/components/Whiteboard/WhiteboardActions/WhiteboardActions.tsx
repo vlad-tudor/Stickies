@@ -1,4 +1,4 @@
-import { createSignal, For } from "solid-js";
+import { createSignal } from "solid-js";
 import {
   clearAllStickies,
   createStickyNote,
@@ -9,7 +9,8 @@ import {
   MIN_STICKY_HEIGHT,
 } from "~/stores/stickyStore";
 import { copyShareUrl } from "~/utils/urlState";
-import { TONES, type Tone } from "~/utils/tones";
+import { type Tone } from "~/utils/tones";
+import { TonePicker } from "~/components/TonePicker/TonePicker";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky } from "~/stores/uiStore";
 import { pan, zoom, screenToWorld } from "~/stores/viewportStore";
@@ -116,18 +117,13 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         innerHTML={theme() === "dark" ? Sun : Moon}
       />
 
-      <div class="board-hue" title="Board color">
-        <For each={TONES}>
-          {(tone) => (
-            <button
-              type="button"
-              class={`hue-dot ${props.bgColor === tone ? "is-selected" : ""}`}
-              style={{ "--swatch": `var(--s-${tone})` }}
-              title={tone}
-              onClick={() => props.updateBgColor(tone)}
-            />
-          )}
-        </For>
+      <div class="board-hue">
+        <TonePicker
+          value={props.bgColor}
+          onChange={props.updateBgColor}
+          title="Board color"
+          direction="down"
+        />
       </div>
 
       <span class="app-version">v{__APP_VERSION__}</span>

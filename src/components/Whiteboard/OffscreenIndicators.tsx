@@ -8,7 +8,7 @@ const MARGIN = 22; // keep markers off the very edge
 const CHROME_TOP = 76; // tab + actions bars cover the top — visible area starts here
 const TOP_INSET = 100; // clear those bars (marker is centered on this y)
 
-type Marker = { id: string; x: number; y: number; angle: number; tone: Tone };
+type Marker = { id: string; x: number; y: number; angle: number; tone: Tone; dist: number };
 
 export const OffscreenIndicators = (props: { size: () => { w: number; h: number } }) => {
   const markers = createMemo<Marker[]>(() => {
@@ -34,8 +34,11 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
         y: Math.max(TOP_INSET, Math.min(h - MARGIN, c.y)),
         angle: (Math.atan2(c.y - cyv, c.x - cxv) * 180) / Math.PI,
         tone: s.color,
+        dist: Math.hypot(c.x - cxv, c.y - cyv),
       });
     }
+    // farthest first so the CLOSER note's chevron paints on top when they overlap
+    out.sort((a, b) => b.dist - a.dist);
     return out;
   });
 

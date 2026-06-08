@@ -48,12 +48,35 @@
   position: absolute;
   top: 0;
   left: 0.6rem;
-  right: 2rem;            // leave the top-right for the delete button
+  right: 4rem;            // leave the top-right for the copy + delete buttons
   height: var(--total-sticky-handle-height);
   display: flex;
   align-items: center;
   justify-content: flex-start;   // left-aligned; center of the band stays clear
   pointer-events: none;          // derived title is read-only; band drags through it
+}
+
+// copy-contents — quiet icon button left of the delete "×"
+.sticky-copy-button {
+  position: absolute;
+  top: 0;
+  right: 2rem;                   // sits just left of the delete button (right: 0)
+  width: 2rem;
+  height: var(--total-sticky-handle-height);
+  padding: 0.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-paper);
+  opacity: 0.5;
+
+  svg { width: 100%; height: 100%; }
+
+  &:hover { opacity: 0.9; }
 }
 
 // Connect node — centered in the band's cleared center; drag to another note.

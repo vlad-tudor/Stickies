@@ -1,4 +1,5 @@
-import { createMemo } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
+import { Copy, Check } from "lucide-static";
 import { StickyNote, addThread } from "~/stores/stickyStore";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
@@ -42,13 +43,28 @@ export const Sticky = (props: StickyProps) => {
 
   // Title is derived from the note's text (titles abolished), capped at 10 chars
   // and left-aligned so the center of the band stays clear (for thread anchors).
-  const titleText = createMemo(() => {
+  // Derived on focus-loss, NOT per keystroke: the effect bails while editing, so
+  // it doesn't track `content` and the title only refreshes when editing ends.
+  const [title, setTitle] = createSignal("");
+  createEffect(() => {
+    if (editing()) return; // frozen while typing
     const tmp = document.createElement("div");
     tmp.innerHTML = props.sticky.content;
     const text = (tmp.textContent ?? "").replace(/\s+/g, " ").trim();
     const base = text || `Sticky ${props.seq}`;
-    return base.length > 10 ? base.slice(0, 10).trimEnd() + "…" : base;
+    setTitle(base.length > 10 ? base.slice(0, 10).trimEnd() + "…" : base);
   });
+
+  // Copy the note's text to the clipboard (transient check-mark confirmation).
+  const [copied, setCopied] = createSignal(false);
+  const onCopy = (e: MouseEvent) => {
+    e.stopPropagation(); // don't enter edit / drag
+    const tmp = document.createElement("div");
+    tmp.innerHTML = props.sticky.content;
+    navigator.clipboard.writeText((tmp.textContent ?? "").trim());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
 
   // for some reason the updated sticky lingers on
   let shouldDelete = false;
@@ -138,8 +154,15 @@ export const Sticky = (props: StickyProps) => {
       />
 
       <div class="sticky-title-bar">
-        <span class="sticky-title-label">{titleText()}</span>
+        <span class="sticky-title-label">{title()}</span>
       </div>
+
+      <button
+        class="sticky-copy-button"
+        title="Copy contents"
+        onClick={onCopy}
+        innerHTML={copied() ? Check : Copy}
+      />
 
       <StickyDeleteButton deleteSticky={onStickyDelete} />
 
