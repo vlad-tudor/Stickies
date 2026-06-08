@@ -1,4 +1,5 @@
 import { useDrag } from "~/hooks/useDrag";
+import { zoom } from "~/stores/viewportStore";
 import "./sticky-resize-corner.scss";
 
 type StickyResizeCornerProps = {
@@ -16,8 +17,9 @@ export const StickyResizeCorner = (props: StickyResizeCornerProps) => {
       resizeOffset = [e.clientX, e.clientY];
     },
     onMove: (e) => {
-      const xDelta = e.clientX - resizeOffset[0];
-      const yDelta = e.clientY - resizeOffset[1];
+      const z = zoom();
+      const xDelta = (e.clientX - resizeOffset[0]) / z; // screen px -> world px
+      const yDelta = (e.clientY - resizeOffset[1]) / z;
       props.updateStickyDimensions([
         props.dimensions[0] + xDelta,
         props.dimensions[1] + yDelta,

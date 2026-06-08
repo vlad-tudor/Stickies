@@ -1,34 +1,30 @@
 import { useDrag } from "~/hooks/useDrag";
+import { zoom } from "~/stores/viewportStore";
 import "./sticky-drag-handle.scss";
 
 type StickyDragHandleProps = {
-  updateStickyPosition: (position: [number, number]) => void;
-  getStickyRect: () => DOMRect;
+  // world-space delta [topΔ, leftΔ] to add to the sticky's position
+  moveBy: (delta: [number, number]) => void;
   onDragEnd?: () => void;
 };
 
 export const StickyDragHandle = (props: StickyDragHandleProps) => {
-  let dragOffset = [0, 0];
+  let last = [0, 0];
 
   const drag = useDrag({
     cursor: "grabbing",
     onStart: (e) => {
-      const rect = props.getStickyRect();
-      dragOffset = [e.clientX - rect.left, e.clientY - rect.top];
+      last = [e.clientX, e.clientY];
     },
     onMove: (e) => {
-      props.updateStickyPosition([
-        e.clientY - dragOffset[1],
-        e.clientX - dragOffset[0],
-      ]);
+      const z = zoom();
+      const dx = (e.clientX - last[0]) / z; // screen px -> world px
+      const dy = (e.clientY - last[1]) / z;
+      last = [e.clientX, e.clientY];
+      props.moveBy([dy, dx]);
     },
     onEnd: () => props.onDragEnd?.(),
   });
 
-  return (
-    <div
-      class="sticky-drag-handle"
-      onPointerDown={drag.onPointerDown}
-    />
-  );
+  return <div class="sticky-drag-handle" onPointerDown={drag.onPointerDown} />;
 };

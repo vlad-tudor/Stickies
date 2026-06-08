@@ -29,8 +29,6 @@ type StickyProps = {
  * @note it's odd that we need the shouldDelete flag to prevent the sticky from lingering
  */
 export const Sticky = (props: StickyProps) => {
-  let stickyNoteRef!: HTMLDivElement;
-
   // Only one sticky edits at a time (global id) — robust against focus/blur.
   const editing = () => editingStickyId() === props.sticky.id;
 
@@ -65,8 +63,6 @@ export const Sticky = (props: StickyProps) => {
     ["z-index"]: `${props.index}`,
   });
 
-  const getStickyRect = () => stickyNoteRef.getBoundingClientRect();
-
   // Single focus entry point: pressing anywhere on the sticky (body, drag band,
   // buttons, resize corner) raises it AND activates its editor. Everything
   // bubbles here, so this is the one place that grants focus.
@@ -82,14 +78,17 @@ export const Sticky = (props: StickyProps) => {
 
   return (
     <div
-      ref={stickyNoteRef}
       class={stickyClass()}
       style={stickyStyleOverrides()}
       onPointerDown={onPointerDown}
     >
       <StickyDragHandle
-        updateStickyPosition={(position) => props.moveSticky(position)}
-        getStickyRect={getStickyRect}
+        moveBy={([dTop, dLeft]) =>
+          props.moveSticky([
+            props.sticky.position[0] + dTop,
+            props.sticky.position[1] + dLeft,
+          ])
+        }
         onDragEnd={() => props.commitSticky()}
       />
 
