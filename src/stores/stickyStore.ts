@@ -1,6 +1,7 @@
 import { createStore } from "solid-js/store";
 import { marked } from "marked";
 import { readBoardFromHash, clearHash } from "~/utils/urlState";
+import { deleteImage } from "~/utils/imageStore";
 import { asTone, DEFAULT_TONE, type Tone } from "~/utils/tones";
 
 const STORAGE_KEY = "stickies-boards";
@@ -12,13 +13,18 @@ const LEGACY_BG_KEY = "whiteboard-bg";
 export const MIN_STICKY_WIDTH = 256;
 export const MIN_STICKY_HEIGHT = 320;
 
+// An image note's picture: id into the IndexedDB blob store + pixel dims (aspect).
+// Bytes live out-of-band; only this ref rides the board JSON.
+export type ImageRef = { id: string; w: number; h: number };
+
 export type StickyNote = {
   id: string;
   title?: string;
   position: [number, number];
   dimensions: [number, number];
-  content: string; // markdown
+  content: string; // HTML
   color: Tone;
+  image?: ImageRef; // present => image note (content unused)
 };
 
 // A link between two stickies (by id).
@@ -205,6 +211,9 @@ export function deleteBoard(id: string): void {
   const idx = store.boards.findIndex((b) => b.id === id);
   if (idx === -1) return;
 
+  for (const s of store.boards[idx].stickies) {
+    if (s.image) void deleteImage(s.image.id); // free this board's blobs
+  }
   setStore("boards", (prev) => prev.filter((b) => b.id !== id));
 
   // if we deleted the active board, switch to a neighbour (or none if empty)
@@ -337,6 +346,7 @@ export const deleteStickyNote = (index: number) => {
     setStore("boards", boardIdx, "threads", (prev) =>
       prev.filter((t) => t.from !== removed.id && t.to !== removed.id)
     );
+    if (removed.image) void deleteImage(removed.image.id); // free the blob
   }
   persist();
 };
@@ -344,6 +354,9 @@ export const deleteStickyNote = (index: number) => {
 export const clearAllStickies = () => {
   const boardIdx = activeBoardIndex();
   if (boardIdx === -1) return;
+  for (const s of store.boards[boardIdx].stickies) {
+    if (s.image) void deleteImage(s.image.id); // free the blobs
+  }
   setStore("boards", boardIdx, "stickies", []);
   setStore("boards", boardIdx, "threads", []);
   persist();

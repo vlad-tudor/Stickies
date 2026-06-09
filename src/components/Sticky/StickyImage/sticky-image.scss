@@ -1,0 +1,28 @@
+.sticky-image {
+  flex: auto;          // fill the body below the band
+  min-height: 0;       // ...and allow it to shrink within the flex column
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;    // clip the picture to the card's rounded bottom
+  border-bottom-left-radius: var(--radius-paper);
+  border-bottom-right-radius: var(--radius-paper);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+}
+
+.sticky-image-missing {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px dashed var(--ink-faint);
+  border-radius: var(--radius-paper);
+  opacity: 0.5;
+}

@@ -11,10 +11,23 @@ import {
   updateBoardBgColor,
   createBoard,
   loadBoards,
+  createStickyNote,
   stickies,
+  MIN_STICKY_WIDTH,
 } from "~/stores/stickyStore";
 import { exitEditing, setSelectedThread } from "~/stores/uiStore";
-import { pan, zoom, panBy, zoomAt, resetView, fitView, setIsPinching } from "~/stores/viewportStore";
+import {
+  pan,
+  zoom,
+  panBy,
+  zoomAt,
+  resetView,
+  fitView,
+  screenToWorld,
+  setIsPinching,
+} from "~/stores/viewportStore";
+import { processImage } from "~/utils/processImage";
+import { putImage } from "~/utils/imageStore";
 import { toneVar } from "~/utils/tones";
 import { Maximize } from "lucide-static";
 
@@ -141,6 +154,36 @@ export const Whiteboard = () => {
     fitView(rects, size());
   };
 
+  // Drop an image file on the board → compress → store blob → image note at the
+  // drop point. The note is a sticky with the picture as its body; height = band
+  // (32px) + width / aspect, so the picture fills the body with no letterboxing.
+  const addImageNote = async (file: File, sx: number, sy: number) => {
+    const { blob, width, height } = await processImage(file);
+    const id = await putImage(blob);
+    const w = Math.min(360, Math.max(MIN_STICKY_WIDTH, width));
+    const h = 32 + w * (height / width);
+    const world = screenToWorld({ x: sx, y: sy });
+    createStickyNote({
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      position: [world.y - h / 2, world.x - w / 2],
+      dimensions: [w, h],
+      content: "",
+      color: "butter",
+      image: { id, w: width, h: height },
+    });
+  };
+
+  const onDrop = (e: DragEvent) => {
+    const files = [...(e.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith("image/"));
+    if (!files.length) return;
+    e.preventDefault();
+    files.forEach((f, i) => void addImageNote(f, e.clientX + i * 24, e.clientY + i * 24));
+  };
+
+  const onDragOver = (e: DragEvent) => {
+    if (e.dataTransfer?.types.includes("Files")) e.preventDefault(); // allow the drop
+  };
+
   // grid + stickies share the viewport transform, so the board only needs the
   // base paper fill here.
   const boardStyle = () => ({ "background-color": toneVar(activeBgColor()) });
@@ -167,6 +210,8 @@ export const Whiteboard = () => {
           onPointerUp={onBoardPointerUp}
           onPointerCancel={onBoardPointerUp}
           onWheel={onWheel}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
         >
           <WhiteboardActions bgColor={activeBgColor()} updateBgColor={updateBoardBgColor} />
 

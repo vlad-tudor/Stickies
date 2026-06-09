@@ -44,17 +44,31 @@ export function useDrag(options: UseDragOptions): PointerDragHandlers {
         options.onMove(ev);
       };
 
-      const onPointerUp = (ev: PointerEvent) => {
-        target.releasePointerCapture(ev.pointerId);
+      const cleanup = () => {
         target.removeEventListener("pointermove", onPointerMove);
         target.removeEventListener("pointerup", onPointerUp);
-        cursorOverride?.remove();
+        target.removeEventListener("lostpointercapture", onLost);
+        cursorOverride?.remove(); // never leave the global cursor override behind
+        cursorOverride = null;
+      };
+
+      const onPointerUp = (ev: PointerEvent) => {
+        target.releasePointerCapture(ev.pointerId);
+        cleanup();
         if (dragging) options.onEnd?.(ev);
         else options.onTap?.(ev);
       };
 
+      // If capture is lost (e.g. the element is moved/detached mid-drag), pointerup
+      // won't fire on `target` — clean up here so the cursor/listeners don't stick.
+      const onLost = (ev: PointerEvent) => {
+        cleanup();
+        if (dragging) options.onEnd?.(ev);
+      };
+
       target.addEventListener("pointermove", onPointerMove);
       target.addEventListener("pointerup", onPointerUp);
+      target.addEventListener("lostpointercapture", onLost);
     },
   };
 }

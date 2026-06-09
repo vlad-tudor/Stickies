@@ -39,6 +39,10 @@
     border: 1px solid rgba(255, 255, 255, 0.14);
     &.active { border-color: rgba(255, 255, 255, 0.35); }
   }
+
+  // Image notes size to the picture (band + aspect-locked body), so drop the
+  // text-writing min-height. Min-width stays so the band still fits its buttons.
+  &.is-image { min-height: 0; }
 }
 
 // ---- top band: title (center), delete (right) ----

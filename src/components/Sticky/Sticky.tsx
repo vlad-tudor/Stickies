@@ -1,8 +1,9 @@
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, Show } from "solid-js";
 import { Copy, Check } from "lucide-static";
 import { StickyNote, addThread } from "~/stores/stickyStore";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
+import { StickyImage } from "./StickyImage/StickyImage";
 import { StickyTableStrip } from "./StickyTableStrip/StickyTableStrip";
 import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
 import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
@@ -18,6 +19,7 @@ import {
   setPendingThread,
 } from "~/stores/uiStore";
 import { screenToWorld } from "~/stores/viewportStore";
+import { getImageUrl } from "~/utils/imageStore";
 import { toneVar } from "~/utils/tones";
 
 import "./sticky.scss";
@@ -37,9 +39,20 @@ type StickyProps = {
 /**
  * @note it's odd that we need the shouldDelete flag to prevent the sticky from lingering
  */
+// Top band height in px (--total-sticky-handle-height: 2rem). Used to derive an
+// image note's total height from its width so the picture fills the body exactly.
+const BAND_PX = 32;
+
 export const Sticky = (props: StickyProps) => {
   // Only one sticky edits at a time (global id) — robust against focus/blur.
   const editing = () => editingStickyId() === props.sticky.id;
+
+  // Image notes reuse the sticky shell (band keeps title/dot/copy/×); the body is
+  // the picture instead of the editor, and resize is aspect-locked (no stretch).
+  const aspect = () => {
+    const im = props.sticky.image;
+    return im ? im.w / im.h : 1;
+  };
 
   // Title is derived from the note's text (titles abolished), capped at 10 chars
   // and left-aligned so the center of the band stays clear (for thread anchors).
@@ -55,15 +68,47 @@ export const Sticky = (props: StickyProps) => {
     setTitle(base.length > 10 ? base.slice(0, 10).trimEnd() + "…" : base);
   });
 
-  // Copy the note's text to the clipboard (transient check-mark confirmation).
+  // Copy to the clipboard (transient check-mark confirmation): the picture for an
+  // image note, otherwise the note's text.
   const [copied, setCopied] = createSignal(false);
+  const flashCopied = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+
+  // Stored images are webp; the clipboard reliably accepts only PNG, so decode +
+  // re-encode via canvas. The ClipboardItem wraps the *promise* (not an awaited
+  // blob) so the write stays inside the click gesture — Safari rejects otherwise.
+  const imageToPng = async (id: string): Promise<Blob> => {
+    const url = await getImageUrl(id);
+    if (!url) throw new Error("image blob missing");
+    const src = await fetch(url).then((r) => r.blob());
+    const bmp = await createImageBitmap(src);
+    const canvas = document.createElement("canvas");
+    canvas.width = bmp.width;
+    canvas.height = bmp.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no 2d context");
+    ctx.drawImage(bmp, 0, 0);
+    const png = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/png"));
+    if (!png) throw new Error("png encode failed");
+    return png;
+  };
+
   const onCopy = (e: MouseEvent) => {
     e.stopPropagation(); // don't enter edit / drag
+    const im = props.sticky.image;
+    if (im) {
+      navigator.clipboard
+        .write([new ClipboardItem({ "image/png": imageToPng(im.id) })])
+        .then(flashCopied)
+        .catch(() => {});
+      return;
+    }
     const tmp = document.createElement("div");
     tmp.innerHTML = props.sticky.content;
     navigator.clipboard.writeText((tmp.textContent ?? "").trim());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    flashCopied();
   };
 
   // for some reason the updated sticky lingers on
@@ -73,7 +118,7 @@ export const Sticky = (props: StickyProps) => {
   // per-sticky ink contrast follows the global chrome theme.
   const stickyClass = () => {
     const contrast = theme() === "dark" ? "dark" : "light";
-    return `sticky ${contrast}${props.active ? " active" : ""}`;
+    return `sticky ${contrast}${props.active ? " active" : ""}${props.sticky.image ? " is-image" : ""}`;
   };
 
   const stickyStyleOverrides = () => ({
@@ -92,7 +137,9 @@ export const Sticky = (props: StickyProps) => {
   // editor — clicks don't fire for a 2-finger pinch or a drag, so the iOS
   // keyboard only appears on an intentional tap.
   const onPointerDown = () => selectSticky(props.sticky.id);
-  const onClick = () => editSticky(props.sticky.id);
+  const onClick = () => {
+    if (!props.sticky.image) editSticky(props.sticky.id); // image notes have no editor
+  };
 
   // Drag the band's connect node onto another note to link them.
   const startConnect = (e: PointerEvent) => {
@@ -159,25 +206,40 @@ export const Sticky = (props: StickyProps) => {
 
       <button
         class="sticky-copy-button"
-        title="Copy contents"
+        title={props.sticky.image ? "Copy image" : "Copy contents"}
         onClick={onCopy}
         innerHTML={copied() ? Check : Copy}
       />
 
       <StickyDeleteButton deleteSticky={onStickyDelete} />
 
-      <StickyTableStrip stickyId={props.sticky.id} />
-
-      <StickyMarkdown
-        sticky={props.sticky}
-        editing={editing()}
-        onExit={exitEditing}
-        updateContent={(content) => props.updateSticky({ content })}
-      />
+      <Show
+        when={props.sticky.image}
+        fallback={
+          <>
+            <StickyTableStrip stickyId={props.sticky.id} />
+            <StickyMarkdown
+              sticky={props.sticky}
+              editing={editing()}
+              onExit={exitEditing}
+              updateContent={(content) => props.updateSticky({ content })}
+            />
+          </>
+        }
+      >
+        <StickyImage image={props.sticky.image!} />
+      </Show>
 
       <StickyResizeCorner
         dimensions={props.sticky.dimensions}
-        updateStickyDimensions={(dimensions) => props.resizeSticky(dimensions)}
+        // image notes lock to the picture's aspect: width drives, height follows.
+        updateStickyDimensions={(dimensions) =>
+          props.resizeSticky(
+            props.sticky.image
+              ? [dimensions[0], BAND_PX + dimensions[0] / aspect()]
+              : dimensions
+          )
+        }
         onResizeEnd={() => props.commitSticky()}
       />
 

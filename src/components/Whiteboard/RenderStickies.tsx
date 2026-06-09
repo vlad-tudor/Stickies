@@ -18,21 +18,24 @@ export const RenderStickies = () => {
     return m;
   });
 
-  // Render in a STABLE order (by creation id) so <For> never moves DOM nodes
-  // when the z-order changes — that move was eating clicks and breaking drags.
+  // Render in a STABLE order (by id) so <For> never moves DOM nodes when the
+  // z-order changes — that move was eating clicks and breaking drags. String
+  // compare, NOT Number(): image-note ids aren't numeric, so `Number(id)` is NaN
+  // → an unstable sort → DOM reorder mid-drag → lost pointer capture → stuck drag.
   const renderList = createMemo(() =>
-    [...stickies()].sort((a, b) => Number(a.id) - Number(b.id))
+    [...stickies()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   );
 
   return (
     <For each={renderList()}>
       {(sticky, renderIdx) => {
         const idx = () => stackById().get(sticky.id) ?? 0; // stacking (z) index
+        const active = () => idx() === stickies().length - 1;
         return (
           <Sticky
             index={idx()}
             seq={renderIdx() + 1}
-            active={idx() === stickies().length - 1}
+            active={active()}
             sticky={sticky}
             updateSticky={(update) => updateStickyNote(idx(), update)}
             moveSticky={(position) => moveStickyNote(idx(), position)}
