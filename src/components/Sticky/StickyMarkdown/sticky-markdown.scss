@@ -100,6 +100,16 @@
   &:first-child { margin-top: 0; }
 }
 
+// Preserve runs of spaces (e.g. "[  ]") in the rendered view. The editor surface
+// (ProseMirror) is `white-space: break-spaces`, so spaces show while typing but the
+// rendered HTML collapses them per normal rules — text shifts on blur. Match the
+// editor. Scoped to the text BLOCKS, not the container, so the inter-block whitespace
+// in legacy marked-converted HTML still collapses (no stray blank lines, no reflow).
+.sticky-markdown.rendered :is(p, h1, h2, h3, h4, li, blockquote, th, td) {
+  white-space: pre-wrap;
+  white-space: break-spaces;
+}
+
 // Reserve the toolbar strip on the rendered view (declared AFTER the shared
 // `padding` shorthand so it isn't clobbered). Matches editor text Y exactly:
 // editor = toolbar(--toolbar-h) + ProseMirror padding-top(0.5rem); rendered =
