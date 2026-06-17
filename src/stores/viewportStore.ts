@@ -93,7 +93,9 @@ export function fitView(
   const availH = view.h - CHROME_TOP - pad * 2;
   const bw = maxX - minX || 1;
   const bh = maxY - minY || 1;
-  const z = clampZoom(Math.min(availW / bw, availH / bh));
+  // Fit is zoom-OUT only: never magnify past 100% just because the notes are
+  // small/few — that's disorienting. Cap at 1, then clamp to the usual range.
+  const z = clampZoom(Math.min(availW / bw, availH / bh, 1));
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
   setZoom(z);
