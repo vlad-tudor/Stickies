@@ -13,7 +13,7 @@ import { TonePicker } from "~/components/TonePicker/TonePicker";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky } from "~/stores/uiStore";
 import { useViewport } from "~/stores/viewportStore";
-import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X } from "lucide-static";
+import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize } from "lucide-static";
 import "./whiteboard-actions.scss";
 
 // screen-space anchor for new notes: just under the "+" button
@@ -22,6 +22,11 @@ const SPAWN_ANCHOR = { x: 16, y: 96 };
 type WhiteboardActionsProps = {
   bgColor: Tone;
   updateBgColor: (color: Tone) => void;
+  zoom: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onZoomReset: () => void;
+  onFit: () => void;
   onSplit: () => void;
   onSplitDown: () => void;
   onClose: () => void;
@@ -122,6 +127,15 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
           title="Board color"
           direction="down"
         />
+      </div>
+
+      <div class="toolbar-zoom">
+        <button class="zoom-fit" title="Fit all notes" onClick={props.onFit} innerHTML={Maximize} />
+        <button title="Zoom out" onClick={props.onZoomOut}>−</button>
+        <button class="zoom-reset" title="Reset view" onClick={props.onZoomReset}>
+          {Math.round(props.zoom * 100)}%
+        </button>
+        <button title="Zoom in" onClick={props.onZoomIn}>+</button>
       </div>
 
       <button class="split-pane" title="Split right" onClick={props.onSplit} innerHTML={SquareSplitHorizontal} />

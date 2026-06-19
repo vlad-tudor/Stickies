@@ -26,7 +26,6 @@ import {
   type DropZone,
 } from "~/stores/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
-import { Maximize } from "lucide-static";
 
 // Which 4-way drop zone a point (0..1 within the pane) falls in: within EDGE of a
 // side → that side (split); otherwise center (replace). Corners go to the nearest edge.
@@ -242,6 +241,11 @@ export const Pane = (props: PaneProps) => {
           <WhiteboardActions
             bgColor={pane.bgColor()}
             updateBgColor={updateBoardBgColor}
+            zoom={vp.zoom()}
+            onZoomIn={() => zoomCentered(1.2)}
+            onZoomOut={() => zoomCentered(1 / 1.2)}
+            onZoomReset={vp.resetView}
+            onFit={fitAll}
             onSplit={props.onSplit}
             onSplitDown={props.onSplitDown}
             onClose={props.onClose}
@@ -261,7 +265,7 @@ export const Pane = (props: PaneProps) => {
           <BoardRulers size={size} />
           <ThreadPopover />
 
-          <Show when={boardDrag()}>
+          <Show when={boardDrag()}> {/* board-tab drag-to-split drop layer */}
             <div
               class="pane-drop-layer"
               onDragOver={(e) => {
@@ -284,15 +288,6 @@ export const Pane = (props: PaneProps) => {
               </Show>
             </div>
           </Show>
-
-          <div class="board-zoom">
-            <button class="board-zoom-fit" title="Fit all notes" onClick={fitAll} innerHTML={Maximize} />
-            <button title="Zoom out" onClick={() => zoomCentered(1 / 1.2)}>−</button>
-            <button class="board-zoom-reset" title="Reset view" onClick={vp.resetView}>
-              {Math.round(vp.zoom() * 100)}%
-            </button>
-            <button title="Zoom in" onClick={() => zoomCentered(1.2)}>+</button>
-          </div>
         </div>
       </PaneProvider>
     </ViewportProvider>
