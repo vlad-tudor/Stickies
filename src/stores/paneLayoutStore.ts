@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { activeBoardId, switchBoard } from "~/stores/stickyStore";
+import { exitEditing } from "~/stores/uiStore";
 
 // Split-view layout. Two parts kept deliberately separate:
 //   1. a FLAT registry of panes (id -> boardId) — the leaves. Rendered via a flat
@@ -149,6 +150,7 @@ export function ensurePanes(): void {
 // focuses the pane must land selection/mutations on the right board).
 export function focusPane(id: string): void {
   if (focusedPaneId() === id) return; // fired on every pointerdown — skip no-ops
+  exitEditing(); // moving focus to another pane closes any open editor
   setFocusedPaneId(id);
   const p = panes.find((x) => x.id === id);
   if (p?.boardId) switchBoard(p.boardId);

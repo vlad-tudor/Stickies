@@ -19,6 +19,7 @@ import {
   setPendingThread,
 } from "~/stores/uiStore";
 import { useViewport } from "~/stores/viewportStore";
+import { usePane } from "~/stores/paneContext";
 import { getImageUrl } from "~/utils/imageStore";
 import { toneVar } from "~/utils/tones";
 
@@ -41,8 +42,11 @@ type StickyProps = {
  */
 export const Sticky = (props: StickyProps) => {
   const vp = useViewport();
-  // Only one sticky edits at a time (global id) — robust against focus/blur.
-  const editing = () => editingStickyId() === props.sticky.id;
+  const pane = usePane();
+  // Only one sticky edits at a time (global id) — robust against focus/blur. Gated
+  // to the FOCUSED pane so a cross-viewed note edits in one pane while the others
+  // show the live-updating rendered view (instead of a second, stale editor).
+  const editing = () => editingStickyId() === props.sticky.id && pane.focused();
 
   // Title is derived from the note's text (titles abolished), capped at 10 chars
   // and left-aligned so the center of the band stays clear (for thread anchors).

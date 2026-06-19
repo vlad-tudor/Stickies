@@ -12,15 +12,17 @@ export type Pane = {
   stickies: Accessor<StickyNote[]>;
   threads: Accessor<Thread[]>;
   bgColor: Accessor<Tone>;
+  focused: Accessor<boolean>; // only the focused pane mounts editors
 };
 
-export function createPane(boardId: Accessor<string>): Pane {
+export function createPane(boardId: Accessor<string>, focused: Accessor<boolean>): Pane {
   const board = () => boards().find((b) => b.id === boardId());
   return {
     boardId,
     stickies: () => board()?.stickies ?? [],
     threads: () => board()?.threads ?? [],
     bgColor: () => board()?.bgColor ?? DEFAULT_TONE,
+    focused,
   };
 }
 

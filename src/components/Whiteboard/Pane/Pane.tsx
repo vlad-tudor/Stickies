@@ -59,7 +59,7 @@ export const Pane = (props: PaneProps) => {
     return r ? { x: r.left, y: r.top } : { x: 0, y: 0 };
   };
   const vp = createViewport(`stickies.view.${props.paneId}`, origin);
-  const pane = createPane(() => props.boardId);
+  const pane = createPane(() => props.boardId, () => props.focused);
 
   // Pane size (its own rect) — drives off-screen indicator + ruler math. Measured
   // so it's correct once panes no longer fill the window.
