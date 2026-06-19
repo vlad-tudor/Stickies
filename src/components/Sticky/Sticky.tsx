@@ -1,4 +1,4 @@
-import { createEffect, createSignal, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { Copy, Check } from "lucide-static";
 import { StickyNote, addThread } from "~/stores/stickyStore";
 
@@ -6,7 +6,7 @@ import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
 import { StickyImage } from "./StickyImage/StickyImage";
 import { StickyTableStrip } from "./StickyTableStrip/StickyTableStrip";
 import { StickyColorInput } from "./StickyColorInput/StickyColorInput";
-import { StickyResizeCorner } from "./StickyResizeCorner/StickyResizeCorner";
+import { StickyResizeHandle, RESIZE_DIRS, CornerGrip } from "./StickyResize/StickyResizeHandle";
 
 import { StickyDragHandle } from "./StickyDragHandle/StickyDragHandle";
 import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
@@ -39,20 +39,9 @@ type StickyProps = {
 /**
  * @note it's odd that we need the shouldDelete flag to prevent the sticky from lingering
  */
-// Top band height in px (--total-sticky-handle-height: 2rem). Used to derive an
-// image note's total height from its width so the picture fills the body exactly.
-const BAND_PX = 32;
-
 export const Sticky = (props: StickyProps) => {
   // Only one sticky edits at a time (global id) — robust against focus/blur.
   const editing = () => editingStickyId() === props.sticky.id;
-
-  // Image notes reuse the sticky shell (band keeps title/dot/copy/×); the body is
-  // the picture instead of the editor, and resize is aspect-locked (no stretch).
-  const aspect = () => {
-    const im = props.sticky.image;
-    return im ? im.w / im.h : 1;
-  };
 
   // Title is derived from the note's text (titles abolished), capped at 10 chars
   // and left-aligned so the center of the band stays clear (for thread anchors).
@@ -127,6 +116,7 @@ export const Sticky = (props: StickyProps) => {
     width: `${props.sticky.dimensions?.[0]}px`,
     height: `${props.sticky.dimensions?.[1]}px`,
     ["background-color"]: toneVar(props.sticky.color),
+    ["--note-bg"]: toneVar(props.sticky.color), // resize pills match the note's paper
     // NB: kebab-case — Solid's style object uses setProperty, so camelCase
     // `zIndex` is silently ignored (stacking relies on this, not DOM order).
     // Notes are >= 0; finished threads sit behind at z -1, grid at -2.
@@ -230,18 +220,21 @@ export const Sticky = (props: StickyProps) => {
         <StickyImage image={props.sticky.image!} />
       </Show>
 
-      <StickyResizeCorner
-        dimensions={props.sticky.dimensions}
-        // image notes lock to the picture's aspect: width drives, height follows.
-        updateStickyDimensions={(dimensions) =>
-          props.resizeSticky(
-            props.sticky.image
-              ? [dimensions[0], BAND_PX + dimensions[0] / aspect()]
-              : dimensions
-          )
-        }
-        onResizeEnd={() => props.commitSticky()}
-      />
+      <For each={RESIZE_DIRS}>
+        {(dir) => (
+          <StickyResizeHandle
+            dir={dir}
+            position={props.sticky.position}
+            dimensions={props.sticky.dimensions}
+            moveSticky={(position) => props.moveSticky(position)}
+            resizeSticky={(dimensions) => props.resizeSticky(dimensions)}
+            onResizeEnd={() => props.commitSticky()}
+          />
+        )}
+      </For>
+      <CornerGrip corner="se" />
+      <CornerGrip corner="sw" />
+      <CornerGrip corner="nw" />
 
       <StickyColorInput
         color={props.sticky.color}

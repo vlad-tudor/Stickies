@@ -1,0 +1,103 @@
+// ============================================================
+//  STICKY RESIZE HANDLES
+//  A thin perimeter rim: 3 edges (s/e/w — no top, that's the move
+//  band) + 4 corners. Edges resize one axis; corners both; W/N also
+//  move the note's position. Handles sit in the note's padding margin
+//  (~edge) so they don't steal text clicks, and BELOW the band
+//  controls / color input (z-index 5) so connect/copy/delete/color
+//  stay usable where they overlap. On the SELECTED note, s/e/w edges
+//  show a paper "pill" grab-hint (3 grip dots, same paper + border as
+//  the note) and the se/sw/nw corners show a matching right-angle
+//  bracket — both peek past the edge/corner. (No top-right grip — the
+//  delete button sits there.)
+// ============================================================
+
+.sticky-resize-handle {
+  position: absolute;
+  z-index: 4; // above content + band-move, below band controls (z 5)
+  touch-action: none; // resize on touch instead of scrolling
+}
+
+// edges (inset from the corners so corners stay distinct). No top edge — the top
+// is the move band, so the sticky can't be resized from the top.
+.rh-s { bottom: 0; left: 16px;  right: 16px;  height: 8px; cursor: ns-resize; }
+.rh-e { right: 0;  top: 16px;   bottom: 16px; width: 8px;  cursor: ew-resize; }
+.rh-w { left: 0;   top: 16px;   bottom: 16px; width: 8px;  cursor: ew-resize; }
+
+// corners — nw/sw/se straddle outward (~10px past the corner) so the grab area
+// clears the corner controls (band top, color bottom-left) and lines up with the
+// visible corner grip. No ne handle: the delete button owns the top-right.
+.rh-nw { top: -10px;    left: -10px;  width: 22px; height: 22px; cursor: nwse-resize; }
+.rh-sw { bottom: -10px; left: -10px;  width: 22px; height: 22px; cursor: nesw-resize; }
+.rh-se { bottom: -10px; right: -10px; width: 22px; height: 22px; cursor: nwse-resize; }
+
+// little pill grab-hint, centered on each edge's border line so it half-peeks
+// past the edge (a child can't truly hide BEHIND the note's own background, so
+// this is the practical "tab poking out" look). Purely visual — the rim handles
+// the actual hit. Shown ONLY on the selected (active) note — NO hover (touch has
+// none; the app is moving off all hover affordances).
+.rh-pill {
+  position: absolute;
+  --dot: color-mix(in srgb, currentColor 55%, transparent); // grip dots in note ink
+  background-color: var(--note-bg); // same paper as the note, so it reads as a tab of it
+  border: 1px solid var(--note-border);
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.sticky.active .rh-pill { opacity: 1; } // shown only on the selected note, fully opaque
+
+// 3 grip dots along the pill's length, with breathing room before the rounded
+// ends (dots at 30/50/70%). Horizontal for the bottom, vertical for the sides.
+.rh-s .rh-pill {
+  width: 28px;
+  height: 8px;
+  background-image:
+    radial-gradient(circle at 30% 50%, var(--dot) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 50% 50%, var(--dot) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 70% 50%, var(--dot) 0 1px, transparent 1.6px);
+}
+.rh-w .rh-pill,
+.rh-e .rh-pill {
+  width: 8px;
+  height: 28px;
+  background-image:
+    radial-gradient(circle at 50% 30%, var(--dot) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 50% 50%, var(--dot) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 50% 70%, var(--dot) 0 1px, transparent 1.6px);
+}
+
+.rh-s .rh-pill { bottom: 0; left: 50%; transform: translate(-50%, 50%); }
+.rh-w .rh-pill { left: 0;   top: 50%;  transform: translate(-50%, -50%); }
+.rh-e .rh-pill { right: 0;  top: 50%;  transform: translate(50%, -50%); }
+
+// Corner grips (se + sw + nw): VISUAL only (pointer-events:none), rendered as
+// siblings of the handles so they paint ABOVE the band controls / color input
+// (z 6 > z 5) while the hit handles stay below. A right-angle bracket in the note's
+// paper + border, peeking past the corner, with an inner └ mark. sw/nw mirror se.
+.corner-grip {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  z-index: 6;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.sticky.active .corner-grip { opacity: 1; } // shown only on the selected note
+.cg-se { right: -8px; bottom: -8px; }
+.cg-sw { left: -8px;  bottom: -8px; transform: scaleX(-1); }
+.cg-nw { left: -8px;  top: -8px;    transform: scale(-1, -1); }
+
+.corner-grip path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.cg-border { stroke: var(--note-border); stroke-width: 10; }
+.cg-paper  { stroke: var(--note-bg); stroke-width: 8; }
+.cg-mark   { stroke: color-mix(in srgb, currentColor 55%, transparent); stroke-width: 1.6; }
+
+// fatter edge hit-zones on touch (no precise pointer)
+@media (pointer: coarse) {
+  .rh-e, .rh-w { width: 14px; }
+  .rh-s { height: 14px; }
+}

@@ -7,6 +7,7 @@
   position: absolute;
   top: 0;
   right: 0;
+  z-index: 5;                    // stay clickable over the top-right resize rim (z 4)
   min-width: 2rem;
   min-height: var(--total-sticky-handle-height, 2rem);
   padding: 0.25rem;

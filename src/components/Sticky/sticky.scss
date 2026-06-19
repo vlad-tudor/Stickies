@@ -29,15 +29,18 @@
   &.light {
     color: var(--sticky-ink-dark);
     --crepe-color-on-background: var(--sticky-ink-dark);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    &.active { border-color: rgba(0, 0, 0, 0.28); }
+    --note-border: rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--note-border);
+    // bump the var (not just border-color) so the resize pills' border matches
+    &.active { --note-border: rgba(0, 0, 0, 0.28); }
   }
 
   &.dark {
     color: var(--sticky-ink-light);
     --crepe-color-on-background: var(--sticky-ink-light);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    &.active { border-color: rgba(255, 255, 255, 0.35); }
+    --note-border: rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--note-border);
+    &.active { --note-border: rgba(255, 255, 255, 0.35); }
   }
 
   // Image notes size to the picture (band + aspect-locked body), so drop the
@@ -52,7 +55,7 @@
   position: absolute;
   top: 0;
   left: 0.6rem;
-  right: 4rem;            // leave the top-right for the copy + delete buttons
+  right: 6rem;            // leave the top-right for the color + copy + delete buttons
   height: var(--total-sticky-handle-height);
   display: flex;
   align-items: center;
@@ -65,6 +68,7 @@
   position: absolute;
   top: 0;
   right: 2rem;                   // sits just left of the delete button (right: 0)
+  z-index: 5;                    // stay clickable over the top resize rim (z 4)
   width: 2rem;
   height: var(--total-sticky-handle-height);
   padding: 0.45rem;
@@ -88,6 +92,7 @@
   position: absolute;
   top: 0;
   left: 50%;
+  z-index: 5;                    // stay grabbable over the top resize rim (z 4)
   transform: translateX(-50%);
   height: var(--total-sticky-handle-height);
   width: 1.4rem;
