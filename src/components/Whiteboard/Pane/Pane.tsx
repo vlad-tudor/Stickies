@@ -8,7 +8,12 @@ import { OffscreenIndicators } from "../OffscreenIndicators";
 import { BoardRulers } from "../BoardRulers/BoardRulers";
 import { updateBoardBgColor } from "~/stores/stickyStore";
 import { exitEditing, setSelectedThread, beginInteraction, endInteraction } from "~/stores/uiStore";
-import { createViewport, ViewportProvider } from "~/stores/viewportStore";
+import {
+  createViewport,
+  ViewportProvider,
+  registerViewport,
+  unregisterViewport,
+} from "~/stores/viewportStore";
 import { createPane, PaneProvider } from "~/stores/paneContext";
 import {
   showBoardInFocusedPane,
@@ -16,6 +21,7 @@ import {
   setBoardDragOver,
   dropBoardIntoPane,
   clearBoardDrag,
+  stickyDrag,
   type Rect,
   type DropZone,
 } from "~/stores/paneLayoutStore";
@@ -82,10 +88,14 @@ export const Pane = (props: PaneProps) => {
     const focus = () => props.onFocus();
     boardRef.addEventListener("pointerdown", focus, true);
 
+    // expose this pane's viewport so a cross-pane sticky drop can map into it
+    registerViewport(props.paneId, vp);
+
     onCleanup(() => {
       ro.disconnect();
       window.removeEventListener("resize", measure);
       boardRef.removeEventListener("pointerdown", focus, true);
+      unregisterViewport(props.paneId);
     });
   });
 
@@ -197,6 +207,13 @@ export const Pane = (props: PaneProps) => {
     vp.fitView(rects, size());
   };
 
+  // a cross-pane sticky drag is hovering this pane and would land on a DIFFERENT
+  // board → highlight it as the drop target
+  const isDropTarget = () => {
+    const d = stickyDrag();
+    return !!d && d.targetPaneId === props.paneId && d.fromBoardId !== props.boardId;
+  };
+
   // grid + stickies share the viewport transform, so the board only needs the base
   // paper fill here. The pane is absolutely positioned to its rect (split-tree %).
   const boardStyle = () => ({
@@ -212,7 +229,8 @@ export const Pane = (props: PaneProps) => {
       <PaneProvider value={pane}>
         <div
           ref={boardRef}
-          class={`whiteboard${props.focused ? " is-focused" : ""}`}
+          data-pane-id={props.paneId}
+          class={`whiteboard${props.focused ? " is-focused" : ""}${isDropTarget() ? " drop-target" : ""}`}
           style={boardStyle()}
           onPointerDown={onBoardPointerDown}
           onPointerMove={onBoardPointerMove}

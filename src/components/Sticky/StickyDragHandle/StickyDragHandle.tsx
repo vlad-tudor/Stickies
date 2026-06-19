@@ -5,6 +5,8 @@ import "./sticky-drag-handle.scss";
 type StickyDragHandleProps = {
   // world-space delta [topΔ, leftΔ] to add to the sticky's position
   moveBy: (delta: [number, number]) => void;
+  onDragStart?: (e: PointerEvent) => void;
+  onDragMove?: (e: PointerEvent) => void;
   onDragEnd?: () => void;
 };
 
@@ -16,6 +18,7 @@ export const StickyDragHandle = (props: StickyDragHandleProps) => {
     cursor: "grabbing",
     onStart: (e) => {
       last = [e.clientX, e.clientY];
+      props.onDragStart?.(e);
     },
     onMove: (e) => {
       if (vp.isPinching()) {
@@ -27,6 +30,7 @@ export const StickyDragHandle = (props: StickyDragHandleProps) => {
       const dy = (e.clientY - last[1]) / z;
       last = [e.clientX, e.clientY];
       props.moveBy([dy, dx]);
+      props.onDragMove?.(e);
     },
     onEnd: () => props.onDragEnd?.(),
   });

@@ -405,6 +405,31 @@ export const deleteStickyNote = (index: number) => {
   persist();
 };
 
+// Move a note from one board to another (cross-pane drag), centered on `world` in
+// the target board. Its threads in the source board are dropped (threads are
+// intra-board, so a moved note arrives with no connections).
+export const moveStickyToBoard = (
+  stickyId: string,
+  fromBoardId: string,
+  toBoardId: string,
+  world: { x: number; y: number }
+) => {
+  if (fromBoardId === toBoardId) return;
+  const from = store.boards.findIndex((b) => b.id === fromBoardId);
+  const to = store.boards.findIndex((b) => b.id === toBoardId);
+  if (from === -1 || to === -1) return;
+  const sticky = store.boards[from].stickies.find((s) => s.id === stickyId);
+  if (!sticky) return;
+  const [w, h] = sticky.dimensions;
+  const moved: StickyNote = { ...sticky, position: [world.y - h / 2, world.x - w / 2] };
+  setStore("boards", from, "stickies", (prev) => prev.filter((s) => s.id !== stickyId));
+  setStore("boards", from, "threads", (prev) =>
+    prev.filter((t) => t.from !== stickyId && t.to !== stickyId)
+  );
+  setStore("boards", to, "stickies", (prev) => [...prev, moved]);
+  persist();
+};
+
 export const clearAllStickies = () => {
   const boardIdx = activeBoardIndex();
   if (boardIdx === -1) return;

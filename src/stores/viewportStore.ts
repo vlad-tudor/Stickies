@@ -181,6 +181,17 @@ const ViewportContext = createContext<Viewport>();
 
 export const ViewportProvider = ViewportContext.Provider;
 
+// Registry of live pane viewports by pane id — lets a cross-pane drop resolve the
+// TARGET pane's world coords (its viewport lives in its own component).
+const paneViewports = new Map<string, Viewport>();
+export const registerViewport = (id: string, vp: Viewport): void => {
+  paneViewports.set(id, vp);
+};
+export const unregisterViewport = (id: string): void => {
+  paneViewports.delete(id);
+};
+export const getViewport = (id: string): Viewport | undefined => paneViewports.get(id);
+
 // Read the viewport for the current pane. Must be under a <ViewportProvider>.
 export function useViewport(): Viewport {
   const vp = useContext(ViewportContext);

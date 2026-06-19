@@ -20,6 +20,7 @@ import {
 } from "~/stores/uiStore";
 import { useViewport } from "~/stores/viewportStore";
 import { usePane } from "~/stores/paneContext";
+import { startStickyDrag, updateStickyDrag, dropSticky } from "~/stores/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
 
 import "./sticky.scss";
@@ -148,7 +149,21 @@ export const Sticky = (props: StickyProps) => {
             props.sticky.position[1] + dLeft,
           ])
         }
-        onDragEnd={() => props.commitSticky()}
+        onDragStart={(e) =>
+          startStickyDrag({
+            stickyId: props.sticky.id,
+            fromBoardId: pane.boardId(),
+            title: title(),
+            color: props.sticky.color,
+            x: e.clientX,
+            y: e.clientY,
+          })
+        }
+        onDragMove={(e) => updateStickyDrag(e.clientX, e.clientY)}
+        onDragEnd={() => {
+          dropSticky(); // move to another board if dropped over a different pane
+          props.commitSticky();
+        }}
       />
 
       <button

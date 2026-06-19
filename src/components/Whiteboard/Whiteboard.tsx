@@ -13,9 +13,11 @@ import {
   ensurePanes,
   computeLayout,
   findSplit,
+  stickyDrag,
   type Divider,
   type Rect,
 } from "~/stores/paneLayoutStore";
+import { toneVar } from "~/utils/tones";
 
 import "./whiteboard.scss";
 
@@ -43,6 +45,15 @@ export const Whiteboard = () => {
 
   const computed = createMemo(() => computeLayout(layout()));
   const paneRect = (id: string): Rect => computed().paneRects.get(id) ?? FULL;
+
+  // floating ghost for a cross-pane sticky drag — shown only while the cursor is
+  // over a pane on a DIFFERENT board (the source note clips at its own pane's edge).
+  const crossGhost = createMemo(() => {
+    const d = stickyDrag();
+    if (!d || !d.targetPaneId) return null;
+    const target = panes.find((p) => p.id === d.targetPaneId);
+    return target && target.boardId !== d.fromBoardId ? d : null;
+  });
 
   // Drag a divider: shift weight between the two children of its split node. Listen
   // on window (not the element) so the drag survives the divider being re-created as
@@ -136,6 +147,17 @@ export const Whiteboard = () => {
             )}
           </For>
         </div>
+      </Show>
+
+      <Show when={crossGhost()}>
+        {(g) => (
+          <div
+            class="sticky-drag-ghost"
+            style={{ left: `${g().x}px`, top: `${g().y}px`, "background-color": toneVar(g().color) }}
+          >
+            {g().title}
+          </div>
+        )}
       </Show>
     </div>
   );

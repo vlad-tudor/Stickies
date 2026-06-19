@@ -1,7 +1,9 @@
 import { createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { activeBoardId, switchBoard } from "~/stores/stickyStore";
+import { activeBoardId, switchBoard, moveStickyToBoard } from "~/stores/stickyStore";
 import { exitEditing } from "~/stores/uiStore";
+import { getViewport } from "~/stores/viewportStore";
+import type { Tone } from "~/utils/tones";
 
 // Split-view layout. Two parts kept deliberately separate:
 //   1. a FLAT registry of panes (id -> boardId) — the leaves. Rendered via a flat
@@ -216,6 +218,47 @@ export function setBoardDragOver(paneId: string, zone: DropZone): void {
 
 export function clearBoardDrag(): void {
   setBoardDrag(null);
+}
+
+// ── drag a sticky NOTE across panes (into another board) ──
+
+type StickyDrag = {
+  stickyId: string;
+  fromBoardId: string;
+  title: string; // for the floating ghost
+  color: Tone;
+  x: number; // cursor (window coords)
+  y: number;
+  targetPaneId: string | null;
+};
+
+const [stickyDrag, setStickyDrag] = createSignal<StickyDrag | null>(null);
+export { stickyDrag };
+
+export function startStickyDrag(info: Omit<StickyDrag, "targetPaneId">): void {
+  setStickyDrag({ ...info, targetPaneId: null });
+}
+
+export function updateStickyDrag(x: number, y: number): void {
+  const d = stickyDrag();
+  if (!d) return;
+  const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-pane-id]");
+  const targetPaneId = el?.dataset.paneId ?? null;
+  setStickyDrag({ ...d, x, y, targetPaneId });
+}
+
+// Finish a sticky drag: if it ended over a DIFFERENT board's pane, move the note
+// there (centered on the cursor). Same board / no target → nothing (the in-pane
+// live move already positioned it).
+export function dropSticky(): void {
+  const d = stickyDrag();
+  setStickyDrag(null);
+  if (!d || !d.targetPaneId) return;
+  const target = panes.find((p) => p.id === d.targetPaneId);
+  if (!target || target.boardId === d.fromBoardId) return;
+  const vp = getViewport(d.targetPaneId);
+  if (!vp) return;
+  moveStickyToBoard(d.stickyId, d.fromBoardId, target.boardId, vp.eventToWorld({ x: d.x, y: d.y }));
 }
 
 // Drop a dragged board onto a pane: center = show it in that pane; an edge = split
