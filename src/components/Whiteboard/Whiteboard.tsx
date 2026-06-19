@@ -4,6 +4,7 @@ import { RenderStickies } from "./RenderStickies";
 import { RenderThreads } from "./RenderThreads";
 import { ThreadPopover } from "./ThreadPopover";
 import { OffscreenIndicators } from "./OffscreenIndicators";
+import { BoardRulers } from "./BoardRulers/BoardRulers";
 import { BoardTabs } from "../BoardTabs/BoardTabs";
 import {
   activeBoard,
@@ -191,6 +192,7 @@ export const Whiteboard = () => {
           </div>
 
           <OffscreenIndicators size={size} />
+          <BoardRulers size={size} />
           <ThreadPopover />
 
           <div class="board-zoom">

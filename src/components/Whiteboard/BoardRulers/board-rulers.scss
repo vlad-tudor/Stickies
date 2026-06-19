@@ -1,0 +1,97 @@
+// ============================================================
+//  BOARD RULERS
+//  Two thin screen-space rulers (top + left) marking world
+//  coordinates, so you can tell how far the board has panned from
+//  origin. Ticks are tiled gradients (GPU-cheap, no per-tick DOM);
+//  only the major-tick labels are elements. Strips are
+//  pointer-events:none so drag-to-pan still works through them.
+//  Geometry: top = 4.75rem (tab bar 2.25 + actions bar 2.5).
+// ============================================================
+
+.ruler {
+  position: fixed;
+  z-index: 800;            // above notes (chrome), below actions/zoom (1000)
+  pointer-events: none;
+  background-color: var(--paper-soft);
+}
+
+.ruler-h {
+  top: 4.75rem;
+  left: 0;
+  right: 0;
+  height: 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  // major ticks (stronger) + minor ticks (fainter); anchored to the bottom
+  // (inner, canvas-facing) edge. Tile width/height come from inline style.
+  background-image:
+    linear-gradient(to right, var(--ink-soft) 0 1px, transparent 1px),
+    linear-gradient(to right, var(--ink-faint) 0 1px, transparent 1px);
+  background-repeat: repeat-x, repeat-x;
+}
+
+.ruler-v {
+  top: 4.75rem;
+  left: 0;
+  bottom: 0;
+  width: 1.25rem;
+  border-right: 1px solid var(--rule);
+  background-image:
+    linear-gradient(to bottom, var(--ink-soft) 0 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ink-faint) 0 1px, transparent 1px);
+  background-repeat: repeat-y, repeat-y;
+}
+
+.ruler-label {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  user-select: none;
+
+  &.is-origin {
+    color: var(--ink);     // emphasise the origin (0) over plain ticks
+    font-weight: 600;
+  }
+}
+
+.ruler-h .ruler-label {
+  top: 2px;                // sit at the outer edge; ticks hug the bottom
+  transform: translateX(-50%);
+}
+
+.ruler-v .ruler-label {
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+.ruler-corner {
+  position: fixed;
+  top: 4.75rem;
+  left: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  z-index: 801;            // over both strips' top-left overlap
+  padding: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  background: var(--paper-soft);
+  border: none;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+
+  // a small ring = the origin marker; fills on hover
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    border: 1px solid var(--ink-soft);
+  }
+  &:hover::after { background: var(--ink-soft); }
+}
