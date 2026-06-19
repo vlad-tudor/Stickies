@@ -203,9 +203,9 @@
   }
 }
 
-// zoom controls (bottom-right chrome)
+// zoom controls (bottom-right chrome) — absolute within the pane (was window-fixed)
 .board-zoom {
-  position: fixed;
+  position: absolute;
   right: 0.75rem;
   bottom: 0.75rem;
   z-index: 1000;

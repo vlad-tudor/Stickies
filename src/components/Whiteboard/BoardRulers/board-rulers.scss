@@ -9,7 +9,7 @@
 // ============================================================
 
 .ruler {
-  position: fixed;
+  position: absolute;      // within the pane (was window-fixed)
   z-index: 800;            // above notes (chrome), below actions/zoom (1000)
   pointer-events: none;
   background-color: var(--paper-soft);
@@ -68,7 +68,7 @@
 }
 
 .ruler-corner {
-  position: fixed;
+  position: absolute;      // within the pane (was window-fixed)
   top: 4.75rem;
   left: 0;
   width: 1.25rem;

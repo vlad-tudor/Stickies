@@ -29,8 +29,8 @@
 }
 
 .whiteboard-actions {
-  position: fixed;
-  top: 2.25rem;          // directly under the tab bar (height 2.25rem)
+  position: absolute;    // within the pane (was window-fixed) so each pane has its own
+  top: 2.25rem;          // directly under the global tab bar (height 2.25rem)
   left: 0;
   right: 0;
   z-index: 1000;

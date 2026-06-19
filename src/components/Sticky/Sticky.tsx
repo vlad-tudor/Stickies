@@ -140,7 +140,7 @@ export const Sticky = (props: StickyProps) => {
     node.setPointerCapture(e.pointerId);
 
     const track = (ev: PointerEvent) =>
-      setPendingThread({ from: props.sticky.id, to: vp.screenToWorld({ x: ev.clientX, y: ev.clientY }) });
+      setPendingThread({ from: props.sticky.id, to: vp.eventToWorld({ x: ev.clientX, y: ev.clientY }) });
     track(e);
 
     const onMove = (ev: PointerEvent) => track(ev);

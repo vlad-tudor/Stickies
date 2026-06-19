@@ -41,6 +41,7 @@ export type Viewport = {
   ) => void;
   worldToScreen: (p: Point) => Point;
   screenToWorld: (p: Point) => Point;
+  eventToWorld: (p: Point) => Point;
 };
 
 const readSavedView = (key: string): { pan: Point; zoom: number } | null => {
@@ -55,7 +56,12 @@ const readSavedView = (key: string): { pan: Point; zoom: number } | null => {
 // Create an independent viewport (pan/zoom + transforms). `persistKey` is where its
 // last view is saved (debounced) so a reload restores where you were. Call inside a
 // reactive owner (a component) — the persistence effect is owned by that scope.
-export function createViewport(persistKey = "stickies.view"): Viewport {
+export function createViewport(
+  persistKey = "stickies.view",
+  // the pane's top-left in window coords — lets eventToWorld() map raw pointer
+  // events into this pane. Defaults to (0,0) (a pane that fills the window).
+  origin: Accessor<Point> = () => ({ x: 0, y: 0 })
+): Viewport {
   const saved = readSavedView(persistKey);
   const [pan, setPan] = createSignal<Point>(saved?.pan ?? { x: 0, y: 0 });
   const [zoom, setZoom] = createSignal(clampZoom(saved?.zoom ?? 1));
@@ -149,6 +155,12 @@ export function createViewport(persistKey = "stickies.view"): Viewport {
     return { x: (p.x - o.x) / z, y: (p.y - o.y) / z };
   };
 
+  // Map a raw pointer event's WINDOW coords to world, accounting for the pane's
+  // screen offset. Use this for pointer handlers; screenToWorld takes coords that
+  // are already pane-local (e.g. a fixed in-pane anchor).
+  const eventToWorld = (p: Point): Point =>
+    screenToWorld({ x: p.x - origin().x, y: p.y - origin().y });
+
   return {
     pan,
     setPan,
@@ -161,6 +173,7 @@ export function createViewport(persistKey = "stickies.view"): Viewport {
     fitView,
     worldToScreen,
     screenToWorld,
+    eventToWorld,
   };
 }
 

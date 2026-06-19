@@ -22,17 +22,32 @@ type PaneProps = {
 export const Pane = (props: PaneProps) => {
   let boardRef!: HTMLDivElement;
 
-  const vp = createViewport();
+  // The pane's screen top-left, so the viewport can map pointer events into this
+  // pane even when it's offset (split-view). boardRef is set by render time.
+  const origin = () => {
+    const r = boardRef?.getBoundingClientRect();
+    return r ? { x: r.left, y: r.top } : { x: 0, y: 0 };
+  };
+  const vp = createViewport("stickies.view", origin);
   const pane = createPane(() => props.boardId);
 
-  // Pane size — drives off-screen indicator + ruler math. Today the pane fills the
-  // window (chrome bars are fixed overlays); split-view will measure the pane rect.
+  // Pane size (its own rect) — drives off-screen indicator + ruler math. Measured
+  // so it's correct once panes no longer fill the window.
   const [size, setSize] = createSignal({ w: window.innerWidth, h: window.innerHeight });
 
   onMount(() => {
-    const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener("resize", onResize);
-    onCleanup(() => window.removeEventListener("resize", onResize));
+    const measure = () => {
+      const r = boardRef.getBoundingClientRect();
+      setSize({ w: r.width, h: r.height });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(boardRef);
+    window.addEventListener("resize", measure);
+    onCleanup(() => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    });
   });
 
   // Board gestures. We track EVERY pointer that reaches the board (incl. ones that
