@@ -2,7 +2,6 @@ import { createSignal } from "solid-js";
 import {
   clearAllStickies,
   createStickyNote,
-  stackAllStickies,
   activeBoard,
   stickies,
   MIN_STICKY_WIDTH,
@@ -93,11 +92,6 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     showToast("Link copied to clipboard");
   };
 
-  const onStack = () => {
-    stackAllStickies();
-    showToast("Stickies stacked");
-  };
-
   return (
     <>
     <div class={`share-toast ${toast() ? "visible" : ""}`}>{toast()}</div>
@@ -105,7 +99,6 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       <button class="create-sticky" title="New sticky" onClick={onStickyCreate}>
         +
       </button>
-      <button class="refresh-stickies-positions" title="Stack all stickies" onClick={onStack}>{"🔄"}</button>
       <button class="clear-all-stickies" title="Clear all stickies" onClick={onClearAllStickies}>
         {"🗑️"}
       </button>
