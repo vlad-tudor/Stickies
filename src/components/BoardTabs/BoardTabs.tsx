@@ -2,13 +2,13 @@ import { createSignal, For } from "solid-js";
 import {
   boards,
   activeBoardId,
-  switchBoard,
   createBoard,
   deleteBoard,
   renameBoard,
   reorderBoards,
   Board,
 } from "~/stores/stickyStore";
+import { showBoardInFocusedPane } from "~/stores/paneLayoutStore";
 import { Pencil } from "lucide-static";
 import "./board-tabs.scss";
 
@@ -48,7 +48,7 @@ export const BoardTabs = () => {
             <div
               class={`board-tab ${board.id === activeBoardId() ? "active" : ""} ${dragId() === board.id ? "dragging" : ""}`}
               draggable={editingId() !== board.id}
-              onClick={() => switchBoard(board.id)}
+              onClick={() => showBoardInFocusedPane(board.id)}
               onDblClick={() => startRename(board.id)}
               onDragStart={(e) => {
                 setDragId(board.id);

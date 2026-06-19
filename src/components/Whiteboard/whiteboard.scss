@@ -39,9 +39,28 @@
   box-shadow: var(--shadow-1);
 }
 
+// the row of side-by-side board panes (fills below the fixed tab bar)
+.pane-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+// drag-to-resize gutter between two panes
+.pane-divider {
+  flex: 0 0 6px;
+  align-self: stretch;
+  cursor: col-resize;
+  touch-action: none;
+  background: var(--rule);
+  border-left: 1px solid var(--paper-deep);
+  border-right: 1px solid var(--paper-deep);
+}
+
 .whiteboard {
   position: relative;
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 260px;          // a pane can't shrink narrower than this
   min-height: 0;
   overflow: hidden;          // clip panned / zoomed-out stickies
   touch-action: none;        // touch pan/drag instead of native page scroll
@@ -61,6 +80,19 @@
       transparent 50%,
       rgba(var(--rule-rgb), 0.05) 100%
     );
+  }
+
+  // unfocused panes recede behind a faint scrim over the board content (above
+  // notes/threads/rulers, below the chrome at z 1000). pointer-events:none so a
+  // click still falls through and focuses the pane.
+  &:not(.is-focused)::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 950;
+    pointer-events: none;
+    background: var(--paper);
+    opacity: 0.22;
   }
 }
 

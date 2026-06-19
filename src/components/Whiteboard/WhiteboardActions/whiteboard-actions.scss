@@ -70,10 +70,15 @@
   .export-stickies,
   .import-stickies,
   .share-board,
-  .theme-toggle {
+  .theme-toggle,
+  .split-pane,
+  .close-pane {
     padding: 0.4rem;
     svg { width: 100%; height: 100%; }
   }
+
+  // pane controls sit at the right end, the close button pushed there
+  .split-pane { margin-left: auto; }
 
   // app version — floats just under the "+" (new sticky) button
   .app-version {

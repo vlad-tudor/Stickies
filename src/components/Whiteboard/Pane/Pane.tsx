@@ -13,12 +13,19 @@ import { toneVar } from "~/utils/tones";
 import { Maximize } from "lucide-static";
 
 type PaneProps = {
+  paneId: string;
   boardId: string;
+  size: number;
+  focused: boolean;
+  onFocus: () => void;
+  onSplit: () => void;
+  onClose: () => void;
+  closable: boolean;
 };
 
 // One board surface: owns its viewport (pan/zoom), renders its board (by id) + the
-// board chrome, and handles board gestures. One pane today; the split-view shell
-// renders several side by side.
+// board chrome, and handles board gestures. The split-view shell renders several
+// side by side.
 export const Pane = (props: PaneProps) => {
   let boardRef!: HTMLDivElement;
 
@@ -28,7 +35,7 @@ export const Pane = (props: PaneProps) => {
     const r = boardRef?.getBoundingClientRect();
     return r ? { x: r.left, y: r.top } : { x: 0, y: 0 };
   };
-  const vp = createViewport("stickies.view", origin);
+  const vp = createViewport(`stickies.view.${props.paneId}`, origin);
   const pane = createPane(() => props.boardId);
 
   // Pane size (its own rect) — drives off-screen indicator + ruler math. Measured
@@ -44,9 +51,17 @@ export const Pane = (props: PaneProps) => {
     const ro = new ResizeObserver(measure);
     ro.observe(boardRef);
     window.addEventListener("resize", measure);
+
+    // Focus this pane on any pointerdown within it — in the CAPTURE phase so it runs
+    // BEFORE a note's own pointerdown, ensuring selection/mutations land on this
+    // pane's board (the focused pane is the active board).
+    const focus = () => props.onFocus();
+    boardRef.addEventListener("pointerdown", focus, true);
+
     onCleanup(() => {
       ro.disconnect();
       window.removeEventListener("resize", measure);
+      boardRef.removeEventListener("pointerdown", focus, true);
     });
   });
 
@@ -146,15 +161,18 @@ export const Pane = (props: PaneProps) => {
   };
 
   // grid + stickies share the viewport transform, so the board only needs the
-  // base paper fill here.
-  const boardStyle = () => ({ "background-color": toneVar(pane.bgColor()) });
+  // base paper fill here. flex-grow drives the pane's share of the row width.
+  const boardStyle = () => ({
+    "background-color": toneVar(pane.bgColor()),
+    "flex-grow": `${props.size}`,
+  });
 
   return (
     <ViewportProvider value={vp}>
       <PaneProvider value={pane}>
         <div
           ref={boardRef}
-          class="whiteboard"
+          class={`whiteboard${props.focused ? " is-focused" : ""}`}
           style={boardStyle()}
           onPointerDown={onBoardPointerDown}
           onPointerMove={onBoardPointerMove}
@@ -162,7 +180,13 @@ export const Pane = (props: PaneProps) => {
           onPointerCancel={onBoardPointerUp}
           onWheel={onWheel}
         >
-          <WhiteboardActions bgColor={pane.bgColor()} updateBgColor={updateBoardBgColor} />
+          <WhiteboardActions
+            bgColor={pane.bgColor()}
+            updateBgColor={updateBoardBgColor}
+            onSplit={props.onSplit}
+            onClose={props.onClose}
+            closable={props.closable}
+          />
 
           <div
             class="board-viewport"
