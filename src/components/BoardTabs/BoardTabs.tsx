@@ -2,13 +2,14 @@ import { createSignal, For } from "solid-js";
 import {
   boards,
   createBoard,
+  duplicateBoard,
   deleteBoard,
   renameBoard,
   reorderBoards,
   Board,
 } from "~/stores/stickyStore";
 import { startBoardDrag, clearBoardDrag } from "~/stores/paneLayoutStore";
-import { Pencil } from "lucide-static";
+import { Pencil, CopyPlus } from "lucide-static";
 import "./board-tabs.scss";
 
 // One pane's tab strip: shows all boards, highlights the pane's current board, and
@@ -43,6 +44,14 @@ export const BoardTabs = (props: BoardTabsProps) => {
     if (boards().length <= 1) return;
     if (confirm(`Delete "${board.name}"?`)) {
       deleteBoard(board.id);
+    }
+  };
+
+  const onTabDuplicate = (e: MouseEvent, board: Board) => {
+    e.stopPropagation();
+    if (confirm(`Duplicate "${board.name}"? This copies all its notes and connections into a new board.`)) {
+      const newId = duplicateBoard(board.id);
+      if (newId) props.onSelect(newId); // open the copy in this pane
     }
   };
 
@@ -82,6 +91,14 @@ export const BoardTabs = (props: BoardTabsProps) => {
                     startRename(board.id);
                   }}
                   innerHTML={Pencil}
+                />
+              )}
+              {board.id === props.boardId && editingId() !== board.id && (
+                <button
+                  class="board-tab-dup"
+                  title="Duplicate board"
+                  onClick={(e) => onTabDuplicate(e, board)}
+                  innerHTML={CopyPlus}
                 />
               )}
               {editingId() === board.id ? (

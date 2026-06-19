@@ -231,6 +231,36 @@ export function createBoard(name?: string): string {
   return board.id;
 }
 
+// Duplicate a board into a new one ("<name> (copy)"): clones notes with FRESH ids
+// (so the copy is fully independent) + threads with endpoints remapped + bg color.
+// Returns the new board's id (null if the source is gone).
+export function duplicateBoard(id: string): string | null {
+  const src = store.boards.find((b) => b.id === id);
+  if (!src) return null;
+  const stamp = Date.now().toString(36);
+  const idMap = new Map<string, string>();
+  const stickies = src.stickies.map((s, i) => {
+    const nid = `${stamp}-s${i}-${Math.random().toString(36).slice(2, 6)}`;
+    idMap.set(s.id, nid);
+    return { ...s, id: nid };
+  });
+  const threads = src.threads.map((t, i) => ({
+    id: `${stamp}-t${i}-${Math.random().toString(36).slice(2, 6)}`,
+    from: idMap.get(t.from) ?? t.from,
+    to: idMap.get(t.to) ?? t.to,
+  }));
+  const board = makeBoard(
+    deduplicateName(`${src.name} (copy)`, store.boards),
+    stickies,
+    src.bgColor,
+    threads
+  );
+  setStore("boards", (prev) => [...prev, board]);
+  setStore("activeBoardId", board.id);
+  persist();
+  return board.id;
+}
+
 export function deleteBoard(id: string): void {
   const idx = store.boards.findIndex((b) => b.id === id);
   if (idx === -1) return;
@@ -390,6 +420,22 @@ export const createStickyNote = (sticky: StickyNote) => {
   const boardIdx = activeBoardIndex();
   if (boardIdx === -1) return;
   setStore("boards", boardIdx, "stickies", (prev) => [...prev, sticky]);
+  persist();
+};
+
+// Duplicate a note beside itself (new id, offset down-right, top of the z-order).
+// Threads are NOT copied — a duplicate has no connections.
+export const duplicateStickyNote = (index: number) => {
+  const boardIdx = activeBoardIndex();
+  if (boardIdx === -1) return;
+  const src = store.boards[boardIdx].stickies[index];
+  if (!src) return;
+  const clone: StickyNote = {
+    ...src,
+    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    position: [src.position[0] + 24, src.position[1] + 24],
+  };
+  setStore("boards", boardIdx, "stickies", (prev) => [...prev, clone]);
   persist();
 };
 

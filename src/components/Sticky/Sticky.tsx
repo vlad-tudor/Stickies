@@ -1,5 +1,5 @@
 import { createEffect, createSignal, For, Show } from "solid-js";
-import { Copy, Check } from "lucide-static";
+import { Copy } from "lucide-static";
 import { StickyNote, addThread } from "~/stores/stickyStore";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
@@ -20,7 +20,6 @@ import {
 } from "~/stores/uiStore";
 import { useViewport } from "~/stores/viewportStore";
 import { usePane } from "~/stores/paneContext";
-import { getImageUrl } from "~/utils/imageStore";
 import { toneVar } from "~/utils/tones";
 
 import "./sticky.scss";
@@ -35,6 +34,7 @@ type StickyProps = {
   resizeSticky: (dimensions: [number, number]) => void;
   commitSticky: () => void;
   deleteSticky: () => void;
+  duplicateSticky: () => void;
 };
 
 /**
@@ -62,47 +62,10 @@ export const Sticky = (props: StickyProps) => {
     setTitle(base.length > 10 ? base.slice(0, 10).trimEnd() + "…" : base);
   });
 
-  // Copy to the clipboard (transient check-mark confirmation): the picture for an
-  // image note, otherwise the note's text.
-  const [copied, setCopied] = createSignal(false);
-  const flashCopied = () => {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
-  };
-
-  // Stored images are webp; the clipboard reliably accepts only PNG, so decode +
-  // re-encode via canvas. The ClipboardItem wraps the *promise* (not an awaited
-  // blob) so the write stays inside the click gesture — Safari rejects otherwise.
-  const imageToPng = async (id: string): Promise<Blob> => {
-    const url = await getImageUrl(id);
-    if (!url) throw new Error("image blob missing");
-    const src = await fetch(url).then((r) => r.blob());
-    const bmp = await createImageBitmap(src);
-    const canvas = document.createElement("canvas");
-    canvas.width = bmp.width;
-    canvas.height = bmp.height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("no 2d context");
-    ctx.drawImage(bmp, 0, 0);
-    const png = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/png"));
-    if (!png) throw new Error("png encode failed");
-    return png;
-  };
-
-  const onCopy = (e: MouseEvent) => {
+  // Duplicate this note beside itself (offset, top of z-order, no connections).
+  const onDuplicate = (e: MouseEvent) => {
     e.stopPropagation(); // don't enter edit / drag
-    const im = props.sticky.image;
-    if (im) {
-      navigator.clipboard
-        .write([new ClipboardItem({ "image/png": imageToPng(im.id) })])
-        .then(flashCopied)
-        .catch(() => {});
-      return;
-    }
-    const tmp = document.createElement("div");
-    tmp.innerHTML = props.sticky.content;
-    navigator.clipboard.writeText((tmp.textContent ?? "").trim());
-    flashCopied();
+    props.duplicateSticky();
   };
 
   // for some reason the updated sticky lingers on
@@ -201,9 +164,9 @@ export const Sticky = (props: StickyProps) => {
 
       <button
         class="sticky-copy-button"
-        title={props.sticky.image ? "Copy image" : "Copy contents"}
-        onClick={onCopy}
-        innerHTML={copied() ? Check : Copy}
+        title="Duplicate note"
+        onClick={onDuplicate}
+        innerHTML={Copy}
       />
 
       <StickyDeleteButton deleteSticky={onStickyDelete} />

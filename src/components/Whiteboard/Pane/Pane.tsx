@@ -42,6 +42,7 @@ type PaneProps = {
   focused: boolean;
   onFocus: () => void;
   onSplit: () => void;
+  onSplitDown: () => void;
   onClose: () => void;
   closable: boolean;
 };
@@ -224,6 +225,7 @@ export const Pane = (props: PaneProps) => {
             bgColor={pane.bgColor()}
             updateBgColor={updateBoardBgColor}
             onSplit={props.onSplit}
+            onSplitDown={props.onSplitDown}
             onClose={props.onClose}
             closable={props.closable}
           />

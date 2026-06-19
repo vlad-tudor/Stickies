@@ -120,6 +120,7 @@ export const Whiteboard = () => {
                 focused={focusedPaneId() === p.id}
                 onFocus={() => focusPane(p.id)}
                 onSplit={() => splitPane(p.id, "row")}
+                onSplitDown={() => splitPane(p.id, "col")}
                 onClose={() => closePane(p.id)}
                 closable={panes.length > 1}
               />

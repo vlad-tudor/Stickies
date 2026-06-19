@@ -67,7 +67,8 @@
 }
 
 // pencil — rename trigger, shown on the active tab to the left of its name
-.board-tab-edit {
+.board-tab-edit,
+.board-tab-dup {
   all: unset;
   display: flex;
   align-items: center;

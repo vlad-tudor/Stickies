@@ -13,7 +13,7 @@ import { TonePicker } from "~/components/TonePicker/TonePicker";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky } from "~/stores/uiStore";
 import { useViewport } from "~/stores/viewportStore";
-import { Share2, Sun, Moon, SquareSplitHorizontal, X } from "lucide-static";
+import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X } from "lucide-static";
 import "./whiteboard-actions.scss";
 
 // screen-space anchor for new notes: just under the "+" button
@@ -23,6 +23,7 @@ type WhiteboardActionsProps = {
   bgColor: Tone;
   updateBgColor: (color: Tone) => void;
   onSplit: () => void;
+  onSplitDown: () => void;
   onClose: () => void;
   closable: boolean;
 };
@@ -123,7 +124,8 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         />
       </div>
 
-      <button class="split-pane" title="Split pane" onClick={props.onSplit} innerHTML={SquareSplitHorizontal} />
+      <button class="split-pane" title="Split right" onClick={props.onSplit} innerHTML={SquareSplitHorizontal} />
+      <button class="split-pane-down" title="Split down" onClick={props.onSplitDown} innerHTML={SquareSplitVertical} />
       <Show when={props.closable}>
         <button class="close-pane" title="Close pane" onClick={props.onClose} innerHTML={X} />
       </Show>

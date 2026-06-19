@@ -5,6 +5,7 @@ import {
   resizeStickyNote,
   commitStickies,
   deleteStickyNote,
+  duplicateStickyNote,
 } from "~/stores/stickyStore";
 import { usePane } from "~/stores/paneContext";
 import { Sticky } from "../Sticky/Sticky";
@@ -44,6 +45,7 @@ export const RenderStickies = () => {
             resizeSticky={(dimensions) => resizeStickyNote(idx(), dimensions)}
             commitSticky={() => commitStickies()}
             deleteSticky={() => deleteStickyNote(idx())}
+            duplicateSticky={() => duplicateStickyNote(idx())}
           />
         );
       }}
