@@ -7,6 +7,7 @@ import {
   reorderBoards,
   Board,
 } from "~/stores/stickyStore";
+import { startBoardDrag, clearBoardDrag } from "~/stores/paneLayoutStore";
 import { Pencil } from "lucide-static";
 import "./board-tabs.scss";
 
@@ -59,6 +60,7 @@ export const BoardTabs = (props: BoardTabsProps) => {
               onDragStart={(e) => {
                 setDragId(board.id);
                 e.dataTransfer?.setData("text/plain", board.id);
+                startBoardDrag(board.id); // also a drag source for split-into-pane
               }}
               onDragEnter={(e) => {
                 e.preventDefault();
@@ -66,7 +68,10 @@ export const BoardTabs = (props: BoardTabsProps) => {
                 if (from && from !== board.id) reorderBoards(from, board.id);
               }}
               onDragOver={(e) => e.preventDefault()}
-              onDragEnd={() => setDragId(null)}
+              onDragEnd={() => {
+                setDragId(null);
+                clearBoardDrag();
+              }}
             >
               {board.id === props.boardId && editingId() !== board.id && (
                 <button

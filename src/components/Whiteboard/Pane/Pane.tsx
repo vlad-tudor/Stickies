@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount } from "solid-js";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { BoardTabs } from "../../BoardTabs/BoardTabs";
 import { WhiteboardActions } from "../WhiteboardActions/WhiteboardActions";
 import { RenderStickies } from "../RenderStickies";
@@ -10,9 +10,30 @@ import { updateBoardBgColor } from "~/stores/stickyStore";
 import { exitEditing, setSelectedThread } from "~/stores/uiStore";
 import { createViewport, ViewportProvider } from "~/stores/viewportStore";
 import { createPane, PaneProvider } from "~/stores/paneContext";
-import { showBoardInFocusedPane, type Rect } from "~/stores/paneLayoutStore";
+import {
+  showBoardInFocusedPane,
+  boardDrag,
+  setBoardDragOver,
+  dropBoardIntoPane,
+  clearBoardDrag,
+  type Rect,
+  type DropZone,
+} from "~/stores/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
 import { Maximize } from "lucide-static";
+
+// Which 4-way drop zone a point (0..1 within the pane) falls in: within EDGE of a
+// side → that side (split); otherwise center (replace). Corners go to the nearest edge.
+const EDGE = 0.25;
+const zoneAt = (px: number, py: number): DropZone => {
+  const d = { left: px, right: 1 - px, top: py, bottom: 1 - py };
+  const m = Math.min(d.left, d.right, d.top, d.bottom);
+  if (m > EDGE) return "center";
+  if (m === d.left) return "left";
+  if (m === d.right) return "right";
+  if (m === d.top) return "top";
+  return "bottom";
+};
 
 type PaneProps = {
   paneId: string;
@@ -206,6 +227,30 @@ export const Pane = (props: PaneProps) => {
           <OffscreenIndicators size={size} />
           <BoardRulers size={size} />
           <ThreadPopover />
+
+          <Show when={boardDrag()}>
+            <div
+              class="pane-drop-layer"
+              onDragOver={(e) => {
+                e.preventDefault();
+                const r = e.currentTarget.getBoundingClientRect();
+                setBoardDragOver(
+                  props.paneId,
+                  zoneAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height)
+                );
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const d = boardDrag();
+                if (d) dropBoardIntoPane(props.paneId, d.zone ?? "center", d.boardId);
+                clearBoardDrag();
+              }}
+            >
+              <Show when={boardDrag()?.overPaneId === props.paneId && boardDrag()?.zone}>
+                {(zone) => <div class={`pane-drop-zone zone-${zone()}`} />}
+              </Show>
+            </div>
+          </Show>
 
           <div class="board-zoom">
             <button class="board-zoom-fit" title="Fit all notes" onClick={fitAll} innerHTML={Maximize} />

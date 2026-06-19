@@ -163,13 +163,17 @@ export function showBoardInFocusedPane(boardId: string): void {
 }
 
 // Split a pane in `dir` ("row" = side-by-side, "col" = stacked): wrap its leaf in a
-// split with a new sibling pane (same board), then focus the new pane. `before`
-// puts the new pane first.
-export function splitPane(targetId: string, dir: "row" | "col", before = false): void {
+// split with a NEW sibling pane bound to `boardId`, then focus the new pane.
+// `before` puts the new pane first.
+function splitPaneWithBoard(
+  targetId: string,
+  dir: "row" | "col",
+  before: boolean,
+  boardId: string
+): void {
   const root = layout();
   if (!root) return;
   const newId = paneId();
-  const boardId = panes.find((p) => p.id === targetId)?.boardId ?? activeBoardId();
   setPanes(produce((p) => p.push({ id: newId, boardId })));
   const newLeaf: LeafNode = { type: "leaf", paneId: newId };
   const wrap = (leaf: LeafNode): SplitNode => ({
@@ -181,6 +185,50 @@ export function splitPane(targetId: string, dir: "row" | "col", before = false):
   });
   setLayout(root.type === "leaf" && root.paneId === targetId ? wrap(root) : replaceLeaf(root, targetId, wrap));
   focusPane(newId);
+}
+
+// Split a pane (new sibling shows the same board) — used by the split button.
+export function splitPane(targetId: string, dir: "row" | "col", before = false): void {
+  const boardId = panes.find((p) => p.id === targetId)?.boardId ?? activeBoardId();
+  splitPaneWithBoard(targetId, dir, before, boardId);
+}
+
+// ── drag a board tab onto a pane → 4-way split / replace ──
+
+export type DropZone = "left" | "right" | "top" | "bottom" | "center";
+type BoardDrag = { boardId: string; overPaneId: string | null; zone: DropZone | null };
+
+const [boardDrag, setBoardDrag] = createSignal<BoardDrag | null>(null);
+export { boardDrag };
+
+export function startBoardDrag(boardId: string): void {
+  setBoardDrag({ boardId, overPaneId: null, zone: null });
+}
+
+export function setBoardDragOver(paneId: string, zone: DropZone): void {
+  const d = boardDrag();
+  if (d && (d.overPaneId !== paneId || d.zone !== zone)) {
+    setBoardDrag({ ...d, overPaneId: paneId, zone });
+  }
+}
+
+export function clearBoardDrag(): void {
+  setBoardDrag(null);
+}
+
+// Drop a dragged board onto a pane: center = show it in that pane; an edge = split
+// the pane that way with a new pane showing the board.
+export function dropBoardIntoPane(overPaneId: string, zone: DropZone, boardId: string): void {
+  if (zone === "center") {
+    const i = panes.findIndex((p) => p.id === overPaneId);
+    if (i >= 0) setPanes(i, "boardId", boardId);
+    setFocusedPaneId(overPaneId);
+    switchBoard(boardId);
+    return;
+  }
+  const dir = zone === "left" || zone === "right" ? "row" : "col";
+  const before = zone === "left" || zone === "top";
+  splitPaneWithBoard(overPaneId, dir, before, boardId);
 }
 
 // Close a pane (no-op if it's the last). Focus a neighbour if it was focused.
