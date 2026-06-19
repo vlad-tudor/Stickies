@@ -18,7 +18,7 @@ import {
   exitEditing,
   setPendingThread,
 } from "~/stores/uiStore";
-import { screenToWorld } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/viewportStore";
 import { getImageUrl } from "~/utils/imageStore";
 import { toneVar } from "~/utils/tones";
 
@@ -40,6 +40,7 @@ type StickyProps = {
  * @note it's odd that we need the shouldDelete flag to prevent the sticky from lingering
  */
 export const Sticky = (props: StickyProps) => {
+  const vp = useViewport();
   // Only one sticky edits at a time (global id) — robust against focus/blur.
   const editing = () => editingStickyId() === props.sticky.id;
 
@@ -139,7 +140,7 @@ export const Sticky = (props: StickyProps) => {
     node.setPointerCapture(e.pointerId);
 
     const track = (ev: PointerEvent) =>
-      setPendingThread({ from: props.sticky.id, to: screenToWorld({ x: ev.clientX, y: ev.clientY }) });
+      setPendingThread({ from: props.sticky.id, to: vp.screenToWorld({ x: ev.clientX, y: ev.clientY }) });
     track(e);
 
     const onMove = (ev: PointerEvent) => track(ev);

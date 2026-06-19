@@ -1,6 +1,6 @@
 import { createMemo, For } from "solid-js";
 import { stickies, stickyCenter } from "~/stores/stickyStore";
-import { zoom, setPan, worldToScreen } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/viewportStore";
 import { toneVar, type Tone } from "~/utils/tones";
 import { ChevronRight } from "lucide-static";
 
@@ -11,6 +11,7 @@ const TOP_INSET = 100; // clear those bars (marker is centered on this y)
 type Marker = { id: string; x: number; y: number; angle: number; tone: Tone; dist: number };
 
 export const OffscreenIndicators = (props: { size: () => { w: number; h: number } }) => {
+  const vp = useViewport();
   const markers = createMemo<Marker[]>(() => {
     const { w, h } = props.size();
     const cxv = w / 2;
@@ -18,8 +19,8 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
     const out: Marker[] = [];
     for (const s of stickies()) {
       // note's rect in screen space
-      const tl = worldToScreen({ x: s.position[1], y: s.position[0] });
-      const br = worldToScreen({
+      const tl = vp.worldToScreen({ x: s.position[1], y: s.position[0] });
+      const br = vp.worldToScreen({
         x: s.position[1] + s.dimensions[0],
         y: s.position[0] + s.dimensions[1],
       });
@@ -27,7 +28,7 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
       const fullyOff = br.x < 0 || tl.x > w || br.y < CHROME_TOP || tl.y > h;
       if (!fullyOff) continue;
 
-      const c = worldToScreen(stickyCenter(s)); // note's center in screen space
+      const c = vp.worldToScreen(stickyCenter(s)); // note's center in screen space
       out.push({
         id: s.id,
         x: Math.max(MARGIN, Math.min(w - MARGIN, c.x)),
@@ -47,9 +48,9 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
     const s = stickies().find((x) => x.id === id);
     if (!s) return;
     const { w, h } = props.size();
-    const z = zoom();
+    const z = vp.zoom();
     const c = stickyCenter(s);
-    setPan({ x: w / 2 - c.x * z, y: h / 2 - c.y * z });
+    vp.setPan({ x: w / 2 - c.x * z, y: h / 2 - c.y * z });
   };
 
   return (

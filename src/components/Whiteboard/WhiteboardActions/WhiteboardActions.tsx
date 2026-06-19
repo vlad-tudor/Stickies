@@ -12,7 +12,7 @@ import { type Tone } from "~/utils/tones";
 import { TonePicker } from "~/components/TonePicker/TonePicker";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky } from "~/stores/uiStore";
-import { pan, zoom, screenToWorld } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/viewportStore";
 import { Share2, Sun, Moon } from "lucide-static";
 import "./whiteboard-actions.scss";
 
@@ -25,6 +25,7 @@ type WhiteboardActionsProps = {
 };
 
 export const WhiteboardActions = (props: WhiteboardActionsProps) => {
+  const vp = useViewport();
   // remember the last spawn so we only stagger when nothing has changed since
   let lastSpawn: { id: string; pos: [number, number]; px: number; py: number; z: number } | null = null;
 
@@ -42,11 +43,11 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
      *  -- extra largeness accompanied by errors in the console.
      */
     const mobile = window.innerWidth < 480;
-    const z = zoom();
-    const p = pan();
+    const z = vp.zoom();
+    const p = vp.pan();
 
     // default: just under the "+" button, converted screen -> world coords
-    const aw = screenToWorld({ x: SPAWN_ANCHOR.x, y: SPAWN_ANCHOR.y });
+    const aw = vp.screenToWorld({ x: SPAWN_ANCHOR.x, y: SPAWN_ANCHOR.y });
     let position: [number, number] = [aw.y, aw.x]; // [top, left]
 
     // Stagger from the previous spawn ONLY if nothing has changed since: the

@@ -1,5 +1,5 @@
 import { useDrag } from "~/hooks/useDrag";
-import { zoom, isPinching } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/viewportStore";
 import "./sticky-drag-handle.scss";
 
 type StickyDragHandleProps = {
@@ -9,6 +9,7 @@ type StickyDragHandleProps = {
 };
 
 export const StickyDragHandle = (props: StickyDragHandleProps) => {
+  const vp = useViewport();
   let last = [0, 0];
 
   const drag = useDrag({
@@ -17,11 +18,11 @@ export const StickyDragHandle = (props: StickyDragHandleProps) => {
       last = [e.clientX, e.clientY];
     },
     onMove: (e) => {
-      if (isPinching()) {
+      if (vp.isPinching()) {
         last = [e.clientX, e.clientY]; // keep ref current so resume doesn't jump
         return; // a 2nd finger turned this into a board pinch
       }
-      const z = zoom();
+      const z = vp.zoom();
       const dx = (e.clientX - last[0]) / z; // screen px -> world px
       const dy = (e.clientY - last[1]) / z;
       last = [e.clientX, e.clientY];

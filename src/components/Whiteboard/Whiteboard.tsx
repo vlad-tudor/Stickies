@@ -15,15 +15,7 @@ import {
   stickies,
 } from "~/stores/stickyStore";
 import { exitEditing, setSelectedThread } from "~/stores/uiStore";
-import {
-  pan,
-  zoom,
-  panBy,
-  zoomAt,
-  resetView,
-  fitView,
-  setIsPinching,
-} from "~/stores/viewportStore";
+import { createViewport, ViewportProvider } from "~/stores/viewportStore";
 import { toneVar } from "~/utils/tones";
 import { Maximize } from "lucide-static";
 
@@ -31,6 +23,9 @@ import "./whiteboard.scss";
 
 export const Whiteboard = () => {
   let boardRef!: HTMLDivElement;
+
+  // This pane's viewport (pan/zoom). One pane today; split-view creates one each.
+  const vp = createViewport();
 
   // Board viewport size — drives off-screen indicator math. Board fills the
   // window (chrome bars are fixed overlays), so window size is a good proxy.
@@ -90,7 +85,7 @@ export const Whiteboard = () => {
       setSelectedThread(null); // ...and dismisses the thread popover
     }
     if (pointers.size >= 2) {
-      setIsPinching(true); // 2 fingers => board pinch, even over a note
+      vp.setIsPinching(true); // 2 fingers => board pinch, even over a note
       exitEditing();
     }
     resetGesture();
@@ -105,15 +100,15 @@ export const Whiteboard = () => {
     if (pts.length >= 2 && gestureMid) {
       const m = mid(pts[0], pts[1]);
       const d = dist(pts[0], pts[1]);
-      panBy(m.x - gestureMid.x, m.y - gestureMid.y); // follow the two fingers
+      vp.panBy(m.x - gestureMid.x, m.y - gestureMid.y); // follow the two fingers
       if (gestureDist > 0) {
         const rect = boardRef.getBoundingClientRect();
-        zoomAt(d / gestureDist, m.x - rect.left, m.y - rect.top); // pinch scale
+        vp.zoomAt(d / gestureDist, m.x - rect.left, m.y - rect.top); // pinch scale
       }
       gestureMid = m;
       gestureDist = d;
     } else if (pts.length === 1 && pts[0].onBoard && gestureMid) {
-      panBy(e.clientX - gestureMid.x, e.clientY - gestureMid.y);
+      vp.panBy(e.clientX - gestureMid.x, e.clientY - gestureMid.y);
       gestureMid = { x: e.clientX, y: e.clientY };
     }
   };
@@ -123,7 +118,7 @@ export const Whiteboard = () => {
     if (!rec) return;
     if (rec.onBoard) (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     pointers.delete(e.pointerId);
-    if (pointers.size < 2) setIsPinching(false);
+    if (pointers.size < 2) vp.setIsPinching(false);
     resetGesture(); // 2->1 resumes pan from the remaining finger; 1->0 clears
   };
 
@@ -132,12 +127,12 @@ export const Whiteboard = () => {
     if (!e.ctrlKey && !e.metaKey && (e.target as HTMLElement).closest(".sticky")) return;
     e.preventDefault();
     const rect = boardRef.getBoundingClientRect();
-    zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - rect.left, e.clientY - rect.top);
+    vp.zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - rect.left, e.clientY - rect.top);
   };
 
   const zoomCentered = (factor: number) => {
     const rect = boardRef.getBoundingClientRect();
-    zoomAt(factor, rect.width / 2, rect.height / 2);
+    vp.zoomAt(factor, rect.width / 2, rect.height / 2);
   };
 
   const fitAll = () => {
@@ -147,7 +142,7 @@ export const Whiteboard = () => {
       w: s.dimensions[0],
       h: s.dimensions[1],
     }));
-    fitView(rects, size());
+    vp.fitView(rects, size());
   };
 
   // Images are temporarily DISABLED (drag-drop add removed) — they made the board
@@ -170,6 +165,7 @@ export const Whiteboard = () => {
           </div>
         }
       >
+        <ViewportProvider value={vp}>
         <div
           ref={boardRef}
           class="whiteboard"
@@ -184,7 +180,7 @@ export const Whiteboard = () => {
 
           <div
             class="board-viewport"
-            style={{ transform: `translate(${pan().x}px, ${pan().y}px) scale(${zoom()})` }}
+            style={{ transform: `translate(${vp.pan().x}px, ${vp.pan().y}px) scale(${vp.zoom()})` }}
           >
             <div class="board-grid" />
             <RenderStickies />
@@ -198,12 +194,13 @@ export const Whiteboard = () => {
           <div class="board-zoom">
             <button class="board-zoom-fit" title="Fit all notes" onClick={fitAll} innerHTML={Maximize} />
             <button title="Zoom out" onClick={() => zoomCentered(1 / 1.2)}>−</button>
-            <button class="board-zoom-reset" title="Reset view" onClick={resetView}>
-              {Math.round(zoom() * 100)}%
+            <button class="board-zoom-reset" title="Reset view" onClick={vp.resetView}>
+              {Math.round(vp.zoom() * 100)}%
             </button>
             <button title="Zoom in" onClick={() => zoomCentered(1.2)}>+</button>
           </div>
         </div>
+        </ViewportProvider>
       </Show>
     </div>
   );

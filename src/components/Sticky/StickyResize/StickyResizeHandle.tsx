@@ -1,5 +1,5 @@
 import { useDrag } from "~/hooks/useDrag";
-import { zoom, isPinching } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/viewportStore";
 import { MIN_STICKY_WIDTH, MIN_STICKY_HEIGHT } from "~/stores/stickyStore";
 import "./sticky-resize.scss";
 
@@ -34,6 +34,7 @@ type StickyResizeHandleProps = {
 // delta (start − clamped) so the note doesn't drift once clamped at min size.
 // All math is absolute from a start snapshot (no per-frame drift); deltas ÷ zoom.
 export const StickyResizeHandle = (props: StickyResizeHandleProps) => {
+  const vp = useViewport();
   const dir = props.dir;
   const north = dir.includes("n");
   const south = dir.includes("s");
@@ -56,11 +57,11 @@ export const StickyResizeHandle = (props: StickyResizeHandleProps) => {
     cursor: CURSOR[dir],
     onStart: snapshot,
     onMove: (e) => {
-      if (isPinching()) {
+      if (vp.isPinching()) {
         snapshot(e); // re-baseline so resuming after a board pinch doesn't jump
         return;
       }
-      const z = zoom();
+      const z = vp.zoom();
       const dx = (e.clientX - s.x) / z;
       const dy = (e.clientY - s.y) / z;
 

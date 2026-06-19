@@ -1,5 +1,5 @@
 import { createMemo, For } from "solid-js";
-import { pan, zoom, setPan } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/viewportStore";
 
 import "./board-rulers.scss";
 
@@ -25,18 +25,19 @@ type BoardRulersProps = {
 // see how far the board has been panned from origin. Ticks are tiled gradients
 // (no per-tick DOM); only the major-tick labels are elements.
 export const BoardRulers = (props: BoardRulersProps) => {
+  const vp = useViewport();
   // world units between major (labeled) ticks; minor ticks subdivide by 5
-  const major = createMemo(() => niceStep(TARGET / zoom()));
+  const major = createMemo(() => niceStep(TARGET / vp.zoom()));
 
   // visible major-tick world values along each axis (drive the labels)
   const hTicks = createMemo<number[]>(() => {
-    const z = zoom(), px = pan().x, w = props.size().w, step = major();
+    const z = vp.zoom(), px = vp.pan().x, w = props.size().w, step = major();
     const out: number[] = [];
     for (let v = Math.ceil(-px / z / step) * step; px + v * z <= w; v += step) out.push(v);
     return out;
   });
   const vTicks = createMemo<number[]>(() => {
-    const z = zoom(), py = pan().y, h = props.size().h, step = major();
+    const z = vp.zoom(), py = vp.pan().y, h = props.size().h, step = major();
     const out: number[] = [];
     for (let v = Math.ceil((CHROME_TOP - py) / z / step) * step; py + v * z <= h; v += step) out.push(v);
     return out;
@@ -45,7 +46,7 @@ export const BoardRulers = (props: BoardRulersProps) => {
   // Pan so world origin (0,0) lands in the middle of the visible canvas; keep zoom.
   const goToOrigin = () => {
     const { w, h } = props.size();
-    setPan({ x: w / 2, y: CHROME_TOP + (h - CHROME_TOP) / 2 });
+    vp.setPan({ x: w / 2, y: CHROME_TOP + (h - CHROME_TOP) / 2 });
   };
 
   return (
@@ -55,15 +56,15 @@ export const BoardRulers = (props: BoardRulersProps) => {
         style={{
           // major (taller/stronger) + minor tick periods scale with zoom; the
           // pattern is anchored so a tick sits at screenX = pan.x (world 0).
-          "background-size": `${major() * zoom()}px 10px, ${(major() * zoom()) / 5}px 6px`,
-          "background-position": `${pan().x}px bottom, ${pan().x}px bottom`,
+          "background-size": `${major() * vp.zoom()}px 10px, ${(major() * vp.zoom()) / 5}px 6px`,
+          "background-position": `${vp.pan().x}px bottom, ${vp.pan().x}px bottom`,
         }}
       >
         <For each={hTicks()}>
           {(v) => (
             <span
               class={`ruler-label${v === 0 ? " is-origin" : ""}`}
-              style={{ left: `${pan().x + v * zoom()}px` }}
+              style={{ left: `${vp.pan().x + v * vp.zoom()}px` }}
             >
               {Math.round(v)}
             </span>
@@ -74,15 +75,15 @@ export const BoardRulers = (props: BoardRulersProps) => {
       <div
         class="ruler ruler-v"
         style={{
-          "background-size": `10px ${major() * zoom()}px, 6px ${(major() * zoom()) / 5}px`,
-          "background-position": `right ${pan().y - CHROME_TOP}px, right ${pan().y - CHROME_TOP}px`,
+          "background-size": `10px ${major() * vp.zoom()}px, 6px ${(major() * vp.zoom()) / 5}px`,
+          "background-position": `right ${vp.pan().y - CHROME_TOP}px, right ${vp.pan().y - CHROME_TOP}px`,
         }}
       >
         <For each={vTicks()}>
           {(v) => (
             <span
               class={`ruler-label${v === 0 ? " is-origin" : ""}`}
-              style={{ top: `${pan().y + v * zoom() - CHROME_TOP}px` }}
+              style={{ top: `${vp.pan().y + v * vp.zoom() - CHROME_TOP}px` }}
             >
               {Math.round(v)}
             </span>
