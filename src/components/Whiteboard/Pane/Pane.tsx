@@ -1,4 +1,5 @@
 import { createSignal, onCleanup, onMount } from "solid-js";
+import { BoardTabs } from "../../BoardTabs/BoardTabs";
 import { WhiteboardActions } from "../WhiteboardActions/WhiteboardActions";
 import { RenderStickies } from "../RenderStickies";
 import { RenderThreads } from "../RenderThreads";
@@ -9,13 +10,14 @@ import { updateBoardBgColor } from "~/stores/stickyStore";
 import { exitEditing, setSelectedThread } from "~/stores/uiStore";
 import { createViewport, ViewportProvider } from "~/stores/viewportStore";
 import { createPane, PaneProvider } from "~/stores/paneContext";
+import { showBoardInFocusedPane, type Rect } from "~/stores/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
 import { Maximize } from "lucide-static";
 
 type PaneProps = {
   paneId: string;
   boardId: string;
-  size: number;
+  rect: Rect; // fraction of the pane-row this pane occupies (from the split tree)
   focused: boolean;
   onFocus: () => void;
   onSplit: () => void;
@@ -160,11 +162,14 @@ export const Pane = (props: PaneProps) => {
     vp.fitView(rects, size());
   };
 
-  // grid + stickies share the viewport transform, so the board only needs the
-  // base paper fill here. flex-grow drives the pane's share of the row width.
+  // grid + stickies share the viewport transform, so the board only needs the base
+  // paper fill here. The pane is absolutely positioned to its rect (split-tree %).
   const boardStyle = () => ({
     "background-color": toneVar(pane.bgColor()),
-    "flex-grow": `${props.size}`,
+    left: `${props.rect.x * 100}%`,
+    top: `${props.rect.y * 100}%`,
+    width: `${props.rect.w * 100}%`,
+    height: `${props.rect.h * 100}%`,
   });
 
   return (
@@ -180,6 +185,7 @@ export const Pane = (props: PaneProps) => {
           onPointerCancel={onBoardPointerUp}
           onWheel={onWheel}
         >
+          <BoardTabs boardId={props.boardId} onSelect={showBoardInFocusedPane} />
           <WhiteboardActions
             bgColor={pane.bgColor()}
             updateBgColor={updateBoardBgColor}

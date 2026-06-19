@@ -5,7 +5,7 @@
 // ============================================================
 
 .board-tabs {
-  position: fixed;
+  position: absolute;    // within the pane (was window-fixed) — one strip per pane
   top: 0;
   left: 0;
   right: 0;

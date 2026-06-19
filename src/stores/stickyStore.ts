@@ -197,7 +197,7 @@ export const activeBgColor = (): Tone => activeBoard()?.bgColor ?? DEFAULT_TONE;
 
 // ── board CRUD ──
 
-export function createBoard(name?: string): void {
+export function createBoard(name?: string): string {
   const finalName = name
     ? deduplicateName(name, store.boards)
     : nextBoardName(store.boards);
@@ -205,6 +205,7 @@ export function createBoard(name?: string): void {
   setStore("boards", (prev) => [...prev, board]);
   setStore("activeBoardId", board.id);
   persist();
+  return board.id;
 }
 
 export function deleteBoard(id: string): void {

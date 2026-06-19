@@ -39,29 +39,27 @@
   box-shadow: var(--shadow-1);
 }
 
-// the row of side-by-side board panes (fills below the fixed tab bar)
+// positioning context for the absolutely-laid-out panes + dividers (the split tree
+// computes each pane's rect; panes render flat and are positioned to those rects)
 .pane-row {
   flex: 1;
   min-height: 0;
-  display: flex;
+  position: relative;
 }
 
-// drag-to-resize gutter between two panes
+// drag-to-resize gutter between two panes (absolute, on a split boundary)
 .pane-divider {
-  flex: 0 0 6px;
-  align-self: stretch;
-  cursor: col-resize;
+  position: absolute;
+  z-index: 1100;             // grabbable above pane chrome
   touch-action: none;
-  background: var(--rule);
-  border-left: 1px solid var(--paper-deep);
-  border-right: 1px solid var(--paper-deep);
+  background: var(--paper-deep);
+  &.row { cursor: col-resize; }
+  &.col { cursor: row-resize; }
+  &:active { background: var(--accent-soft); }
 }
 
 .whiteboard {
-  position: relative;
-  flex: 1 1 0;
-  min-width: 260px;          // a pane can't shrink narrower than this
-  min-height: 0;
+  position: absolute;        // laid out by the split tree (left/top/width/height inline)
   overflow: hidden;          // clip panned / zoomed-out stickies
   touch-action: none;        // touch pan/drag instead of native page scroll
   // (2-finger content scroll is additionally blocked via a touchmove guard in Whiteboard.tsx)

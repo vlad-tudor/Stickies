@@ -1,18 +1,24 @@
 import { createSignal, For } from "solid-js";
 import {
   boards,
-  activeBoardId,
   createBoard,
   deleteBoard,
   renameBoard,
   reorderBoards,
   Board,
 } from "~/stores/stickyStore";
-import { showBoardInFocusedPane } from "~/stores/paneLayoutStore";
 import { Pencil } from "lucide-static";
 import "./board-tabs.scss";
 
-export const BoardTabs = () => {
+// One pane's tab strip: shows all boards, highlights the pane's current board, and
+// reports selections to the pane via onSelect. Board CRUD (create/rename/delete/
+// reorder) is global.
+type BoardTabsProps = {
+  boardId: string;
+  onSelect: (id: string) => void;
+};
+
+export const BoardTabs = (props: BoardTabsProps) => {
   const [editingId, setEditingId] = createSignal<string | null>(null);
   const [dragId, setDragId] = createSignal<string | null>(null);
   let editInputRef!: HTMLInputElement;
@@ -41,14 +47,14 @@ export const BoardTabs = () => {
 
   return (
     <div class="board-tabs">
-      <button class="board-tab-add" title="New board" onClick={() => createBoard()}>+</button>
+      <button class="board-tab-add" title="New board" onClick={() => props.onSelect(createBoard())}>+</button>
       <div class="board-tabs-list">
         <For each={boards()}>
           {(board) => (
             <div
-              class={`board-tab ${board.id === activeBoardId() ? "active" : ""} ${dragId() === board.id ? "dragging" : ""}`}
+              class={`board-tab ${board.id === props.boardId ? "active" : ""} ${dragId() === board.id ? "dragging" : ""}`}
               draggable={editingId() !== board.id}
-              onClick={() => showBoardInFocusedPane(board.id)}
+              onClick={() => props.onSelect(board.id)}
               onDblClick={() => startRename(board.id)}
               onDragStart={(e) => {
                 setDragId(board.id);
@@ -62,7 +68,7 @@ export const BoardTabs = () => {
               onDragOver={(e) => e.preventDefault()}
               onDragEnd={() => setDragId(null)}
             >
-              {board.id === activeBoardId() && editingId() !== board.id && (
+              {board.id === props.boardId && editingId() !== board.id && (
                 <button
                   class="board-tab-edit"
                   title="Rename board"
