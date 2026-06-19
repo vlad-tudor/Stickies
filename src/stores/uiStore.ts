@@ -18,6 +18,15 @@ export const [selectedThread, setSelectedThread] = createSignal<
   { id: string; x: number; y: number } | null
 >(null);
 
+// True while ANY drag/resize/pan is in progress (a counter, so overlapping
+// gestures balance). Screen-derived overlays (off-screen markers, thread clipping)
+// go cheap while this is true and do their full pass once on settle — keeps drags
+// smooth, especially with a board cross-viewed in several panes.
+const [interactionCount, setInteractionCount] = createSignal(0);
+export const isInteracting = () => interactionCount() > 0;
+export const beginInteraction = () => setInteractionCount((n) => n + 1);
+export const endInteraction = () => setInteractionCount((n) => Math.max(0, n - 1));
+
 // ── Interaction intents (the only places that mutate selection/edit state) ──
 
 // Select on press: raise to the top and close any OTHER editor — but don't open

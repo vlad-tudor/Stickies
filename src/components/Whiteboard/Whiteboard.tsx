@@ -1,6 +1,7 @@
 import { createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import { Pane } from "./Pane/Pane";
 import { activeBoard, createBoard, loadBoards } from "~/stores/stickyStore";
+import { beginInteraction, endInteraction } from "~/stores/uiStore";
 import {
   panes,
   layout,
@@ -50,6 +51,7 @@ export const Whiteboard = () => {
     e.preventDefault();
     const node = findSplit(layout(), d.nodeId);
     if (!node) return;
+    beginInteraction(); // overlays go cheap + pane relayout coalesced to a frame
     const rowRect = rowRef.getBoundingClientRect();
     const axisPx = (d.dir === "row" ? rowRect.width : rowRect.height) * d.span;
     const startSizes = [...node.sizes];
@@ -58,13 +60,26 @@ export const Whiteboard = () => {
     const minW = (MIN_PANE_PX / axisPx) * total;
     const startPos = d.dir === "row" ? e.clientX : e.clientY;
 
+    // coalesce to one layout write per animation frame (relayout is the cost)
+    let raf = 0;
+    let pendingA: number | null = null;
+    const apply = () => {
+      raf = 0;
+      if (pendingA != null) {
+        resizeSplit(d.nodeId, d.index, pendingA, pairTotal - pendingA);
+        pendingA = null;
+      }
+    };
     const onMove = (ev: PointerEvent) => {
       const cur = d.dir === "row" ? ev.clientX : ev.clientY;
       const dW = ((cur - startPos) / axisPx) * total;
-      const a = Math.max(minW, Math.min(pairTotal - minW, startSizes[d.index] + dW));
-      resizeSplit(d.nodeId, d.index, a, pairTotal - a);
+      pendingA = Math.max(minW, Math.min(pairTotal - minW, startSizes[d.index] + dW));
+      if (!raf) raf = requestAnimationFrame(apply);
     };
     const onUp = () => {
+      if (raf) cancelAnimationFrame(raf);
+      apply(); // final position
+      endInteraction();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };

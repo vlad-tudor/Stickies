@@ -1,7 +1,7 @@
 import { createMemo, For, Show } from "solid-js";
 import { threadAnchor, type StickyNote } from "~/stores/stickyStore";
 import { usePane } from "~/stores/paneContext";
-import { pendingThread, selectedThread, setSelectedThread } from "~/stores/uiStore";
+import { pendingThread, selectedThread, setSelectedThread, isInteracting } from "~/stores/uiStore";
 
 const VIEW = 32000; // half-span of the svg coord area (matches the grid)
 
@@ -50,6 +50,22 @@ export const RenderThreads = () => {
   // segments (faded). Over-note intensity is constant: drawn once, on top.
   const segs = createMemo(() => {
     const map = byId();
+
+    // During a drag/pan, skip the O(threads × notes) over-note clipping — draw plain
+    // straight dot-to-dot lines (cheap, O(threads)). The full clip runs once on settle.
+    if (isInteracting()) {
+      const gaps: Seg[] = [];
+      for (const t of pane.threads()) {
+        const a = map.get(t.from);
+        const b = map.get(t.to);
+        if (!a || !b) continue;
+        const p1 = threadAnchor(a);
+        const p2 = threadAnchor(b);
+        gaps.push({ tid: t.id, x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y });
+      }
+      return { gaps, over: [] as Seg[] };
+    }
+
     const rects: Rect[] = pane.stickies().map((s) => ({
       minX: s.position[1],
       minY: s.position[0],

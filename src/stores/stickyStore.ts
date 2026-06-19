@@ -67,12 +67,35 @@ const [store, setStore] = createStore<BoardStore>({
 
 // ── persistence ──
 
-const persist = () => {
+let persistTimer: ReturnType<typeof setTimeout> | undefined;
+
+const writeNow = () => {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = undefined;
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({ boards: store.boards, activeBoardId: store.activeBoardId })
   );
 };
+
+// Debounced so bursts (per-keystroke content edits, drag/resize commits) coalesce
+// into ONE localStorage write instead of one per event. Flushed on page hide so the
+// last change is never lost. The in-memory store updates immediately either way, so
+// cross-pane live sync is unaffected.
+const persist = () => {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(writeNow, 250);
+};
+
+if (typeof window !== "undefined") {
+  const flush = () => {
+    if (persistTimer) writeNow();
+  };
+  window.addEventListener("pagehide", flush);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flush();
+  });
+}
 
 function makeBoard(
   name: string,

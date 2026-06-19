@@ -7,7 +7,7 @@ import { ThreadPopover } from "../ThreadPopover";
 import { OffscreenIndicators } from "../OffscreenIndicators";
 import { BoardRulers } from "../BoardRulers/BoardRulers";
 import { updateBoardBgColor } from "~/stores/stickyStore";
-import { exitEditing, setSelectedThread } from "~/stores/uiStore";
+import { exitEditing, setSelectedThread, beginInteraction, endInteraction } from "~/stores/uiStore";
 import { createViewport, ViewportProvider } from "~/stores/viewportStore";
 import { createPane, PaneProvider } from "~/stores/paneContext";
 import {
@@ -96,6 +96,13 @@ export const Pane = (props: PaneProps) => {
   const pointers = new Map<number, P>();
   let gestureMid: { x: number; y: number } | null = null;
   let gestureDist = 0;
+  let panning = false; // true while a pan/pinch is actually moving (overlays go cheap)
+  const ensurePanning = () => {
+    if (!panning) {
+      panning = true;
+      beginInteraction();
+    }
+  };
 
   const mid = (a: P, b: P) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
   const dist = (a: P, b: P) => Math.hypot(b.x - a.x, b.y - a.y);
@@ -136,6 +143,7 @@ export const Pane = (props: PaneProps) => {
     rec.y = e.clientY;
     const pts = [...pointers.values()];
     if (pts.length >= 2 && gestureMid) {
+      ensurePanning();
       const m = mid(pts[0], pts[1]);
       const d = dist(pts[0], pts[1]);
       vp.panBy(m.x - gestureMid.x, m.y - gestureMid.y); // follow the two fingers
@@ -146,6 +154,7 @@ export const Pane = (props: PaneProps) => {
       gestureMid = m;
       gestureDist = d;
     } else if (pts.length === 1 && pts[0].onBoard && gestureMid) {
+      ensurePanning();
       vp.panBy(e.clientX - gestureMid.x, e.clientY - gestureMid.y);
       gestureMid = { x: e.clientX, y: e.clientY };
     }
@@ -157,6 +166,10 @@ export const Pane = (props: PaneProps) => {
     if (rec.onBoard) (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     pointers.delete(e.pointerId);
     if (pointers.size < 2) vp.setIsPinching(false);
+    if (pointers.size === 0 && panning) {
+      panning = false;
+      endInteraction();
+    }
     resetGesture(); // 2->1 resumes pan from the remaining finger; 1->0 clears
   };
 

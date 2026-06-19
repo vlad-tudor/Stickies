@@ -8,6 +8,8 @@ type UseDragOptions = {
   onTap?: (e: PointerEvent) => void; // released within threshold (no drag)
 };
 
+import { beginInteraction, endInteraction } from "~/stores/uiStore";
+
 type PointerDragHandlers = {
   onPointerDown: (e: PointerEvent) => void;
 };
@@ -34,6 +36,7 @@ export function useDrag(options: UseDragOptions): PointerDragHandlers {
             return;
           }
           dragging = true;
+          beginInteraction(); // overlays go cheap until this drag settles
           if (options.cursor) {
             cursorOverride = document.createElement("style");
             cursorOverride.textContent = `* { cursor: ${options.cursor} !important; }`;
@@ -50,6 +53,7 @@ export function useDrag(options: UseDragOptions): PointerDragHandlers {
         target.removeEventListener("lostpointercapture", onLost);
         cursorOverride?.remove(); // never leave the global cursor override behind
         cursorOverride = null;
+        if (dragging) endInteraction(); // balance the begin from drag start
       };
 
       const onPointerUp = (ev: PointerEvent) => {

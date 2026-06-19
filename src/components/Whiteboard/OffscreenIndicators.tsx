@@ -2,6 +2,7 @@ import { createMemo, For } from "solid-js";
 import { stickyCenter } from "~/stores/stickyStore";
 import { usePane } from "~/stores/paneContext";
 import { useViewport } from "~/stores/viewportStore";
+import { isInteracting } from "~/stores/uiStore";
 import { toneVar, type Tone } from "~/utils/tones";
 import { ChevronRight } from "lucide-static";
 
@@ -15,6 +16,9 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
   const vp = useViewport();
   const pane = usePane();
   const markers = createMemo<Marker[]>(() => {
+    // Skip the O(notes) reprojection while dragging/panning — markers reappear on
+    // settle. (Without this, every drag frame reprojects all notes, per pane.)
+    if (isInteracting()) return [];
     const { w, h } = props.size();
     const cxv = w / 2;
     const cyv = h / 2;
