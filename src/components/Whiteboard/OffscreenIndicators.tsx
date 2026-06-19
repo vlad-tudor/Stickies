@@ -1,5 +1,6 @@
 import { createMemo, For } from "solid-js";
-import { stickies, stickyCenter } from "~/stores/stickyStore";
+import { stickyCenter } from "~/stores/stickyStore";
+import { usePane } from "~/stores/paneContext";
 import { useViewport } from "~/stores/viewportStore";
 import { toneVar, type Tone } from "~/utils/tones";
 import { ChevronRight } from "lucide-static";
@@ -12,12 +13,13 @@ type Marker = { id: string; x: number; y: number; angle: number; tone: Tone; dis
 
 export const OffscreenIndicators = (props: { size: () => { w: number; h: number } }) => {
   const vp = useViewport();
+  const pane = usePane();
   const markers = createMemo<Marker[]>(() => {
     const { w, h } = props.size();
     const cxv = w / 2;
     const cyv = h / 2;
     const out: Marker[] = [];
-    for (const s of stickies()) {
+    for (const s of pane.stickies()) {
       // note's rect in screen space
       const tl = vp.worldToScreen({ x: s.position[1], y: s.position[0] });
       const br = vp.worldToScreen({
@@ -45,7 +47,7 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
 
   // Pan (keeping zoom) so the note's center lands in the middle of the board.
   const centerOn = (id: string) => {
-    const s = stickies().find((x) => x.id === id);
+    const s = pane.stickies().find((x) => x.id === id);
     if (!s) return;
     const { w, h } = props.size();
     const z = vp.zoom();

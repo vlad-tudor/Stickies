@@ -1,5 +1,6 @@
 import { createMemo, For, Show } from "solid-js";
-import { stickies, threads, threadAnchor, type StickyNote } from "~/stores/stickyStore";
+import { threadAnchor, type StickyNote } from "~/stores/stickyStore";
+import { usePane } from "~/stores/paneContext";
 import { pendingThread, selectedThread, setSelectedThread } from "~/stores/uiStore";
 
 const VIEW = 32000; // half-span of the svg coord area (matches the grid)
@@ -38,9 +39,10 @@ function rectInterval(
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export const RenderThreads = () => {
+  const pane = usePane();
   const byId = createMemo(() => {
     const m = new Map<string, StickyNote>();
-    for (const s of stickies()) m.set(s.id, s);
+    for (const s of pane.stickies()) m.set(s.id, s);
     return m;
   });
 
@@ -48,7 +50,7 @@ export const RenderThreads = () => {
   // segments (faded). Over-note intensity is constant: drawn once, on top.
   const segs = createMemo(() => {
     const map = byId();
-    const rects: Rect[] = stickies().map((s) => ({
+    const rects: Rect[] = pane.stickies().map((s) => ({
       minX: s.position[1],
       minY: s.position[0],
       maxX: s.position[1] + s.dimensions[0],
@@ -57,7 +59,7 @@ export const RenderThreads = () => {
 
     const gaps: Seg[] = [];
     const over: Seg[] = [];
-    for (const t of threads()) {
+    for (const t of pane.threads()) {
       const a = map.get(t.from);
       const b = map.get(t.to);
       if (!a || !b) continue;
