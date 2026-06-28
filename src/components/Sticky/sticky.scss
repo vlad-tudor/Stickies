@@ -84,7 +84,7 @@
 
   svg { width: 100%; height: 100%; }
 
-  &:hover { opacity: 0.9; }
+  &:active { opacity: 0.9; }
 }
 
 // Connect node — centered in the band's cleared center; drag to another note.

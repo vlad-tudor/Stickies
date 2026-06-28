@@ -60,5 +60,5 @@
 
   svg { width: 100%; height: 100%; }
 
-  &:hover { opacity: 1; background: var(--tint-press); }
+  &:active { opacity: 1; background: var(--tint-press); }
 }

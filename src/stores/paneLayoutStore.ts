@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { activeBoardId, switchBoard, moveStickyToBoard } from "~/stores/stickyStore";
+import { activeBoardId, switchBoard, moveStickyToBoard, boards } from "~/stores/stickyStore";
 import { exitEditing } from "~/stores/uiStore";
 import { getViewport } from "~/stores/viewportStore";
 import type { Tone } from "~/utils/tones";
@@ -134,18 +134,121 @@ export function findSplit(node: LayoutNode | null, sid: string): SplitNode | nul
   return null;
 }
 
+// ── persistence (split layout survives reload) ──
+
+const LAYOUT_KEY = "stickies.layout";
+
+let layoutTimer: ReturnType<typeof setTimeout> | undefined;
+const writeLayoutNow = (): void => {
+  if (layoutTimer) clearTimeout(layoutTimer);
+  layoutTimer = undefined;
+  const root = layout();
+  if (!root) {
+    localStorage.removeItem(LAYOUT_KEY);
+    return;
+  }
+  localStorage.setItem(
+    LAYOUT_KEY,
+    JSON.stringify({ panes: [...panes], layout: root, focusedPaneId: focusedPaneId() })
+  );
+};
+
+// Debounced (per-frame divider drags coalesce); flushed on page hide like stickyStore.
+const persistLayout = (): void => {
+  if (layoutTimer) clearTimeout(layoutTimer);
+  layoutTimer = setTimeout(writeLayoutNow, 250);
+};
+
+if (typeof window !== "undefined") {
+  const flush = () => {
+    if (layoutTimer) writeLayoutNow();
+  };
+  window.addEventListener("pagehide", flush);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flush();
+  });
+}
+
+// Highest numeric id suffix across the restored panes + split nodes — so the `seq`
+// counter resumes ABOVE everything restored and new ids never collide with old ones.
+const maxIdNum = (root: LayoutNode, ps: PaneDef[]): number => {
+  let max = 0;
+  const consider = (id: string) => {
+    const n = parseInt(id.slice(id.lastIndexOf("-") + 1), 10);
+    if (Number.isFinite(n) && n > max) max = n;
+  };
+  ps.forEach((p) => consider(p.id));
+  const walk = (n: LayoutNode) => {
+    if (n.type === "leaf") consider(n.paneId);
+    else {
+      consider(n.id);
+      n.children.forEach(walk);
+    }
+  };
+  walk(root);
+  return max;
+};
+
+// Restore a saved split layout, dropping any pane whose board no longer exists (the
+// tree collapses around it). Returns false → caller bootstraps a fresh single pane.
+function restoreLayout(): boolean {
+  try {
+    const raw = localStorage.getItem(LAYOUT_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw) as {
+      panes?: PaneDef[];
+      layout?: LayoutNode;
+      focusedPaneId?: string;
+    };
+    if (!saved.layout || !Array.isArray(saved.panes) || saved.panes.length === 0) return false;
+
+    const liveBoards = new Set(boards().map((b) => b.id));
+    const keepPaneIds = new Set(
+      saved.panes.filter((p) => liveBoards.has(p.boardId)).map((p) => p.id)
+    );
+    if (keepPaneIds.size === 0) return false;
+
+    // drop leaves whose board is gone; removeLeaf collapses single-child splits
+    let tree: LayoutNode | null = saved.layout;
+    for (const pid of leafIds(saved.layout)) {
+      if (!keepPaneIds.has(pid)) tree = tree ? removeLeaf(tree, pid) : null;
+    }
+    if (!tree) return false;
+
+    const liveIds = new Set(leafIds(tree));
+    const restored = saved.panes.filter((p) => liveIds.has(p.id));
+    if (restored.length === 0) return false;
+
+    seq = maxIdNum(tree, restored);
+    setPanes(restored);
+    setLayout(tree);
+    const focus = saved.focusedPaneId && liveIds.has(saved.focusedPaneId)
+      ? saved.focusedPaneId
+      : leafIds(tree)[0];
+    setFocusedPaneId(focus);
+    const fp = restored.find((p) => p.id === focus);
+    if (fp) switchBoard(fp.boardId);
+    return true;
+  } catch {
+    return false; // corrupt / old-schema blob → fresh single pane
+  }
+}
+
 // ── operations ──
 
-// Bootstrap one pane bound to the active board (call once boards are loaded, and
-// after creating the first board from the empty state).
+// Bootstrap panes (call once boards are loaded, and after creating the first board
+// from the empty state): restore the saved split layout if valid, else one pane on
+// the active board.
 export function ensurePanes(): void {
   if (panes.length > 0) return;
+  if (restoreLayout()) return;
   const boardId = activeBoardId();
   if (!boardId) return;
   const id = paneId();
   setPanes([{ id, boardId }]);
   setLayout({ type: "leaf", paneId: id });
   setFocusedPaneId(id);
+  persistLayout();
 }
 
 // Focus a pane → make its board the active board SYNCHRONOUSLY (a pointerdown that
@@ -156,6 +259,7 @@ export function focusPane(id: string): void {
   setFocusedPaneId(id);
   const p = panes.find((x) => x.id === id);
   if (p?.boardId) switchBoard(p.boardId);
+  persistLayout();
 }
 
 // Show a board in the focused pane (clicking a tab).
@@ -164,6 +268,7 @@ export function showBoardInFocusedPane(boardId: string): void {
   if (i === -1) return;
   setPanes(i, "boardId", boardId);
   switchBoard(boardId);
+  persistLayout();
 }
 
 // Split a pane in `dir` ("row" = side-by-side, "col" = stacked): wrap its leaf in a
@@ -188,7 +293,7 @@ function splitPaneWithBoard(
     sizes: [1, 1],
   });
   setLayout(root.type === "leaf" && root.paneId === targetId ? wrap(root) : replaceLeaf(root, targetId, wrap));
-  focusPane(newId);
+  focusPane(newId); // persists (focus changed)
 }
 
 // Split a pane (new sibling shows the same board) — used by the split button.
@@ -269,6 +374,7 @@ export function dropBoardIntoPane(overPaneId: string, zone: DropZone, boardId: s
     if (i >= 0) setPanes(i, "boardId", boardId);
     setFocusedPaneId(overPaneId);
     switchBoard(boardId);
+    persistLayout();
     return;
   }
   const dir = zone === "left" || zone === "right" ? "row" : "col";
@@ -295,6 +401,7 @@ export function closePane(id: string): void {
       focusPane(first);
     }
   }
+  persistLayout();
 }
 
 // Resize two adjacent children of a split node (during a divider drag).
@@ -307,4 +414,5 @@ export function resizeSplit(nodeId: string, index: number, sizeA: number, sizeB:
       sizes: n.sizes.map((s, i) => (i === index ? sizeA : i === index + 1 ? sizeB : s)),
     }))
   );
+  persistLayout();
 }

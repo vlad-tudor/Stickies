@@ -82,7 +82,7 @@
   border-right: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
 
-  // a small ring = the origin marker; fills on hover
+  // a small ring = the origin marker; fills on press
   &::after {
     content: "";
     position: absolute;
@@ -93,5 +93,5 @@
     border-radius: 50%;
     border: 1px solid var(--ink-soft);
   }
-  &:hover::after { background: var(--ink-soft); }
+  &:active::after { background: var(--ink-soft); }
 }
