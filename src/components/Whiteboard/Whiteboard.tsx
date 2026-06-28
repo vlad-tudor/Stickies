@@ -186,9 +186,10 @@ export const Whiteboard = () => {
               <div
                 class="sticky-drag-ghost"
                 style={{
-                  left: `${g().x}px`,
-                  top: `${g().y}px`,
-                  transform: `translate(-50%, -50%) scale(${ghostZoom()})`,
+                  // hang from the grabbed point (scaled to the target zoom), not the centre
+                  left: `${g().x - g().grabX * ghostZoom()}px`,
+                  top: `${g().y - g().grabY * ghostZoom()}px`,
+                  transform: `scale(${ghostZoom()})`,
                 }}
               >
                 {/* a faithful clone of the resting note — same classes, so identical paint */}
@@ -201,6 +202,9 @@ export const Whiteboard = () => {
                     "--note-bg": toneVar(s().color),
                   }}
                 >
+                  {/* in-flow band: reserves the 2rem strip (so the text sits where the real
+                      note's does) AND paints the tonal grip — same as StickyDragHandle */}
+                  <div class="sticky-drag-handle" />
                   <button class="sticky-connect" tabindex={-1} />
                   <div class="sticky-title-bar">
                     <span class="sticky-title-label">{g().title}</span>

@@ -7,6 +7,7 @@ import {
 } from "solid-js";
 import { animate, type JSAnimation } from "animejs";
 import { MOTION } from "~/utils/motion";
+import { beginInteraction, endInteraction } from "~/stores/uiStore";
 
 // Board pan/zoom. Applied as a single transform on a viewport wrapper:
 //   translate(pan) scale(zoom)   (transform-origin: 0 0)
@@ -92,17 +93,27 @@ export function createViewport(
   // A view tween in flight (centering / fit / reset). Any direct user gesture cancels
   // it so the user always wins.
   let viewTween: JSAnimation | null = null;
+  // a running tween holds the interaction pause (overlays go cheap during the glide,
+  // then settle once on arrival) — clearing it must always balance that begin.
+  const clearTween = (): void => {
+    if (viewTween) {
+      viewTween = null;
+      endInteraction();
+    }
+  };
   const cancelTween = (): void => {
     if (viewTween) {
       viewTween.cancel();
-      viewTween = null;
+      clearTween();
     }
   };
 
   // Smoothly animate pan+zoom to a target instead of snapping (anime.js tweens a plain
-  // object; onUpdate writes the signals so the transform follows).
+  // object; onUpdate writes the signals so the transform follows). Overlays pause for
+  // the glide so off-screen markers / thread clipping settle once on arrival.
   const tweenTo = (targetPan: Point, targetZoom: number, duration: number = MOTION.view): void => {
     cancelTween();
+    beginInteraction();
     const o = { x: pan().x, y: pan().y, z: zoom() };
     viewTween = animate(o, {
       x: targetPan.x,
@@ -114,9 +125,7 @@ export function createViewport(
         setPan({ x: o.x, y: o.y });
         setZoom(o.z);
       },
-      onComplete: () => {
-        viewTween = null;
-      },
+      onComplete: clearTween,
     });
   };
 

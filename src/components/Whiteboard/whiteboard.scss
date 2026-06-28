@@ -133,7 +133,7 @@
   position: fixed;
   z-index: 2000;
   pointer-events: none;
-  transform-origin: center;
+  transform-origin: 0 0;   // scale from the top-left; left/top already include the grab offset
   animation: sticky-ghost-in 0.12s ease;
 
   .sticky {
@@ -257,7 +257,10 @@
   }
 }
 
-// edge markers pointing toward off-screen notes (click to jump there)
+// edge markers pointing toward off-screen notes (click to jump there). They (re)mount
+// when notes cross the viewport edge and after a pan/drag/tween settles — so a quick
+// pop-in reads as the note transitioning off-screen. (Tweens pause overlays, so this
+// fires once at rest, never per frame.)
 .offscreen-indicator {
   position: absolute;
   z-index: 900;
@@ -273,6 +276,7 @@
   background: var(--paper-soft);
   box-shadow: var(--shadow-1);
   cursor: pointer;
+  animation: offscreen-marker-in 0.18s ease;
 
   .arrow {
     // chevron pointing right at 0deg; rotated per-marker toward the note
@@ -284,6 +288,11 @@
 
     svg { width: 1.3rem; height: 1.3rem; display: block; }
   }
+}
+
+// pop-in for an off-screen marker; keeps the centring translate so it doesn't jump
+@keyframes offscreen-marker-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
 }
 
 // zoom controls now live in the actions toolbar (see whiteboard-actions.scss)

@@ -412,7 +412,7 @@ export const moveStickyToBoard = (
   stickyId: string,
   fromBoardId: string,
   toBoardId: string,
-  world: { x: number; y: number }
+  topLeft: { x: number; y: number } // the note's top-left in the target board's world
 ) => {
   if (fromBoardId === toBoardId) return;
   const from = store.boards.findIndex((b) => b.id === fromBoardId);
@@ -420,8 +420,7 @@ export const moveStickyToBoard = (
   if (from === -1 || to === -1) return;
   const sticky = store.boards[from].stickies.find((s) => s.id === stickyId);
   if (!sticky) return;
-  const [w, h] = sticky.dimensions;
-  const moved: StickyNote = { ...sticky, position: [world.y - h / 2, world.x - w / 2] };
+  const moved: StickyNote = { ...sticky, position: [topLeft.y, topLeft.x] };
   setStore("boards", from, "stickies", (prev) => prev.filter((s) => s.id !== stickyId));
   setStore("boards", from, "threads", (prev) =>
     prev.filter((t) => t.from !== stickyId && t.to !== stickyId)

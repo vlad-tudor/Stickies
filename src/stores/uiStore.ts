@@ -50,3 +50,12 @@ export function editSticky(id: string): void {
 export function exitEditing(): void {
   setEditingStickyId(null);
 }
+
+// Notes the user just created (vs. loaded/imported), so the Sticky can play its enter
+// animation exactly once on mount. `take` consumes the flag → initial-load notes (never
+// marked) don't animate.
+const freshStickies = new Set<string>();
+export const markStickyFresh = (id: string): void => {
+  freshStickies.add(id);
+};
+export const takeStickyFresh = (id: string): boolean => freshStickies.delete(id);

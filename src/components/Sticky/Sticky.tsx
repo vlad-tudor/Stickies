@@ -1,6 +1,8 @@
-import { createEffect, createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, onMount, Show } from "solid-js";
+import { animate } from "animejs";
 import { Copy } from "lucide-static";
 import { StickyNote, addThread } from "~/stores/stickyStore";
+import { MOTION } from "~/utils/motion";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
 import { StickyImage } from "./StickyImage/StickyImage";
@@ -17,6 +19,7 @@ import {
   editSticky,
   exitEditing,
   setPendingThread,
+  takeStickyFresh,
 } from "~/stores/uiStore";
 import { useViewport } from "~/stores/viewportStore";
 import { usePane } from "~/stores/paneContext";
@@ -44,6 +47,19 @@ type StickyProps = {
 export const Sticky = (props: StickyProps) => {
   const vp = useViewport();
   const pane = usePane();
+  let rootEl!: HTMLDivElement;
+
+  // Freshly-created notes (via the "+" — not loaded/imported) pop in on mount.
+  onMount(() => {
+    if (takeStickyFresh(props.sticky.id)) {
+      animate(rootEl, {
+        scale: [0.85, 1],
+        opacity: [0, 1],
+        duration: MOTION.enter,
+        ease: "outBack",
+      });
+    }
+  });
   // Only one sticky edits at a time (global id) — robust against focus/blur. Gated
   // to the FOCUSED pane so a cross-viewed note edits in one pane while the others
   // show the live-updating rendered view (instead of a second, stale editor).
@@ -136,6 +152,7 @@ export const Sticky = (props: StickyProps) => {
 
   return (
     <div
+      ref={rootEl}
       data-sticky-id={props.sticky.id}
       class={stickyClass()}
       style={stickyStyleOverrides()}
@@ -149,7 +166,10 @@ export const Sticky = (props: StickyProps) => {
             props.sticky.position[1] + dLeft,
           ])
         }
-        onDragStart={(e) =>
+        onDragStart={(e) => {
+          // grab offset within the note (world units) → the ghost hangs from the
+          // grabbed point (the band), mirroring the real drag
+          const cw = vp.eventToWorld({ x: e.clientX, y: e.clientY });
           startStickyDrag({
             stickyId: props.sticky.id,
             fromBoardId: pane.boardId(),
@@ -157,8 +177,10 @@ export const Sticky = (props: StickyProps) => {
             color: props.sticky.color,
             x: e.clientX,
             y: e.clientY,
-          })
-        }
+            grabX: cw.x - props.sticky.position[1],
+            grabY: cw.y - props.sticky.position[0],
+          });
+        }}
         onDragMove={(e) => updateStickyDrag(e.clientX, e.clientY)}
         onDragEnd={() => {
           dropSticky(); // move to another board if dropped over a different pane

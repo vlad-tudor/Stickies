@@ -384,6 +384,8 @@ type StickyDrag = {
   color: Tone;
   x: number; // cursor (window coords)
   y: number;
+  grabX: number; // grab offset from the note's top-left, in WORLD units (so the ghost
+  grabY: number; // hangs from where it was grabbed, not its centre)
   targetPaneId: string | null;
 };
 
@@ -413,7 +415,13 @@ export function dropSticky(): void {
   if (!target || target.boardId === d.fromBoardId) return;
   const vp = getViewport(d.targetPaneId);
   if (!vp) return;
-  moveStickyToBoard(d.stickyId, d.fromBoardId, target.boardId, vp.eventToWorld({ x: d.x, y: d.y }));
+  // land the note's top-left exactly where the ghost showed it (cursor − grab offset),
+  // so the drop matches the preview instead of re-centering on the cursor.
+  const c = vp.eventToWorld({ x: d.x, y: d.y });
+  moveStickyToBoard(d.stickyId, d.fromBoardId, target.boardId, {
+    x: c.x - d.grabX,
+    y: c.y - d.grabY,
+  });
 }
 
 // Drop a dragged board onto a pane: center = show it in that pane; an edge = split

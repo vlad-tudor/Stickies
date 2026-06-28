@@ -11,7 +11,7 @@ import { copyShareUrl } from "~/utils/urlState";
 import { type Tone } from "~/utils/tones";
 import { TonePicker } from "~/components/TonePicker/TonePicker";
 import { theme, toggleTheme } from "~/stores/themeStore";
-import { editSticky } from "~/stores/uiStore";
+import { editSticky, markStickyFresh } from "~/stores/uiStore";
 import { useViewport } from "~/stores/viewportStore";
 import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize } from "lucide-static";
 import "./whiteboard-actions.scss";
@@ -76,6 +76,9 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     }
 
     const id = Date.now().toString();
+    // BEFORE create: the new Sticky's onMount can flush synchronously inside
+    // createStickyNote, so the fresh flag must already be set when it runs.
+    markStickyFresh(id);
     createStickyNote({
       id,
       position,
