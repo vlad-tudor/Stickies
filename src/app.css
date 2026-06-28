@@ -21,3 +21,19 @@ main {
 * {
   box-sizing: border-box;
 }
+
+/* Text selection is for note content ONLY — selecting chrome/tabs/board otherwise
+   fights board drag (and the long-press callout fights touch drag on iOS). */
+#app {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.sticky-markdown,
+input,
+textarea,
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}

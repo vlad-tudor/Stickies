@@ -18,27 +18,10 @@ import { createPane, PaneProvider } from "~/stores/paneContext";
 import {
   showBoardInFocusedPane,
   boardDrag,
-  setBoardDragOver,
-  dropBoardIntoPane,
-  clearBoardDrag,
   stickyDrag,
   type Rect,
-  type DropZone,
 } from "~/stores/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
-
-// Which 4-way drop zone a point (0..1 within the pane) falls in: within EDGE of a
-// side → that side (split); otherwise center (replace). Corners go to the nearest edge.
-const EDGE = 0.25;
-const zoneAt = (px: number, py: number): DropZone => {
-  const d = { left: px, right: 1 - px, top: py, bottom: 1 - py };
-  const m = Math.min(d.left, d.right, d.top, d.bottom);
-  if (m > EDGE) return "center";
-  if (m === d.left) return "left";
-  if (m === d.right) return "right";
-  if (m === d.top) return "top";
-  return "bottom";
-};
 
 type PaneProps = {
   paneId: string;
@@ -265,24 +248,8 @@ export const Pane = (props: PaneProps) => {
           <BoardRulers size={size} />
           <ThreadPopover />
 
-          <Show when={boardDrag()}> {/* board-tab drag-to-split drop layer */}
-            <div
-              class="pane-drop-layer"
-              onDragOver={(e) => {
-                e.preventDefault();
-                const r = e.currentTarget.getBoundingClientRect();
-                setBoardDragOver(
-                  props.paneId,
-                  zoneAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height)
-                );
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const d = boardDrag();
-                if (d) dropBoardIntoPane(props.paneId, d.zone ?? "center", d.boardId);
-                clearBoardDrag();
-              }}
-            >
+          <Show when={boardDrag()}> {/* board drag-to-split drop layer (pointer-driven) */}
+            <div class="pane-drop-layer" data-pane-id={props.paneId}>
               <Show when={boardDrag()?.overPaneId === props.paneId && boardDrag()?.zone}>
                 {(zone) => <div class={`pane-drop-zone zone-${zone()}`} />}
               </Show>

@@ -251,6 +251,34 @@ export function ensurePanes(): void {
   persistLayout();
 }
 
+// Rebind any pane whose board no longer exists onto a live board, so a board deleted
+// while shown in ANOTHER pane doesn't leave that pane stale. Driven reactively off the
+// board list (see Whiteboard). All boards gone → drop the layout (empty state).
+export function reconcilePanes(): void {
+  if (panes.length === 0) return;
+  const live = new Set(boards().map((b) => b.id));
+  if (live.size === 0) {
+    setPanes([]);
+    setLayout(null);
+    setFocusedPaneId("");
+    persistLayout();
+    return;
+  }
+  const fallback = live.has(activeBoardId()) ? activeBoardId() : boards()[0].id;
+  let changed = false;
+  panes.forEach((p, i) => {
+    if (!live.has(p.boardId)) {
+      setPanes(i, "boardId", fallback);
+      changed = true;
+    }
+  });
+  if (changed) {
+    const fp = panes.find((p) => p.id === focusedPaneId());
+    if (fp) switchBoard(fp.boardId); // keep active board mirrored to the focused pane
+    persistLayout();
+  }
+}
+
 // Focus a pane → make its board the active board SYNCHRONOUSLY (a pointerdown that
 // focuses the pane must land selection/mutations on the right board).
 export function focusPane(id: string): void {
@@ -307,6 +335,20 @@ export function splitPane(targetId: string, dir: "row" | "col", before = false):
 export type DropZone = "left" | "right" | "top" | "bottom" | "center";
 type BoardDrag = { boardId: string; overPaneId: string | null; zone: DropZone | null };
 
+// Which 4-way drop zone a point (0..1 within the drop region) falls in: within EDGE of
+// a side → that side (split); otherwise center (replace). Shared by the pointer drag
+// (BoardTabs) and the pane drop layer.
+export const DROP_EDGE = 0.25;
+export const zoneAt = (px: number, py: number): DropZone => {
+  const d = { left: px, right: 1 - px, top: py, bottom: 1 - py };
+  const m = Math.min(d.left, d.right, d.top, d.bottom);
+  if (m > DROP_EDGE) return "center";
+  if (m === d.left) return "left";
+  if (m === d.right) return "right";
+  if (m === d.top) return "top";
+  return "bottom";
+};
+
 const [boardDrag, setBoardDrag] = createSignal<BoardDrag | null>(null);
 export { boardDrag };
 
@@ -318,6 +360,14 @@ export function setBoardDragOver(paneId: string, zone: DropZone): void {
   const d = boardDrag();
   if (d && (d.overPaneId !== paneId || d.zone !== zone)) {
     setBoardDrag({ ...d, overPaneId: paneId, zone });
+  }
+}
+
+// Pointer moved off any pane (no valid drop target) — drop the preview, keep dragging.
+export function clearBoardDragOver(): void {
+  const d = boardDrag();
+  if (d && (d.overPaneId !== null || d.zone !== null)) {
+    setBoardDrag({ ...d, overPaneId: null, zone: null });
   }
 }
 

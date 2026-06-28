@@ -4,8 +4,10 @@
   align-items: center;
 }
 
-// scoped (two classes) so it beats `.whiteboard-actions button` etc.
-.tone-picker .tone-dot {
+// scoped (two classes) so it beats `.whiteboard-actions button` etc. Also matches the
+// portaled popover's dots, which live outside `.tone-picker`.
+.tone-picker .tone-dot,
+.tone-pop .tone-dot {
   all: unset;
   width: 0.9rem;
   height: 0.9rem;
@@ -47,13 +49,26 @@
   box-shadow: var(--shadow-2);
   z-index: 30;
 }
-.tone-picker.up .tone-pop {
+.tone-picker.up .tone-pop:not(.portal) {
   bottom: calc(100% + 0.4rem);
   transform: translate(-50%, 0.25rem);
   &.is-open { transform: translate(-50%, 0); }
 }
-.tone-picker.down .tone-pop {
+.tone-picker.down .tone-pop:not(.portal) {
   top: calc(100% + 0.4rem);
   transform: translate(-50%, -0.25rem);
   &.is-open { transform: translate(-50%, 0); }
+}
+
+// Portaled variant: fixed to the viewport (left/top set inline from the dot's rect),
+// so it escapes the actions bar's horizontal scroll clipping. Lives at <body>, under
+// <html data-theme>, so tokens still themed.
+.tone-pop.portal {
+  position: fixed;
+  z-index: 2000;
+  color: var(--ink);
+  &.up { transform: translate(-50%, calc(-100% + 0.25rem)); }
+  &.up.is-open { transform: translate(-50%, -100%); }
+  &.down { transform: translate(-50%, -0.25rem); }
+  &.down.is-open { transform: translate(-50%, 0); }
 }

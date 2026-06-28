@@ -1,6 +1,6 @@
-import { createMemo, For, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import { Pane } from "./Pane/Pane";
-import { activeBoard, createBoard, loadBoards } from "~/stores/stickyStore";
+import { activeBoard, boards, createBoard, loadBoards } from "~/stores/stickyStore";
 import { beginInteraction, endInteraction } from "~/stores/uiStore";
 import {
   panes,
@@ -11,6 +11,7 @@ import {
   closePane,
   resizeSplit,
   ensurePanes,
+  reconcilePanes,
   computeLayout,
   findSplit,
   stickyDrag,
@@ -41,6 +42,13 @@ export const Whiteboard = () => {
     };
     document.addEventListener("touchmove", onTouchMove, { passive: false });
     onCleanup(() => document.removeEventListener("touchmove", onTouchMove));
+  });
+
+  // Whenever the board list changes (esp. a deletion), rebind any pane left pointing
+  // at a board that no longer exists — even if it was deleted from another pane.
+  createEffect(() => {
+    boards().map((b) => b.id); // track the live board ids
+    reconcilePanes();
   });
 
   const computed = createMemo(() => computeLayout(layout()));

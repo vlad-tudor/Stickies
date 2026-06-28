@@ -106,43 +106,46 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     <>
     <div class={`share-toast ${toast() ? "visible" : ""}`}>{toast()}</div>
     <div class="whiteboard-actions">
-      <button class="create-sticky" title="New sticky" onClick={onStickyCreate}>
-        +
-      </button>
-      <button class="clear-all-stickies" title="Clear all stickies" onClick={onClearAllStickies}>
-        {"🗑️"}
-      </button>
-      <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
-      <button
-        class="theme-toggle"
-        title={theme() === "dark" ? "Light mode" : "Dark mode"}
-        onClick={toggleTheme}
-        innerHTML={theme() === "dark" ? Sun : Moon}
-      />
-
-      <div class="board-hue">
-        <TonePicker
-          value={props.bgColor}
-          onChange={props.updateBgColor}
-          title="Board color"
-          direction="down"
-        />
-      </div>
-
-      <div class="toolbar-zoom">
-        <button class="zoom-fit" title="Fit all notes" onClick={props.onFit} innerHTML={Maximize} />
-        <button title="Zoom out" onClick={props.onZoomOut}>−</button>
-        <button class="zoom-reset" title="Reset view" onClick={props.onZoomReset}>
-          {Math.round(props.zoom * 100)}%
+      <div class="whiteboard-actions-scroll">
+        <button class="create-sticky" title="New sticky" onClick={onStickyCreate}>
+          +
         </button>
-        <button title="Zoom in" onClick={props.onZoomIn}>+</button>
-      </div>
+        <button class="clear-all-stickies" title="Clear all stickies" onClick={onClearAllStickies}>
+          {"🗑️"}
+        </button>
+        <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
+        <button
+          class="theme-toggle"
+          title={theme() === "dark" ? "Light mode" : "Dark mode"}
+          onClick={toggleTheme}
+          innerHTML={theme() === "dark" ? Sun : Moon}
+        />
 
-      <button class="split-pane" title="Split right" onClick={props.onSplit} innerHTML={SquareSplitHorizontal} />
-      <button class="split-pane-down" title="Split down" onClick={props.onSplitDown} innerHTML={SquareSplitVertical} />
-      <Show when={props.closable}>
-        <button class="close-pane" title="Close pane" onClick={props.onClose} innerHTML={X} />
-      </Show>
+        <div class="board-hue">
+          <TonePicker
+            value={props.bgColor}
+            onChange={props.updateBgColor}
+            title="Board color"
+            direction="down"
+            portal
+          />
+        </div>
+
+        <div class="toolbar-zoom">
+          <button class="zoom-fit" title="Fit all notes" onClick={props.onFit} innerHTML={Maximize} />
+          <button title="Zoom out" onClick={props.onZoomOut}>−</button>
+          <button class="zoom-reset" title="Reset view" onClick={props.onZoomReset}>
+            {Math.round(props.zoom * 100)}%
+          </button>
+          <button title="Zoom in" onClick={props.onZoomIn}>+</button>
+        </div>
+
+        <button class="split-pane" title="Split right" onClick={props.onSplit} innerHTML={SquareSplitHorizontal} />
+        <button class="split-pane-down" title="Split down" onClick={props.onSplitDown} innerHTML={SquareSplitVertical} />
+        <Show when={props.closable}>
+          <button class="close-pane" title="Close pane" onClick={props.onClose} innerHTML={X} />
+        </Show>
+      </div>
 
       <span class="app-version">v{__APP_VERSION__}</span>
     </div>

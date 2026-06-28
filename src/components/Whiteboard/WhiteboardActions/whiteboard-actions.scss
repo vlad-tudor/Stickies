@@ -34,14 +34,27 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
   height: 2.5rem;
-  padding: 0 0.5rem;
+  // overflow stays visible so the under-bar .app-version isn't clipped — the scrolling
+  // lives on the inner .whiteboard-actions-scroll instead.
 
   background: var(--paper-soft);
   border-bottom: 1px solid var(--rule);
+
+  // when the controls don't fit (narrow / mobile), scroll the row instead of hiding
+  // them; same hidden-scrollbar pattern as the board tab strip.
+  .whiteboard-actions-scroll {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    height: 100%;
+    padding: 0 0.5rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;          // horizontal swipe scrolls; taps still reach buttons
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
 
   button {
     width: 2rem;

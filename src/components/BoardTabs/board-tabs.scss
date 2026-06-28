@@ -50,6 +50,7 @@
   font-size: 0.8rem;
   font-weight: 500;
   white-space: nowrap;
+  touch-action: none;              // pointer-drag the tab (reorder / split) on touch
 
   // selected tab = raised paper that connects to the board surface below
   &.active {
@@ -123,4 +124,25 @@
   cursor: pointer;
   color: var(--ink-soft);
   font-size: 1.1rem;
+}
+
+// floating chip following the pointer while dragging a tab (reorder / drag-to-split)
+.board-tab-ghost {
+  position: fixed;
+  z-index: 2000;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  max-width: 12rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-chrome);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow-2);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.95;
 }
