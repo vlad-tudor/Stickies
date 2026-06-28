@@ -5,6 +5,8 @@ import {
   useContext,
   type Accessor,
 } from "solid-js";
+import { animate, type JSAnimation } from "animejs";
+import { MOTION } from "~/utils/motion";
 
 // Board pan/zoom. Applied as a single transform on a viewport wrapper:
 //   translate(pan) scale(zoom)   (transform-origin: 0 0)
@@ -39,6 +41,7 @@ export type Viewport = {
     rects: { x: number; y: number; w: number; h: number }[],
     view: { w: number; h: number }
   ) => void;
+  tweenTo: (pan: Point, zoom: number, duration?: number) => void;
   worldToScreen: (p: Point) => Point;
   screenToWorld: (p: Point) => Point;
   eventToWorld: (p: Point) => Point;
@@ -86,7 +89,39 @@ export function createViewport(
     }, 300);
   });
 
+  // A view tween in flight (centering / fit / reset). Any direct user gesture cancels
+  // it so the user always wins.
+  let viewTween: JSAnimation | null = null;
+  const cancelTween = (): void => {
+    if (viewTween) {
+      viewTween.cancel();
+      viewTween = null;
+    }
+  };
+
+  // Smoothly animate pan+zoom to a target instead of snapping (anime.js tweens a plain
+  // object; onUpdate writes the signals so the transform follows).
+  const tweenTo = (targetPan: Point, targetZoom: number, duration: number = MOTION.view): void => {
+    cancelTween();
+    const o = { x: pan().x, y: pan().y, z: zoom() };
+    viewTween = animate(o, {
+      x: targetPan.x,
+      y: targetPan.y,
+      z: clampZoom(targetZoom),
+      duration,
+      ease: MOTION.ease,
+      onUpdate: () => {
+        setPan({ x: o.x, y: o.y });
+        setZoom(o.z);
+      },
+      onComplete: () => {
+        viewTween = null;
+      },
+    });
+  };
+
   const panBy = (dx: number, dy: number): void => {
+    cancelTween();
     const p = pan();
     setPan({ x: p.x + dx, y: p.y + dy });
   };
@@ -94,6 +129,7 @@ export function createViewport(
   // Multiply zoom by `factor`, keeping the point (cx, cy) — relative to the pane's
   // top-left — anchored under the cursor.
   const zoomAt = (factor: number, cx: number, cy: number): void => {
+    cancelTween();
     const z = zoom();
     const nz = clampZoom(z * factor);
     if (nz === z) return;
@@ -104,8 +140,7 @@ export function createViewport(
   };
 
   const resetView = (): void => {
-    setPan({ x: 0, y: 0 });
-    setZoom(1);
+    tweenTo({ x: 0, y: 0 }, 1);
   };
 
   // Frame all notes in the viewport: fit the bounding box of `rects` (world coords)
@@ -135,11 +170,10 @@ export function createViewport(
     const z = clampZoom(Math.min(availW / bw, availH / bh, 1));
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
-    setZoom(z);
-    setPan({
-      x: view.w / 2 - cx * z,
-      y: CHROME_TOP + (view.h - CHROME_TOP) / 2 - cy * z,
-    });
+    tweenTo(
+      { x: view.w / 2 - cx * z, y: CHROME_TOP + (view.h - CHROME_TOP) / 2 - cy * z },
+      z
+    );
   };
 
   // ── coordinate transforms (the one definition of the world<->screen mapping) ──
@@ -171,6 +205,7 @@ export function createViewport(
     zoomAt,
     resetView,
     fitView,
+    tweenTo,
     worldToScreen,
     screenToWorld,
     eventToWorld,

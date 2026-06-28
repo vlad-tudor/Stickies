@@ -1,7 +1,14 @@
 import { createEffect, createMemo, For, onCleanup, onMount, Show } from "solid-js";
+import { Copy } from "lucide-static";
 import { Pane } from "./Pane/Pane";
+import { StickyMarkdown } from "../Sticky/StickyMarkdown/StickyMarkdown";
+import { StickyImage } from "../Sticky/StickyImage/StickyImage";
+import { StickyDeleteButton } from "../Sticky/StickyDeleteButton/StickyDeleteButton";
+import { StickyColorInput } from "../Sticky/StickyColorInput/StickyColorInput";
 import { activeBoard, boards, createBoard, loadBoards } from "~/stores/stickyStore";
 import { beginInteraction, endInteraction } from "~/stores/uiStore";
+import { theme } from "~/stores/themeStore";
+import { getViewport } from "~/stores/viewportStore";
 import {
   panes,
   layout,
@@ -62,6 +69,21 @@ export const Whiteboard = () => {
     const target = panes.find((p) => p.id === d.targetPaneId);
     return target && target.boardId !== d.fromBoardId ? d : null;
   });
+
+  // The cross-board ghost renders the REAL source note (same `.sticky` markup + content),
+  // so it looks exactly like the note. Scaled to the TARGET pane's zoom so it previews how
+  // it will sit once dropped there.
+  const ghostSticky = createMemo(() => {
+    const d = crossGhost();
+    if (!d) return null;
+    const b = boards().find((x) => x.id === d.fromBoardId);
+    return b?.stickies.find((s) => s.id === d.stickyId) ?? null;
+  });
+  const ghostZoom = createMemo(() => {
+    const d = crossGhost();
+    return (d?.targetPaneId && getViewport(d.targetPaneId)?.zoom()) || 1;
+  });
+  const ghostContrast = () => (theme() === "dark" ? "dark" : "light");
 
   // Drag a divider: shift weight between the two children of its split node. Listen
   // on window (not the element) so the drag survives the divider being re-created as
@@ -159,12 +181,50 @@ export const Whiteboard = () => {
 
       <Show when={crossGhost()}>
         {(g) => (
-          <div
-            class="sticky-drag-ghost"
-            style={{ left: `${g().x}px`, top: `${g().y}px`, "background-color": toneVar(g().color) }}
-          >
-            {g().title}
-          </div>
+          <Show when={ghostSticky()}>
+            {(s) => (
+              <div
+                class="sticky-drag-ghost"
+                style={{
+                  left: `${g().x}px`,
+                  top: `${g().y}px`,
+                  transform: `translate(-50%, -50%) scale(${ghostZoom()})`,
+                }}
+              >
+                {/* a faithful clone of the resting note — same classes, so identical paint */}
+                <div
+                  class={`sticky ${ghostContrast()}`}
+                  style={{
+                    width: `${s().dimensions[0]}px`,
+                    height: `${s().dimensions[1]}px`,
+                    "background-color": toneVar(s().color),
+                    "--note-bg": toneVar(s().color),
+                  }}
+                >
+                  <button class="sticky-connect" tabindex={-1} />
+                  <div class="sticky-title-bar">
+                    <span class="sticky-title-label">{g().title}</span>
+                  </div>
+                  <StickyColorInput color={s().color} updateColor={() => {}} />
+                  <button class="sticky-copy-button" tabindex={-1} innerHTML={Copy} />
+                  <StickyDeleteButton deleteSticky={() => {}} />
+                  <Show
+                    when={s().image}
+                    fallback={
+                      <StickyMarkdown
+                        sticky={s()}
+                        editing={false}
+                        onExit={() => {}}
+                        updateContent={() => {}}
+                      />
+                    }
+                  >
+                    <StickyImage image={s().image!} />
+                  </Show>
+                </div>
+              </div>
+            )}
+          </Show>
         )}
       </Show>
     </div>

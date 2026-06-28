@@ -130,7 +130,7 @@
 .board-tab-ghost {
   position: fixed;
   z-index: 2000;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) rotate(-3deg);   // slight lifted tilt
   pointer-events: none;
   max-width: 12rem;
   padding: 0.3rem 0.6rem;
@@ -145,4 +145,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0.95;
+  animation: board-tab-ghost-in 0.14s ease;
+}
+@keyframes board-tab-ghost-in {
+  from { opacity: 0; transform: translate(-50%, -50%) rotate(-3deg) scale(0.9); }
 }

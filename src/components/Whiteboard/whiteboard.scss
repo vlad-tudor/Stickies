@@ -125,24 +125,26 @@
   }
 }
 
-// floating chip that follows the cursor during a cross-pane sticky drag (the source
-// note clips at its own pane's edge, so this stands in for it over other panes)
+// Cross-pane sticky drag preview: a faithful clone of the REAL note (it reuses the
+// `.sticky` markup/classes, so it paints identically). The source note clips at its own
+// pane's edge; this stands in for it over other panes. The wrapper just pins it to the
+// cursor and scales it to the target board's zoom; the clone renders in normal flow.
 .sticky-drag-ghost {
   position: fixed;
   z-index: 2000;
-  transform: translate(-50%, -50%);
   pointer-events: none;
-  max-width: 12rem;
-  padding: 0.35rem 0.6rem;
-  border-radius: var(--radius-paper);
-  box-shadow: var(--shadow-2);
-  font-family: var(--font-serif);
-  font-size: 0.82rem;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  opacity: 0.92;
+  transform-origin: center;
+  animation: sticky-ghost-in 0.12s ease;
+
+  .sticky {
+    position: relative;   // in-flow (the real note is absolute in the board) so the
+    top: auto;            // wrapper takes its size and translate(-50%) centers it
+    left: auto;
+    margin: 0;
+  }
+}
+@keyframes sticky-ghost-in {
+  from { opacity: 0; }
 }
 
 // Pan/zoom transform wrapper. Zero-size at the board's top-left so bare-board

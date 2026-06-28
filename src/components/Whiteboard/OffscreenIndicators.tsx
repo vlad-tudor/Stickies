@@ -49,14 +49,15 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
     return out;
   });
 
-  // Pan (keeping zoom) so the note's center lands in the middle of the board.
+  // Pan (keeping zoom) so the note's center lands in the middle of the board — tweened
+  // so the view glides there instead of jumping.
   const centerOn = (id: string) => {
     const s = pane.stickies().find((x) => x.id === id);
     if (!s) return;
     const { w, h } = props.size();
     const z = vp.zoom();
     const c = stickyCenter(s);
-    vp.setPan({ x: w / 2 - c.x * z, y: h / 2 - c.y * z });
+    vp.tweenTo({ x: w / 2 - c.x * z, y: h / 2 - c.y * z }, z);
   };
 
   return (
