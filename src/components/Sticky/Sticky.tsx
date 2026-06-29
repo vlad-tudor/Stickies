@@ -143,11 +143,18 @@ export const Sticky = (props: StickyProps) => {
   };
 
   const onStickyDelete = () => {
-    if (confirm("Are you sure you want to delete this sticky note?")) {
-      shouldDelete = true;
-      if (editingStickyId() === props.sticky.id) exitEditing();
-      props.deleteSticky();
-    }
+    if (!confirm("Are you sure you want to delete this sticky note?")) return;
+    shouldDelete = true;
+    if (editingStickyId() === props.sticky.id) exitEditing();
+    // Animate OUT first, then remove from the store on complete — the node stays
+    // mounted for the animation (no exit-timing infra needed).
+    animate(rootEl, {
+      scale: 0.85,
+      opacity: 0,
+      duration: MOTION.leave,
+      ease: "inQuad",
+      onComplete: () => props.deleteSticky(),
+    });
   };
 
   return (

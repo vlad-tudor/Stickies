@@ -17,6 +17,8 @@ import {
   boardDrag,
   zoneAt,
 } from "~/stores/paneLayoutStore";
+import { animate } from "animejs";
+import { MOTION } from "~/utils/motion";
 import { Pencil, CopyPlus } from "lucide-static";
 import "./board-tabs.scss";
 
@@ -41,6 +43,25 @@ export const BoardTabs = (props: BoardTabsProps) => {
   // doesn't), unifying tab reorder + drag-to-split-pane on one path.
   let press: { pointerId: number; x: number; y: number; boardId: string; el: HTMLElement } | null = null;
   let suppressClick = false; // swallow the synthetic click that can follow a drag
+  let listEl!: HTMLDivElement;
+
+  // FLIP: reorder, then slide each tab from its old x to its new one (so they don't snap).
+  // The dragged tab is skipped — the floating ghost already represents it.
+  const flipReorder = (mutate: () => void) => {
+    const tabs = () => [...listEl.querySelectorAll<HTMLElement>(".board-tab")];
+    const before = new Map<string, number>();
+    for (const el of tabs()) before.set(el.dataset.boardId ?? "", el.getBoundingClientRect().left);
+    mutate(); // reorderBoards → <For> moves the nodes synchronously
+    for (const el of tabs()) {
+      const id = el.dataset.boardId ?? "";
+      if (id === dragId()) continue;
+      const prev = before.get(id);
+      if (prev === undefined) continue;
+      const dx = prev - el.getBoundingClientRect().left;
+      if (Math.abs(dx) < 1) continue;
+      animate(el, { translateX: [dx, 0], duration: MOTION.enter, ease: "outCubic" });
+    }
+  };
 
   const startRename = (id: string) => {
     setEditingId(id);
@@ -96,7 +117,7 @@ export const BoardTabs = (props: BoardTabsProps) => {
     const overTab = under?.closest<HTMLElement>(".board-tab");
     if (overTab?.dataset.boardId) {
       const targetId = overTab.dataset.boardId;
-      if (targetId !== dragId()) reorderBoards(dragId()!, targetId); // live reorder
+      if (targetId !== dragId()) flipReorder(() => reorderBoards(dragId()!, targetId)); // live reorder, slid
       clearBoardDragOver();
       return;
     }
@@ -149,7 +170,7 @@ export const BoardTabs = (props: BoardTabsProps) => {
   return (
     <div class="board-tabs">
       <button class="board-tab-add" title="New board" onClick={() => props.onSelect(createBoard())}>+</button>
-      <div class="board-tabs-list">
+      <div class="board-tabs-list" ref={listEl}>
         <For each={boards()}>
           {(board) => (
             <div

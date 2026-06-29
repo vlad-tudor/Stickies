@@ -1,4 +1,5 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, Show } from "solid-js";
+import { animate } from "animejs";
 import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -19,17 +20,38 @@ import {
   Table as TableIcon,
 } from "lucide-static";
 import { setActiveEditor, bumpEditorTick } from "~/stores/editorStore";
+import { MOTION } from "~/utils/motion";
 
 type TiptapEditorProps = {
   content: string;
   onChange: (html: string) => void;
   onExit: () => void;
+  exiting?: boolean; // editing has ended; play the toolbar out-animation before unmount
 };
 
 export const TiptapEditor = (props: TiptapEditorProps) => {
   let host!: HTMLDivElement;
+  let toolbarEl: HTMLDivElement | undefined;
   const [editor, setEditor] = createSignal<Editor>();
   const [tick, setTick] = createSignal(0); // bumped per transaction to refresh toolbar state
+
+  // Out (exit) / back-in (re-enter within the grace window). Initial in is played by the
+  // toolbar's ref on mount; defer skips this on first run so they don't double up.
+  createEffect(
+    on(
+      () => props.exiting,
+      (exiting) => {
+        if (!toolbarEl) return;
+        animate(
+          toolbarEl,
+          exiting
+            ? { opacity: 0, translateY: -6, duration: MOTION.leave, ease: "inQuad" }
+            : { opacity: 1, translateY: 0, duration: MOTION.enter, ease: "outCubic" }
+        );
+      },
+      { defer: true }
+    )
+  );
 
   onMount(() => {
     const ed = new Editor({
@@ -83,7 +105,14 @@ export const TiptapEditor = (props: TiptapEditorProps) => {
       <Show when={editor()}>
         {(ed) => (
           // preventDefault on mousedown keeps editor focus while clicking buttons
-          <div class="sticky-toolbar" onMouseDown={(e) => e.preventDefault()}>
+          <div
+            class="sticky-toolbar"
+            ref={(el) => {
+              toolbarEl = el;
+              animate(el, { opacity: [0, 1], translateY: [-6, 0], duration: MOTION.enter, ease: "outCubic" });
+            }}
+            onMouseDown={(e) => e.preventDefault()}
+          >
             <button class={cls(active("bold"))} title="Bold"
               onClick={() => ed().chain().focus().toggleBold().run()} innerHTML={Bold} />
             <button class={cls(active("italic"))} title="Italic"

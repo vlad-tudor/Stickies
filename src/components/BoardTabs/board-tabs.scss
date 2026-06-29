@@ -51,6 +51,10 @@
   font-weight: 500;
   white-space: nowrap;
   touch-action: none;              // pointer-drag the tab (reorder / split) on touch
+  // select-expand: the active tab grows + turns to paper — glide it (padding drives the
+  // width, so neighbours shift smoothly too). Layout props only; no transform/position.
+  transition: padding 0.18s ease, background-color 0.18s ease, color 0.18s ease,
+    border-color 0.18s ease, box-shadow 0.18s ease;
 
   // selected tab = raised paper that connects to the board surface below
   &.active {

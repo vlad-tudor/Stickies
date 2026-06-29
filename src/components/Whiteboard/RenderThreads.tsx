@@ -133,6 +133,7 @@ export const RenderThreads = () => {
         {(s) => (
           <line
             class={`thread-seg faded${selectedThread()?.id === s.tid ? " selected" : ""}`}
+            data-tid={s.tid}
             x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
           />
         )}
@@ -150,6 +151,7 @@ export const RenderThreads = () => {
             />
             <line
               class={`thread-seg${selectedThread()?.id === s.tid ? " selected" : ""}`}
+              data-tid={s.tid}
               x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
             />
           </g>
