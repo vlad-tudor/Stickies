@@ -14,7 +14,7 @@ import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky, markStickyFresh } from "~/stores/uiStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { useViewport } from "~/stores/viewportStore";
-import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize } from "lucide-static";
+import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize, Trash2 } from "lucide-static";
 import "./whiteboard-actions.scss";
 
 // screen-space anchor for new notes: just under the "+" button
@@ -118,16 +118,8 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         <button class="create-sticky" title="New sticky" onClick={onStickyCreate}>
           +
         </button>
-        <button class="clear-all-stickies" title="Clear all stickies" onClick={onClearAllStickies}>
-          {"🗑️"}
-        </button>
+        <button class="clear-all-stickies" title="Clear all stickies" onClick={onClearAllStickies} innerHTML={Trash2} />
         <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
-        <button
-          class="theme-toggle"
-          title={theme() === "dark" ? "Light mode" : "Dark mode"}
-          onClick={toggleTheme}
-          innerHTML={theme() === "dark" ? Sun : Moon}
-        />
 
         <div class="board-hue">
           <TonePicker
@@ -138,6 +130,12 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
             portal
           />
         </div>
+        <button
+          class="theme-toggle"
+          title={theme() === "dark" ? "Light mode" : "Dark mode"}
+          onClick={toggleTheme}
+          innerHTML={theme() === "dark" ? Sun : Moon}
+        />
 
         <div class="toolbar-zoom">
           <button class="zoom-fit" title="Fit all notes" onClick={props.onFit} innerHTML={Maximize} />
