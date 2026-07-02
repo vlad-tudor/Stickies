@@ -8,6 +8,7 @@ import "@fontsource/jetbrains-mono/400.css";
 import { Whiteboard } from "./components/Whiteboard/Whiteboard";
 import { AppDialog } from "./components/Dialog/AppDialog";
 import { Tooltip } from "./components/Tooltip/Tooltip";
+import { Credit } from "./components/Credit/Credit";
 import "./app.css";
 
 export const App = () => {
@@ -16,6 +17,7 @@ export const App = () => {
       <Whiteboard />
       <AppDialog />
       <Tooltip />
+      <Credit />
     </main>
   );
 };

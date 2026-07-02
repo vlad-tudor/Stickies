@@ -152,8 +152,6 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
           <button class="close-pane" title="Close pane" onClick={props.onClose} innerHTML={X} />
         </Show>
       </div>
-
-      <span class="app-version">v{__APP_VERSION__}</span>
     </div>
     </>
   );

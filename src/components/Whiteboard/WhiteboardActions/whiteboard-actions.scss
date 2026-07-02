@@ -35,8 +35,7 @@
   right: 0;
   z-index: 1000;
   height: 2.5rem;
-  // overflow stays visible so the under-bar .app-version isn't clipped — the scrolling
-  // lives on the inner .whiteboard-actions-scroll instead.
+  // overflow stays visible (the inner .whiteboard-actions-scroll owns the scrolling).
 
   background: var(--paper-soft);
   border-bottom: 1px solid var(--rule);
@@ -116,19 +115,6 @@
       padding: 0.42rem;
       svg { width: 100%; height: 100%; }
     }
-  }
-
-  // app version — floats just under the "+" (new sticky) button
-  .app-version {
-    position: absolute;
-    top: calc(100% + 0.35rem);
-    left: 0.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    color: var(--ink-soft);
-    opacity: 0.7;
-    pointer-events: none;
-    user-select: none;
   }
 
   // board-hue picker — controls the board background tone
