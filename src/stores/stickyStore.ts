@@ -305,6 +305,19 @@ export function reorderBoards(fromId: string, targetId: string): void {
   persist();
 }
 
+// Move board `id` to `toIndex` in the array AFTER it's removed (0..length-1). Used by
+// the tab sortable, which commits the final position once on drop.
+export function reorderBoardTo(id: string, toIndex: number): void {
+  const from = store.boards.findIndex((b) => b.id === id);
+  if (from === -1) return;
+  const next = [...store.boards];
+  const [moved] = next.splice(from, 1);
+  next.splice(Math.max(0, Math.min(toIndex, next.length)), 0, moved);
+  if (next.every((b, i) => b.id === store.boards[i].id)) return; // no change
+  setStore("boards", next);
+  persist();
+}
+
 export function updateBoardBgColor(color: Tone): void {
   const idx = activeBoardIndex();
   if (idx === -1) return;

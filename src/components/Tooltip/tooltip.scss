@@ -1,0 +1,24 @@
+// Themed tooltip chip — the app's dark-ink chip (same family as the share toast),
+// centred over the hovered control. Positioned fixed at the trigger's edge midpoint.
+.app-tooltip {
+  position: fixed;
+  z-index: 3500;            // above the dialog too
+  pointer-events: none;
+  max-width: 16rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-chrome);
+  background: var(--ink);
+  color: var(--paper-soft);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: var(--shadow-2);
+  animation: tooltip-in 0.1s ease;
+}
+.app-tooltip.above { transform: translate(-50%, -100%); }
+.app-tooltip.below { transform: translate(-50%, 0); }
+
+@keyframes tooltip-in {
+  from { opacity: 0; }
+}

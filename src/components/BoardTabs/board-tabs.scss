@@ -68,8 +68,19 @@
     padding-bottom: 1px;
   }
 
-  &.dragging { opacity: 0.45; }
+  &.dimmed { opacity: 0.45; }        // dragged tab while being dropped onto a pane (split)
+  &.lifted {                          // dragged tab while reordering — rides above, no easing
+    z-index: 10;
+    box-shadow: var(--shadow-2);
+    transition: none;
+  }
 }
+
+// During a reorder the non-dragged tabs slide (transform) to open/close the gap; the
+// lifted tab tracks the cursor with no easing. On drop the `.reordering` class drops,
+// so transforms clear instantly (no easing back) as the committed order takes over.
+.board-tabs-list.reordering .board-tab { transition: transform 0.16s ease; }
+.board-tabs-list.reordering .board-tab.lifted { transition: none; }
 
 // pencil — rename trigger, shown on the active tab to the left of its name
 .board-tab-edit,

@@ -24,6 +24,7 @@ import {
 import { useViewport } from "~/stores/viewportStore";
 import { usePane } from "~/stores/paneContext";
 import { startStickyDrag, updateStickyDrag, dropSticky } from "~/stores/paneLayoutStore";
+import { confirmDialog } from "~/stores/dialogStore";
 import { toneVar } from "~/utils/tones";
 
 import "./sticky.scss";
@@ -142,8 +143,12 @@ export const Sticky = (props: StickyProps) => {
     node.addEventListener("pointerup", onUp);
   };
 
-  const onStickyDelete = () => {
-    if (!confirm("Are you sure you want to delete this sticky note?")) return;
+  const onStickyDelete = async () => {
+    if (!(await confirmDialog("Delete this sticky note?", {
+      title: "Delete note",
+      confirmText: "Delete",
+      danger: true,
+    }))) return;
     shouldDelete = true;
     if (editingStickyId() === props.sticky.id) exitEditing();
     // Animate OUT first, then remove from the store on complete — the node stays

@@ -12,6 +12,7 @@ import { type Tone } from "~/utils/tones";
 import { TonePicker } from "~/components/TonePicker/TonePicker";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky, markStickyFresh } from "~/stores/uiStore";
+import { confirmDialog } from "~/stores/dialogStore";
 import { useViewport } from "~/stores/viewportStore";
 import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize } from "lucide-static";
 import "./whiteboard-actions.scss";
@@ -38,8 +39,12 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   // remember the last spawn so we only stagger when nothing has changed since
   let lastSpawn: { id: string; pos: [number, number]; px: number; py: number; z: number } | null = null;
 
-  const onClearAllStickies = () => {
-    if (confirm("Are you sure you want to clear all stickies?")) {
+  const onClearAllStickies = async () => {
+    if (await confirmDialog("Clear every sticky on this board? This can't be undone.", {
+      title: "Clear board",
+      confirmText: "Clear all",
+      danger: true,
+    })) {
       clearAllStickies();
     }
   };
