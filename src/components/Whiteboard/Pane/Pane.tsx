@@ -223,7 +223,7 @@ export const Pane = (props: PaneProps) => {
           <BoardTabs boardId={props.boardId} onSelect={showBoardInFocusedPane} />
           <WhiteboardActions
             bgColor={pane.bgColor()}
-            updateBgColor={updateBoardBgColor}
+            updateBgColor={(color) => updateBoardBgColor(props.boardId, color)}
             zoom={vp.zoom()}
             onZoomIn={() => zoomCentered(1.2)}
             onZoomOut={() => zoomCentered(1 / 1.2)}

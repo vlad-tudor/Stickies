@@ -1,5 +1,5 @@
 import { createSignal } from "solid-js";
-import { raiseStickyById } from "./stickyStore";
+import { raiseSticky } from "./stickyStore";
 
 // The single sticky currently being edited (its id), or null. Global so only
 // one editor/toolbar can exist at a time — independent of focus/blur, which is
@@ -12,10 +12,10 @@ export const [pendingThread, setPendingThread] = createSignal<
   { from: string; to: { x: number; y: number } } | null
 >(null);
 
-// selected thread (for the delete popover): its id + the SCREEN point where it
-// was clicked (the popover anchors there), or null.
+// selected thread (for the delete popover): its board + id + the SCREEN point
+// where it was clicked (the popover anchors there), or null.
 export const [selectedThread, setSelectedThread] = createSignal<
-  { id: string; x: number; y: number } | null
+  { boardId: string; id: string; x: number; y: number } | null
 >(null);
 
 // True while ANY drag/resize/pan is in progress (a counter, so overlapping
@@ -32,17 +32,17 @@ export const endInteraction = () => setInteractionCount((n) => Math.max(0, n - 1
 // Select on press: raise to the top and close any OTHER editor — but don't open
 // this one. Cheap (no editor mount / focus), so it's safe on every pointerdown
 // incl. the first finger of a pinch and the start of a drag.
-export function selectSticky(id: string): void {
+export function selectSticky(boardId: string, id: string): void {
   if (editingStickyId() !== id) setEditingStickyId(null);
   setSelectedThread(null); // interacting with a note dismisses the thread popover
-  raiseStickyById(id);
+  raiseSticky(boardId, id);
 }
 
 // Enter edit: open this sticky's editor (mount + focus). Triggered by a real
 // tap/click — never by a pinch or a drag — so the iOS keyboard only appears on
 // an intentional tap, and inside a user gesture so it actually shows.
-export function editSticky(id: string): void {
-  raiseStickyById(id);
+export function editSticky(boardId: string, id: string): void {
+  raiseSticky(boardId, id);
   setEditingStickyId(id);
 }
 

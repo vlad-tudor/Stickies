@@ -30,7 +30,7 @@ import { toneVar } from "~/utils/tones";
 import "./sticky.scss";
 
 type StickyProps = {
-  index: number;
+  z: number;
   seq: number;
   sticky: StickyNote;
   active: boolean;
@@ -106,15 +106,15 @@ export const Sticky = (props: StickyProps) => {
     // NB: kebab-case — Solid's style object uses setProperty, so camelCase
     // `zIndex` is silently ignored (stacking relies on this, not DOM order).
     // Notes are >= 0; finished threads sit behind at z -1, grid at -2.
-    ["z-index"]: `${props.index}`,
+    ["z-index"]: `${props.z}`,
   });
 
   // Press selects/raises (cheap, no editor). A real tap (click) opens the
   // editor — clicks don't fire for a 2-finger pinch or a drag, so the iOS
   // keyboard only appears on an intentional tap.
-  const onPointerDown = () => selectSticky(props.sticky.id);
+  const onPointerDown = () => selectSticky(pane.boardId(), props.sticky.id);
   const onClick = () => {
-    if (!props.sticky.image) editSticky(props.sticky.id); // image notes have no editor
+    if (!props.sticky.image) editSticky(pane.boardId(), props.sticky.id); // image notes have no editor
   };
 
   // Drag the band's connect node onto another note to link them.
@@ -136,7 +136,7 @@ export const Sticky = (props: StickyProps) => {
       const target = document
         .elementFromPoint(ev.clientX, ev.clientY)
         ?.closest<HTMLElement>("[data-sticky-id]")?.dataset.stickyId;
-      if (target && target !== props.sticky.id) addThread(props.sticky.id, target);
+      if (target && target !== props.sticky.id) addThread(pane.boardId(), props.sticky.id, target);
       setPendingThread(null);
     };
     node.addEventListener("pointermove", onMove);

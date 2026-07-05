@@ -28,10 +28,9 @@ import {
   resizeStickyNote,
   deleteStickyNote,
   duplicateStickyNote,
-  raiseStickyById,
+  raiseSticky,
   moveStickyToBoard,
   clearAllStickies,
-  importStickies,
   stickyCenter,
   threadAnchor,
   type StickyNote,
@@ -47,8 +46,13 @@ const note = (id: string, over: Partial<StickyNote> = {}): StickyNote => ({
   dimensions: [300, 320],
   content: "",
   color: "cream",
+  z: 0,
   ...over,
 });
+
+// topmost note of the current board (stacking = max z)
+const topNote = (): StickyNote =>
+  stickies().reduce((top, s) => (s.z > top.z ? s : top));
 
 const board = (id: string, name: string, over: Partial<Board> = {}): Board => ({
   id,
@@ -279,62 +283,78 @@ describe("board CRUD", () => {
     expect(boards().map((b) => b.id)).toEqual(["c", "a", "b"]);
   });
 
-  test("updateBoardBgColor sets the active board's tone", () => {
+  test("updateBoardBgColor sets the board's tone", () => {
     fresh();
-    updateBoardBgColor("rose");
+    updateBoardBgColor(activeBoardId(), "rose");
     expect(activeBgColor()).toBe("rose");
   });
 });
 
 describe("threads", () => {
-  const twoNotes = () => {
+  // fresh board with notes "a" and "b"; returns its board id
+  const twoNotes = (): string => {
     fresh();
-    createStickyNote(note("a"));
-    createStickyNote(note("b"));
+    const bid = activeBoardId();
+    createStickyNote(bid, note("a"));
+    createStickyNote(bid, note("b"));
+    return bid;
   };
 
   test("addThread links two notes", () => {
-    twoNotes();
-    addThread("a", "b");
+    const bid = twoNotes();
+    addThread(bid, "a", "b");
     expect(threads().length).toBe(1);
     expect(threads()[0].from).toBe("a");
     expect(threads()[0].to).toBe("b");
   });
 
   test("addThread rejects self-links", () => {
-    twoNotes();
-    addThread("a", "a");
+    const bid = twoNotes();
+    addThread(bid, "a", "a");
+    expect(threads().length).toBe(0);
+  });
+
+  test("addThread rejects endpoints that aren't on the board", () => {
+    const bid = twoNotes();
+    addThread(bid, "a", "elsewhere"); // e.g. a connect drop onto another pane's note
     expect(threads().length).toBe(0);
   });
 
   test("addThread rejects duplicates in either direction", () => {
-    twoNotes();
-    addThread("a", "b");
-    addThread("a", "b");
-    addThread("b", "a");
+    const bid = twoNotes();
+    addThread(bid, "a", "b");
+    addThread(bid, "a", "b");
+    addThread(bid, "b", "a");
     expect(threads().length).toBe(1);
   });
 
   test("deleteThread removes by id", () => {
-    twoNotes();
-    addThread("a", "b");
-    deleteThread(threads()[0].id);
+    const bid = twoNotes();
+    addThread(bid, "a", "b");
+    deleteThread(bid, threads()[0].id);
     expect(threads().length).toBe(0);
   });
 });
 
 describe("sticky CRUD", () => {
-  test("createStickyNote appends to the active board", () => {
+  test("createStickyNote appends to the addressed board", () => {
     fresh();
-    createStickyNote(note("s1", { content: "<p>x</p>" }));
+    createStickyNote(activeBoardId(), note("s1", { content: "<p>x</p>" }));
     expect(stickies().length).toBe(1);
     expect(stickies()[0].id).toBe("s1");
   });
 
+  test("mutations against an unknown board are no-ops", () => {
+    fresh();
+    createStickyNote("no-such-board", note("s1"));
+    expect(stickies().length).toBe(0);
+  });
+
   test("updateStickyNote merges a partial update", () => {
     fresh();
-    createStickyNote(note("s1"));
-    updateStickyNote(0, { content: "<p>edited</p>", color: "sky" });
+    const bid = activeBoardId();
+    createStickyNote(bid, note("s1"));
+    updateStickyNote(bid, "s1", { content: "<p>edited</p>", color: "sky" });
     expect(stickies()[0].content).toBe("<p>edited</p>");
     expect(stickies()[0].color).toBe("sky");
     expect(stickies()[0].dimensions).toEqual([300, 320]); // untouched fields survive
@@ -342,31 +362,34 @@ describe("sticky CRUD", () => {
 
   test("moveStickyNote and resizeStickyNote update geometry", () => {
     fresh();
-    createStickyNote(note("s1"));
-    moveStickyNote(0, [40, 50]);
-    resizeStickyNote(0, [400, 360]);
+    const bid = activeBoardId();
+    createStickyNote(bid, note("s1"));
+    moveStickyNote(bid, "s1", [40, 50]);
+    resizeStickyNote(bid, "s1", [400, 360]);
     expect(stickies()[0].position).toEqual([40, 50]);
     expect(stickies()[0].dimensions).toEqual([400, 360]);
   });
 
   test("deleteStickyNote removes the note and its threads", () => {
     fresh();
-    createStickyNote(note("a"));
-    createStickyNote(note("b"));
-    createStickyNote(note("c"));
-    addThread("a", "b");
-    addThread("b", "c");
-    deleteStickyNote(1); // "b"
+    const bid = activeBoardId();
+    createStickyNote(bid, note("a"));
+    createStickyNote(bid, note("b"));
+    createStickyNote(bid, note("c"));
+    addThread(bid, "a", "b");
+    addThread(bid, "b", "c");
+    deleteStickyNote(bid, "b");
     expect(stickies().map((s) => s.id)).toEqual(["a", "c"]);
     expect(threads().length).toBe(0);
   });
 
   test("duplicateStickyNote clones beside with a fresh id and no threads", () => {
     fresh();
-    createStickyNote(note("a", { position: [10, 20], content: "<p>x</p>" }));
-    createStickyNote(note("b"));
-    addThread("a", "b");
-    duplicateStickyNote(0);
+    const bid = activeBoardId();
+    createStickyNote(bid, note("a", { position: [10, 20], content: "<p>x</p>" }));
+    createStickyNote(bid, note("b"));
+    addThread(bid, "a", "b");
+    duplicateStickyNote(bid, "a");
     expect(stickies().length).toBe(3);
     const clone = stickies()[2]; // appended on top
     expect(clone.id).not.toBe("a");
@@ -375,37 +398,57 @@ describe("sticky CRUD", () => {
     expect(threads().length).toBe(1); // the clone has no connections
   });
 
-  test("raiseStickyById puts the note on top of the z-order", () => {
+  test("new notes stack on top of existing ones", () => {
     fresh();
-    createStickyNote(note("a"));
-    createStickyNote(note("b"));
-    createStickyNote(note("c"));
-    raiseStickyById("a");
-    // topmost = last in the stickies list (today z-order IS array order; if the
-    // representation changes, assert "a is topmost" through the new one)
-    expect(stickies()[stickies().length - 1].id).toBe("a");
+    const bid = activeBoardId();
+    createStickyNote(bid, note("a"));
+    createStickyNote(bid, note("b"));
+    expect(topNote().id).toBe("b");
+  });
+
+  test("raiseSticky puts the note on top of the z-order", () => {
+    fresh();
+    const bid = activeBoardId();
+    createStickyNote(bid, note("a"));
+    createStickyNote(bid, note("b"));
+    createStickyNote(bid, note("c"));
+    raiseSticky(bid, "a");
+    expect(topNote().id).toBe("a");
     expect(stickies().map((s) => s.id).sort()).toEqual(["a", "b", "c"]);
+  });
+
+  test("z-order survives a persistence round-trip (compacted)", () => {
+    // legacy notes without z: array order was the stacking order
+    seed([
+      board("a", "A", {
+        stickies: [
+          { ...note("bottom"), z: undefined as unknown as number },
+          { ...note("top"), z: undefined as unknown as number },
+        ],
+      }),
+    ]);
+    expect(stickies().find((s) => s.id === "bottom")?.z).toBe(0);
+    expect(stickies().find((s) => s.id === "top")?.z).toBe(1);
+
+    // sparse z from repeated raises compacts to 0..n-1, order preserved
+    seed([
+      board("b", "B", {
+        stickies: [note("low", { z: 2 }), note("high", { z: 17 })],
+      }),
+    ]);
+    expect(stickies().find((s) => s.id === "low")?.z).toBe(0);
+    expect(stickies().find((s) => s.id === "high")?.z).toBe(1);
   });
 
   test("clearAllStickies empties notes and threads", () => {
     fresh();
-    createStickyNote(note("a"));
-    createStickyNote(note("b"));
-    addThread("a", "b");
-    clearAllStickies();
+    const bid = activeBoardId();
+    createStickyNote(bid, note("a"));
+    createStickyNote(bid, note("b"));
+    addThread(bid, "a", "b");
+    clearAllStickies(bid);
     expect(stickies().length).toBe(0);
     expect(threads().length).toBe(0);
-  });
-
-  test("importStickies replaces notes, normalizes, and prunes threads", () => {
-    fresh();
-    createStickyNote(note("a"));
-    createStickyNote(note("b"));
-    addThread("a", "b");
-    importStickies([note("a", { content: "# md" }), note("z")]);
-    expect(stickies().map((s) => s.id)).toEqual(["a", "z"]);
-    expect(stickies()[0].content).toContain("<h1>");
-    expect(threads().length).toBe(0); // "b" is gone -> thread pruned
   });
 
   test("moveStickyToBoard transfers the note and severs its threads", () => {
@@ -415,7 +458,7 @@ describe("sticky CRUD", () => {
           stickies: [note("s1", { content: "<p>moved</p>" }), note("s2")],
           threads: [{ id: "t1", from: "s1", to: "s2" }],
         }),
-        board("dst", "Dst"),
+        board("dst", "Dst", { stickies: [note("d")] }),
       ],
       "src"
     );
@@ -424,9 +467,12 @@ describe("sticky CRUD", () => {
     const dst = boards().find((b) => b.id === "dst")!;
     expect(src.stickies.map((s) => s.id)).toEqual(["s2"]);
     expect(src.threads.length).toBe(0);
-    expect(dst.stickies.length).toBe(1);
-    expect(dst.stickies[0].content).toBe("<p>moved</p>");
-    expect(dst.stickies[0].position).toEqual([70, 50]); // [top, left] = [y, x]
+    expect(dst.stickies.length).toBe(2);
+    const moved = dst.stickies.find((s) => s.id === "s1")!;
+    expect(moved.content).toBe("<p>moved</p>");
+    expect(moved.position).toEqual([70, 50]); // [top, left] = [y, x]
+    // arrives on top of the target board's stack
+    expect(moved.z).toBeGreaterThan(dst.stickies.find((s) => s.id === "d")!.z);
   });
 
   test("moveStickyToBoard is a no-op within the same board", () => {

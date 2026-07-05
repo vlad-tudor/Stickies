@@ -1,59 +1,34 @@
 import { createStore } from "solid-js/store";
-import { marked } from "marked";
 import { readBoardFromHash, clearHash } from "~/utils/urlState";
 import { deleteImage } from "~/utils/imageStore";
+import { newId } from "~/utils/id";
 import { asTone, DEFAULT_TONE, type Tone } from "~/utils/tones";
+import {
+  makeBoard,
+  normalizeBoard,
+  normalizeStickies,
+  normalizeThreads,
+  deduplicateName,
+  nextBoardName,
+  type Board,
+  type StickyNote,
+  type Thread,
+} from "~/domain/board";
+
+// The domain model (types + pure rules) lives in ~/domain/board — this module is
+// only the state layer over it: the reactive store, persistence, and mutations.
+// Re-exported so consumers keep one import site for board data.
+export {
+  MIN_STICKY_WIDTH,
+  MIN_STICKY_HEIGHT,
+  stickyCenter,
+  threadAnchor,
+} from "~/domain/board";
+export type { ImageRef, StickyNote, Thread, Board } from "~/domain/board";
 
 const STORAGE_KEY = "stickies-boards";
 const LEGACY_KEY = "stickies-storage";
 const LEGACY_BG_KEY = "whiteboard-bg";
-
-// Minimum sticky size (px). Width must fit the editor toolbar; height mirrors
-// --total-sticky-height in sticky.scss — keep these in sync.
-export const MIN_STICKY_WIDTH = 256;
-export const MIN_STICKY_HEIGHT = 320;
-
-// An image note's picture: id into the IndexedDB blob store + pixel dims (aspect).
-// Bytes live out-of-band; only this ref rides the board JSON.
-export type ImageRef = { id: string; w: number; h: number };
-
-export type StickyNote = {
-  id: string;
-  title?: string;
-  position: [number, number];
-  dimensions: [number, number];
-  content: string; // HTML
-  color: Tone;
-  image?: ImageRef; // present => image note (content unused)
-};
-
-// A link between two stickies (by id).
-export type Thread = { id: string; from: string; to: string };
-
-export type Board = {
-  id: string;
-  name: string;
-  stickies: StickyNote[];
-  threads: Thread[];
-  bgColor: Tone;
-};
-
-// World-space center of a note (encapsulates position=[top,left], dims=[w,h]).
-export const stickyCenter = (
-  s: Pick<StickyNote, "position" | "dimensions">
-): { x: number; y: number } => ({
-  x: s.position[1] + s.dimensions[0] / 2,
-  y: s.position[0] + s.dimensions[1] / 2,
-});
-
-// Where a thread attaches: the connect dot — horizontal center, band middle.
-// 16 = half the band height (--total-sticky-handle-height, 2rem) in sticky.scss.
-export const threadAnchor = (
-  s: Pick<StickyNote, "position" | "dimensions">
-): { x: number; y: number } => ({
-  x: s.position[1] + s.dimensions[0] / 2,
-  y: s.position[0] + 16,
-});
 
 type BoardStore = {
   boards: Board[];
@@ -97,44 +72,6 @@ if (typeof window !== "undefined") {
   });
 }
 
-function makeBoard(
-  name: string,
-  stickies: StickyNote[] = [],
-  bgColor: Tone = DEFAULT_TONE,
-  threads: Thread[] = []
-): Board {
-  return { id: Date.now().toString(), name, stickies, threads, bgColor };
-}
-
-// Drop threads whose endpoints no longer exist (deleted/replaced stickies).
-const normalizeThreads = (
-  threads: Thread[] | undefined,
-  stickies: StickyNote[]
-): Thread[] => {
-  if (!threads) return [];
-  const ids = new Set(stickies.map((s) => s.id));
-  return threads.filter((t) => ids.has(t.from) && ids.has(t.to));
-};
-
-// Content is HTML. Legacy notes stored markdown — convert them once on ingest.
-const looksLikeHtml = (s: string): boolean => /<\/?[a-z][\s\S]*>/i.test(s);
-const asHtml = (content: string): string =>
-  !content || looksLikeHtml(content) ? content : (marked(content) as string);
-
-// Coerce persisted/imported notes: legacy hex colors -> tones, markdown -> HTML.
-const normalizeStickies = (stickies: StickyNote[]): StickyNote[] =>
-  stickies.map((s) => ({ ...s, color: asTone(s.color), content: asHtml(s.content) }));
-
-const normalizeBoard = (b: Board): Board => {
-  const stickies = normalizeStickies(b.stickies);
-  return {
-    ...b,
-    bgColor: asTone(b.bgColor),
-    stickies,
-    threads: normalizeThreads(b.threads, stickies),
-  };
-};
-
 /**
  * Migrate from the old single-board localStorage format.
  * Returns a board if legacy data was found, otherwise null.
@@ -147,22 +84,6 @@ function migrateLegacy(): Board | null {
   localStorage.removeItem(LEGACY_KEY);
   localStorage.removeItem(LEGACY_BG_KEY);
   return makeBoard("My Board", stickies, bgColor);
-}
-
-function deduplicateName(base: string, boards: Board[]): string {
-  const names = new Set(boards.map((b) => b.name));
-  if (!names.has(base)) return base;
-  let i = 1;
-  while (names.has(`${base} (${i})`)) i++;
-  return `${base} (${i})`;
-}
-
-// Lowest free "Board N" — count-based numbering clashes after deletes.
-function nextBoardName(boards: Board[]): string {
-  const names = new Set(boards.map((b) => b.name));
-  let n = boards.length + 1;
-  while (names.has(`Board ${n}`)) n++;
-  return `Board ${n}`;
 }
 
 export function loadBoards(): void {
@@ -208,8 +129,18 @@ export function loadBoards(): void {
 export const boards = () => store.boards;
 export const activeBoardId = () => store.activeBoardId;
 
-const activeBoardIndex = (): number =>
-  store.boards.findIndex((b) => b.id === store.activeBoardId);
+// Every mutation below addresses its board EXPLICITLY (boardId) — never "the
+// active board". The active board is a UI concept (focused pane's board, tabs);
+// collab mutations must name their target, since "active" doesn't exist remotely.
+const boardIndex = (boardId: string): number =>
+  store.boards.findIndex((b) => b.id === boardId);
+
+// (boardId, stickyId) -> [boardIdx, stickyIdx], [-1, -1]-ish when either is gone.
+const locate = (boardId: string, stickyId: string): [number, number] => {
+  const b = boardIndex(boardId);
+  if (b === -1) return [-1, -1];
+  return [b, store.boards[b].stickies.findIndex((s) => s.id === stickyId)];
+};
 
 export const activeBoard = (): Board | undefined =>
   store.boards.find((b) => b.id === store.activeBoardId);
@@ -237,15 +168,14 @@ export function createBoard(name?: string): string {
 export function duplicateBoard(id: string): string | null {
   const src = store.boards.find((b) => b.id === id);
   if (!src) return null;
-  const stamp = Date.now().toString(36);
   const idMap = new Map<string, string>();
-  const stickies = src.stickies.map((s, i) => {
-    const nid = `${stamp}-s${i}-${Math.random().toString(36).slice(2, 6)}`;
+  const stickies = src.stickies.map((s) => {
+    const nid = newId();
     idMap.set(s.id, nid);
     return { ...s, id: nid };
   });
-  const threads = src.threads.map((t, i) => ({
-    id: `${stamp}-t${i}-${Math.random().toString(36).slice(2, 6)}`,
+  const threads = src.threads.map((t) => ({
+    id: newId(),
     from: idMap.get(t.from) ?? t.from,
     to: idMap.get(t.to) ?? t.to,
   }));
@@ -318,103 +248,96 @@ export function reorderBoardTo(id: string, toIndex: number): void {
   persist();
 }
 
-export function updateBoardBgColor(color: Tone): void {
-  const idx = activeBoardIndex();
+export function updateBoardBgColor(boardId: string, color: Tone): void {
+  const idx = boardIndex(boardId);
   if (idx === -1) return;
   setStore("boards", idx, "bgColor", color);
   persist();
 }
 
-// ── thread CRUD (operates on active board) ──
+// ── thread CRUD ──
 
-export function addThread(from: string, to: string): void {
+export function addThread(boardId: string, from: string, to: string): void {
   if (from === to) return;
-  const boardIdx = activeBoardIndex();
+  const boardIdx = boardIndex(boardId);
   if (boardIdx === -1) return;
-  const existing = store.boards[boardIdx].threads;
+  const board = store.boards[boardIdx];
+  // both endpoints must live on THIS board — a connect drop can land on a note
+  // in another pane's board, which isn't a link (threads are intra-board)
+  const ids = new Set(board.stickies.map((s) => s.id));
+  if (!ids.has(from) || !ids.has(to)) return;
   // skip duplicates (either direction)
-  if (existing.some((t) => (t.from === from && t.to === to) || (t.from === to && t.to === from))) {
+  if (board.threads.some((t) => (t.from === from && t.to === to) || (t.from === to && t.to === from))) {
     return;
   }
   setStore("boards", boardIdx, "threads", (prev) => [
     ...prev,
-    { id: Date.now().toString(), from, to },
+    { id: newId(), from, to },
   ]);
   persist();
 }
 
-export function deleteThread(id: string): void {
-  const boardIdx = activeBoardIndex();
+export function deleteThread(boardId: string, id: string): void {
+  const boardIdx = boardIndex(boardId);
   if (boardIdx === -1) return;
   setStore("boards", boardIdx, "threads", (prev) => prev.filter((t) => t.id !== id));
   persist();
 }
 
-// ── sticky CRUD (operates on active board) ──
+// ── sticky CRUD ──
 
-const bringToFront = (stickyIdx: number) => {
-  const boardIdx = activeBoardIndex();
-  if (boardIdx === -1) return;
-  const sticky = store.boards[boardIdx].stickies[stickyIdx];
-  const rest = store.boards[boardIdx].stickies.filter((_, i) => i !== stickyIdx);
-  setStore("boards", boardIdx, "stickies", [...rest, sticky]);
-};
-
-// Discrete edit (title, color, content). Persists; does NOT reorder.
+// Discrete edit (color, content). Persists; does NOT reorder.
 export const updateStickyNote = (
-  index: number,
+  boardId: string,
+  stickyId: string,
   update: Partial<StickyNote>
 ) => {
-  const boardIdx = activeBoardIndex();
-  if (boardIdx === -1) return;
-  setStore("boards", boardIdx, "stickies", index, { ...update });
+  const [boardIdx, idx] = locate(boardId, stickyId);
+  if (idx === -1) return;
+  setStore("boards", boardIdx, "stickies", idx, { ...update });
   persist();
 };
 
 // Transient high-frequency updates (drag / resize). No reorder, no persist —
 // a single nested field write, so only the affected sticky re-renders. Call
 // commitStickies() once on pointer release to flush to localStorage.
-export const moveStickyNote = (index: number, position: [number, number]) => {
-  const boardIdx = activeBoardIndex();
-  if (boardIdx === -1) return;
-  setStore("boards", boardIdx, "stickies", index, "position", position);
+export const moveStickyNote = (boardId: string, stickyId: string, position: [number, number]) => {
+  const [boardIdx, idx] = locate(boardId, stickyId);
+  if (idx === -1) return;
+  setStore("boards", boardIdx, "stickies", idx, "position", position);
 };
 
-export const resizeStickyNote = (index: number, dimensions: [number, number]) => {
-  const boardIdx = activeBoardIndex();
-  if (boardIdx === -1) return;
-  setStore("boards", boardIdx, "stickies", index, "dimensions", dimensions);
+export const resizeStickyNote = (boardId: string, stickyId: string, dimensions: [number, number]) => {
+  const [boardIdx, idx] = locate(boardId, stickyId);
+  if (idx === -1) return;
+  setStore("boards", boardIdx, "stickies", idx, "dimensions", dimensions);
 };
 
 export const commitStickies = () => persist();
 
-// Raise to top of the z-order (by id) + persist. No-op if already on top.
-export const raiseStickyById = (id: string) => {
-  const boardIdx = activeBoardIndex();
-  if (boardIdx === -1) return;
-  const list = store.boards[boardIdx].stickies;
-  const idx = list.findIndex((s) => s.id === id);
-  if (idx === -1 || idx === list.length - 1) return;
-  bringToFront(idx);
+// One above the board's current top (z of the next note to stack on top).
+const nextZ = (boardIdx: number): number =>
+  store.boards[boardIdx].stickies.reduce((m, s) => Math.max(m, s.z), -1) + 1;
+
+// Raise to top of the z-order + persist. No-op if already on top.
+export const raiseSticky = (boardId: string, stickyId: string) => {
+  const [boardIdx, idx] = locate(boardId, stickyId);
+  if (idx === -1) return;
+  const top = nextZ(boardIdx) - 1;
+  if (store.boards[boardIdx].stickies[idx].z === top) return;
+  setStore("boards", boardIdx, "stickies", idx, "z", top + 1);
   persist();
 };
 
-export const deleteStickyNote = (index: number) => {
-  const boardIdx = activeBoardIndex();
-  if (boardIdx === -1) return;
-  const removed = store.boards[boardIdx].stickies[index];
-  setStore(
-    "boards",
-    boardIdx,
-    "stickies",
-    (prev) => prev.filter((_, i) => i !== index)
+export const deleteStickyNote = (boardId: string, stickyId: string) => {
+  const [boardIdx, idx] = locate(boardId, stickyId);
+  if (idx === -1) return;
+  const removed = store.boards[boardIdx].stickies[idx];
+  setStore("boards", boardIdx, "stickies", (prev) => prev.filter((s) => s.id !== stickyId));
+  setStore("boards", boardIdx, "threads", (prev) =>
+    prev.filter((t) => t.from !== stickyId && t.to !== stickyId)
   );
-  if (removed) {
-    setStore("boards", boardIdx, "threads", (prev) =>
-      prev.filter((t) => t.from !== removed.id && t.to !== removed.id)
-    );
-    if (removed.image) void deleteImage(removed.image.id); // free the blob
-  }
+  if (removed.image) void deleteImage(removed.image.id); // free the blob
   persist();
 };
 
@@ -433,7 +356,8 @@ export const moveStickyToBoard = (
   if (from === -1 || to === -1) return;
   const sticky = store.boards[from].stickies.find((s) => s.id === stickyId);
   if (!sticky) return;
-  const moved: StickyNote = { ...sticky, position: [topLeft.y, topLeft.x] };
+  // arrives on top of the TARGET board's stack
+  const moved: StickyNote = { ...sticky, position: [topLeft.y, topLeft.x], z: nextZ(to) };
   setStore("boards", from, "stickies", (prev) => prev.filter((s) => s.id !== stickyId));
   setStore("boards", from, "threads", (prev) =>
     prev.filter((t) => t.from !== stickyId && t.to !== stickyId)
@@ -442,8 +366,8 @@ export const moveStickyToBoard = (
   persist();
 };
 
-export const clearAllStickies = () => {
-  const boardIdx = activeBoardIndex();
+export const clearAllStickies = (boardId: string) => {
+  const boardIdx = boardIndex(boardId);
   if (boardIdx === -1) return;
   for (const s of store.boards[boardIdx].stickies) {
     if (s.image) void deleteImage(s.image.id); // free the blobs
@@ -453,38 +377,28 @@ export const clearAllStickies = () => {
   persist();
 };
 
-export const createStickyNote = (sticky: StickyNote) => {
-  const boardIdx = activeBoardIndex();
+// New notes always land on top — z is assigned here, never by the caller.
+export const createStickyNote = (boardId: string, sticky: Omit<StickyNote, "z">) => {
+  const boardIdx = boardIndex(boardId);
   if (boardIdx === -1) return;
-  setStore("boards", boardIdx, "stickies", (prev) => [...prev, sticky]);
+  const stacked: StickyNote = { ...sticky, z: nextZ(boardIdx) };
+  setStore("boards", boardIdx, "stickies", (prev) => [...prev, stacked]);
   persist();
 };
 
 // Duplicate a note beside itself (new id, offset down-right, top of the z-order).
 // Threads are NOT copied — a duplicate has no connections.
-export const duplicateStickyNote = (index: number) => {
-  const boardIdx = activeBoardIndex();
-  if (boardIdx === -1) return;
-  const src = store.boards[boardIdx].stickies[index];
-  if (!src) return;
+export const duplicateStickyNote = (boardId: string, stickyId: string) => {
+  const [boardIdx, idx] = locate(boardId, stickyId);
+  if (idx === -1) return;
+  const src = store.boards[boardIdx].stickies[idx];
   const clone: StickyNote = {
     ...src,
-    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    id: newId(),
     position: [src.position[0] + 24, src.position[1] + 24],
+    z: nextZ(boardIdx),
   };
   setStore("boards", boardIdx, "stickies", (prev) => [...prev, clone]);
   persist();
 };
 
-export const importStickies = (imported: StickyNote[]) => {
-  const boardIdx = activeBoardIndex();
-  if (boardIdx === -1) return;
-  const next = normalizeStickies(imported);
-  setStore("boards", boardIdx, "stickies", next);
-  setStore("boards", boardIdx, "threads", (prev) => normalizeThreads(prev, next));
-  persist();
-};
-
-export const exportStickies = (): string => {
-  return JSON.stringify(stickies(), null, 2);
-};

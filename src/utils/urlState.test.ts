@@ -14,8 +14,9 @@ const sample: Board = {
       dimensions: [300, 320],
       content: "<p>pack <strong>tent</strong></p>",
       color: "butter",
+      z: 0,
     },
-    { id: "s2", position: [40, 400], dimensions: [256, 320], content: "", color: "rose" },
+    { id: "s2", position: [40, 400], dimensions: [256, 320], content: "", color: "rose", z: 1 },
   ],
   threads: [{ id: "t1", from: "s1", to: "s2" }],
 };

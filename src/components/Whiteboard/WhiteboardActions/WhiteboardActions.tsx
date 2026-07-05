@@ -2,18 +2,18 @@ import { createSignal, Show } from "solid-js";
 import {
   clearAllStickies,
   createStickyNote,
-  activeBoard,
-  stickies,
   MIN_STICKY_WIDTH,
   MIN_STICKY_HEIGHT,
 } from "~/stores/stickyStore";
 import { copyShareUrl } from "~/utils/urlState";
+import { newId } from "~/utils/id";
 import { type Tone } from "~/utils/tones";
 import { TonePicker } from "~/components/TonePicker/TonePicker";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky, markStickyFresh } from "~/stores/uiStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { useViewport } from "~/stores/viewportStore";
+import { usePane } from "~/stores/paneContext";
 import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize, Trash2 } from "lucide-static";
 import "./whiteboard-actions.scss";
 
@@ -36,6 +36,7 @@ type WhiteboardActionsProps = {
 
 export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   const vp = useViewport();
+  const pane = usePane();
   // remember the last spawn so we only stagger when nothing has changed since
   let lastSpawn: { id: string; pos: [number, number]; px: number; py: number; z: number } | null = null;
 
@@ -45,7 +46,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       confirmText: "Clear all",
       danger: true,
     })) {
-      clearAllStickies();
+      clearAllStickies(pane.boardId());
     }
   };
 
@@ -68,7 +69,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     // previous note still exists, hasn't been moved, and the view hasn't
     // panned/zoomed. Otherwise drop the new note fresh under the "+".
     if (lastSpawn) {
-      const prev = stickies().find((s) => s.id === lastSpawn!.id);
+      const prev = pane.stickies().find((s) => s.id === lastSpawn!.id);
       const unmoved =
         prev &&
         prev.position[0] === lastSpawn.pos[0] &&
@@ -80,11 +81,11 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       }
     }
 
-    const id = Date.now().toString();
+    const id = newId();
     // BEFORE create: the new Sticky's onMount can flush synchronously inside
     // createStickyNote, so the fresh flag must already be set when it runs.
     markStickyFresh(id);
-    createStickyNote({
+    createStickyNote(pane.boardId(), {
       id,
       position,
       // never narrower than the editor toolbar
@@ -93,7 +94,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       color: "butter",
     });
     lastSpawn = { id, pos: position, px: p.x, py: p.y, z };
-    editSticky(id); // select + open the new note straight into the editor
+    editSticky(pane.boardId(), id); // select + open the new note straight into the editor
   };
 
   const [toast, setToast] = createSignal("");
@@ -104,7 +105,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   };
 
   const onShare = () => {
-    const board = activeBoard();
+    const board = pane.board();
     if (!board) return;
     copyShareUrl(board);
     showToast("Link copied to clipboard");
