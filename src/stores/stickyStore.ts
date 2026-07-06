@@ -35,12 +35,12 @@ export type { ImageRef, StickyNote, Thread, Board } from "~/domain/board";
 
 // ── CRDT layout ──
 // Board CONTENT is CRDT state: one Y.Doc per board (a board = a collab room).
-//   doc.getMap("meta")      { bgColor }
-//   doc.getMap("stickies")  id -> Y.Map of note fields  (per-FIELD last-write-wins)
-//   doc.getMap("threads")   id -> plain Thread          (immutable: add/remove only)
+//   meta      { init, bgColor }
+//   stickies  id -> Y.Map of note fields  (per-FIELD last-write-wins)
+//   threads   id -> plain Thread          (immutable: add/remove only)
 // The solid store below is a read-only PROJECTION of the docs — every consumer
-// keeps reading it reactively; every mutation writes the doc, and a doc observer
-// reconciles the projection. The board LIST (names, tab order, active id) is
+// keeps reading it reactively; every mutation writes the doc, and doc observers
+// update the projection. The board LIST (names, tab order, active id) is
 // local-only registry state, not shared: sharing hands over a board, not your
 // workspace.
 //
@@ -52,6 +52,53 @@ export type { ImageRef, StickyNote, Thread, Board } from "~/domain/board";
 const STORAGE_KEY = "stickies-boards";
 const LEGACY_KEY = "stickies-storage";
 const LEGACY_BG_KEY = "whiteboard-bg";
+
+// Names of the three shared maps inside every board doc.
+const STICKIES_MAP = "stickies";
+const THREADS_MAP = "threads";
+const META_MAP = "meta";
+
+// Meta keys. `init` marks a doc as seeded — hydration uses it to tell "empty
+// because never seeded" from "empty because the update log hasn't applied yet".
+const META_INIT = "init";
+const META_BG_COLOR = "bgColor";
+
+type NoteField = keyof StickyNote;
+type NoteFieldValue = StickyNote[NoteField];
+
+// A note inside a doc: its fields as a Y.Map, so concurrent edits to DIFFERENT
+// fields of one note both survive (per-field last-write-wins).
+type YNote = Y.Map<NoteFieldValue>;
+type MetaValue = boolean | Tone;
+
+const stickyMapOf = (doc: Y.Doc): Y.Map<YNote> => doc.getMap(STICKIES_MAP);
+const threadMapOf = (doc: Y.Doc): Y.Map<Thread> => doc.getMap(THREADS_MAP);
+const metaMapOf = (doc: Y.Doc): Y.Map<MetaValue> => doc.getMap(META_MAP);
+
+// Geometry is gesture-transient: the projection owns these two fields for a
+// note mid drag/resize (see dirtyGeometry), the doc gets them on commit.
+const GEOMETRY_FIELDS: ReadonlySet<string> = new Set([
+  "position",
+  "dimensions",
+] satisfies NoteField[]);
+
+// The one Yjs -> plain boundary. yjs types toJSON() as any; every write into a
+// YNote goes through typed helpers below, so its shape IS StickyNote.
+const noteFromY = (yNote: YNote): StickyNote => yNote.toJSON() as StickyNote;
+
+const noteToY = (note: StickyNote): YNote => {
+  const yNote: YNote = new Y.Map();
+  setYNoteFields(yNote, note);
+  return yNote;
+};
+
+const setYNoteFields = (yNote: YNote, fields: Partial<StickyNote>): void => {
+  // Object.keys forgets key types (TS limitation) — restore them here, once.
+  for (const field of Object.keys(fields) as NoteField[]) {
+    const value = fields[field];
+    if (value !== undefined) yNote.set(field, value);
+  }
+};
 
 type BoardStore = {
   boards: Board[];
@@ -66,91 +113,250 @@ const [store, setStore] = createStore<BoardStore>({
 const docs = new Map<string, Y.Doc>();
 
 // Sticky ids with UNCOMMITTED transient geometry (mid drag/resize), per board.
-// Their mirror position/dimensions are ahead of the doc until commitStickies().
+// Their projection position/dimensions are ahead of the doc until
+// commitStickies().
 const dirtyGeometry = new Map<string, Set<string>>();
 
 // Projection arrays are id-sorted: Y.Map has no order, so the array order of
 // `stickies`/`threads` carries NO meaning (stacking is the explicit z field).
-const byId = <T extends { id: string }>(a: T, b: T): number =>
-  a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-
-const yNote = (s: StickyNote): Y.Map<unknown> => {
-  const m = new Y.Map<unknown>();
-  for (const [k, v] of Object.entries(s)) {
-    if (v !== undefined) m.set(k, v);
-  }
-  return m;
+const byId = <T extends { id: string }>(left: T, right: T): number => {
+  if (left.id < right.id) return -1;
+  if (left.id > right.id) return 1;
+  return 0;
 };
 
-// Write a board's content into its doc. `init` marks the doc as seeded — the
-// projection sync is gated on it, and hydration uses it to tell "empty because
-// never seeded" from "empty because the stored update log hasn't applied yet".
+// Insert-or-replace by id, keeping the id-sorted order on insert.
+const upsertById = <T extends { id: string }>(
+  list: readonly T[],
+  item: T,
+): T[] => {
+  const at = list.findIndex((existing) => existing.id === item.id);
+  if (at === -1) return [...list, item].sort(byId);
+  return list.map((existing, index) => (index === at ? item : existing));
+};
+
+// Write a board's content into its doc (used for boards created this session
+// and for first-run seeding of never-persisted docs).
 const seedDoc = (doc: Y.Doc, board: Board): void => {
   doc.transact(() => {
-    const meta = doc.getMap("meta");
-    meta.set("init", true);
-    meta.set("bgColor", board.bgColor);
-    const sm = doc.getMap("stickies");
-    for (const s of board.stickies) sm.set(s.id, yNote(s));
-    const tm = doc.getMap("threads");
-    for (const t of board.threads) tm.set(t.id, t);
+    const meta = metaMapOf(doc);
+    meta.set(META_INIT, true);
+    meta.set(META_BG_COLOR, board.bgColor);
+    const stickyMap = stickyMapOf(doc);
+    for (const sticky of board.stickies) stickyMap.set(sticky.id, noteToY(sticky));
+    const threadMap = threadMapOf(doc);
+    for (const thread of board.threads) threadMap.set(thread.id, thread);
   });
 };
 
-// Rebuild one board's projection from its doc (fires after every transaction).
-// reconcile() keyed by id keeps unchanged notes referentially stable, so only
-// the touched notes re-render. Notes with in-flight transient geometry keep the
-// mirror's position/dimensions (the doc only has the last committed ones).
+// ── doc → projection binding ──
+// GRANULAR: Yjs events map to surgical projection writes — a field edit touches
+// one note's field, an add/remove touches one array entry. Never O(board) per
+// mutation (a full rebuild per keystroke/press was a felt lag regression).
+// The full rebuild (syncBoardFromDoc) survives only as the hydration true-up.
+
+// Keep a mid-gesture note's transient geometry: the projection is AHEAD of the
+// doc for dirty notes until commitStickies().
+const overlayDirtyGeometry = (
+  boardId: string,
+  boardIdx: number,
+  note: StickyNote,
+): StickyNote => {
+  if (!dirtyGeometry.get(boardId)?.has(note.id)) return note;
+  const projected = store.boards[boardIdx].stickies.find(
+    (sticky) => sticky.id === note.id,
+  );
+  if (!projected) return note;
+  return { ...note, position: projected.position, dimensions: projected.dimensions };
+};
+
+const upsertStickyInProjection = (
+  boardId: string,
+  boardIdx: number,
+  note: StickyNote,
+): void => {
+  const withGesture = overlayDirtyGeometry(boardId, boardIdx, note);
+  const at = store.boards[boardIdx].stickies.findIndex(
+    (sticky) => sticky.id === note.id,
+  );
+  if (at === -1) {
+    setStore("boards", boardIdx, "stickies", (existing) =>
+      [...existing, withGesture].sort(byId),
+    );
+  } else {
+    // reconcile keeps the existing object's identity — untouched fields don't re-render
+    setStore("boards", boardIdx, "stickies", at, reconcile(withGesture));
+  }
+};
+
+const removeStickyFromProjection = (boardIdx: number, stickyId: string): void => {
+  setStore("boards", boardIdx, "stickies", (existing) =>
+    existing.filter((sticky) => sticky.id !== stickyId),
+  );
+};
+
+// A note add/remove/replace on the stickies map itself.
+const applyStickyMapEvent = (
+  boardId: string,
+  boardIdx: number,
+  stickyMap: Y.Map<YNote>,
+  event: Y.YMapEvent<NoteFieldValue>,
+): void => {
+  event.changes.keys.forEach((change, stickyId) => {
+    if (change.action === "delete") {
+      removeStickyFromProjection(boardIdx, stickyId);
+      return;
+    }
+    const yNote = stickyMap.get(stickyId);
+    if (yNote) upsertStickyInProjection(boardId, boardIdx, noteFromY(yNote));
+  });
+};
+
+// Field changes on ONE note's map — the per-keystroke / per-press path.
+const applyNoteFieldEvent = (
+  boardId: string,
+  boardIdx: number,
+  event: Y.YMapEvent<NoteFieldValue>,
+): void => {
+  // the note's id is the map's key in its parent — the event path
+  const stickyId = String(event.path[0]);
+  const stickyIdx = store.boards[boardIdx].stickies.findIndex(
+    (sticky) => sticky.id === stickyId,
+  );
+  if (stickyIdx === -1) return;
+
+  const yNote = event.target;
+  const noteIsDirty = dirtyGeometry.get(boardId)?.has(stickyId) ?? false;
+  const changedFields: ReadonlySet<string> = event.keysChanged;
+
+  const patch: Partial<StickyNote> = {};
+  for (const field of changedFields) {
+    // projection is ahead of the doc on dirty geometry — don't snap it back
+    if (noteIsDirty && GEOMETRY_FIELDS.has(field)) continue;
+    // TS can't correlate a dynamic key with its value type — one localized cast
+    (patch as Record<string, NoteFieldValue | undefined>)[field] =
+      yNote.get(field);
+  }
+  setStore("boards", boardIdx, "stickies", stickyIdx, patch);
+};
+
+// observeDeep on the stickies map delivers a mixed batch: events on the map
+// itself (path []) and events on individual note maps (path [noteId]).
+const applyStickyEvents = (
+  boardId: string,
+  events: readonly Y.YMapEvent<NoteFieldValue>[],
+): void => {
+  const doc = docs.get(boardId);
+  const boardIdx = boardIndex(boardId);
+  if (!doc || boardIdx === -1) return;
+  const stickyMap = stickyMapOf(doc);
+
+  for (const event of events) {
+    if (event.path.length === 0) {
+      applyStickyMapEvent(boardId, boardIdx, stickyMap, event);
+    } else {
+      applyNoteFieldEvent(boardId, boardIdx, event);
+    }
+  }
+};
+
+const applyThreadEvent = (boardId: string, event: Y.YMapEvent<Thread>): void => {
+  const doc = docs.get(boardId);
+  const boardIdx = boardIndex(boardId);
+  if (!doc || boardIdx === -1) return;
+  const threadMap = threadMapOf(doc);
+
+  event.changes.keys.forEach((change, threadId) => {
+    if (change.action === "delete") {
+      setStore("boards", boardIdx, "threads", (existing) =>
+        existing.filter((thread) => thread.id !== threadId),
+      );
+      return;
+    }
+    const thread = threadMap.get(threadId);
+    if (!thread) return;
+    setStore("boards", boardIdx, "threads", (existing) =>
+      upsertById(existing, thread),
+    );
+  });
+};
+
+const applyMetaEvent = (boardId: string): void => {
+  const doc = docs.get(boardId);
+  const boardIdx = boardIndex(boardId);
+  if (!doc || boardIdx === -1) return;
+  setStore(
+    "boards",
+    boardIdx,
+    "bgColor",
+    asTone(metaMapOf(doc).get(META_BG_COLOR)),
+  );
+};
+
+// One-time true-up: full rebuild of a board's projection from its doc. Used at
+// the IDB hydration boundary — granular events during the stored-log apply
+// can't express "this JSON-snapshot note was deleted in doc history" (no event
+// fires for it), so the boundary reconciles wholesale once.
 const syncBoardFromDoc = (boardId: string): void => {
   const doc = docs.get(boardId);
-  const idx = boardIndex(boardId);
-  if (!doc || idx === -1) return;
+  const boardIdx = boardIndex(boardId);
+  if (!doc || boardIdx === -1) return;
   // Not seeded yet (IDB hydration in flight): the projection still carries the
   // JSON-snapshot content — syncing now would wipe it with an empty doc.
-  if (!doc.getMap("meta").get("init")) return;
-
-  const dirty = dirtyGeometry.get(boardId);
-  const current = new Map(store.boards[idx].stickies.map((s) => [s.id, s]));
+  if (!metaMapOf(doc).get(META_INIT)) return;
 
   const stickies: StickyNote[] = [];
-  doc.getMap("stickies").forEach((yn, id) => {
-    const s = (yn as Y.Map<unknown>).toJSON() as StickyNote;
-    const cur = dirty?.has(id) ? current.get(id) : undefined;
-    if (cur) {
-      s.position = cur.position;
-      s.dimensions = cur.dimensions;
-    }
-    stickies.push(s);
+  stickyMapOf(doc).forEach((yNote) => {
+    stickies.push(overlayDirtyGeometry(boardId, boardIdx, noteFromY(yNote)));
   });
   stickies.sort(byId);
 
-  const threads = (Object.values(doc.getMap("threads").toJSON()) as Thread[]).sort(byId);
+  const threads: Thread[] = [];
+  threadMapOf(doc).forEach((thread) => {
+    threads.push(thread);
+  });
+  threads.sort(byId);
 
-  setStore("boards", idx, "stickies", reconcile(stickies, { key: "id" }));
-  setStore("boards", idx, "threads", reconcile(threads, { key: "id" }));
-  setStore("boards", idx, "bgColor", asTone(doc.getMap("meta").get("bgColor")));
+  setStore("boards", boardIdx, "stickies", reconcile(stickies, { key: "id" }));
+  setStore("boards", boardIdx, "threads", reconcile(threads, { key: "id" }));
+  setStore(
+    "boards",
+    boardIdx,
+    "bgColor",
+    asTone(metaMapOf(doc).get(META_BG_COLOR)),
+  );
 };
 
 const installDoc = (boardId: string, doc: Y.Doc): void => {
   docs.set(boardId, doc);
-  doc.on("update", () => syncBoardFromDoc(boardId));
+  stickyMapOf(doc).observeDeep((events) =>
+    // yjs types the batch as YEvent[]; every node in this map-of-maps subtree
+    // is a Y.Map, so the events are all YMapEvents
+    applyStickyEvents(boardId, events as Y.YMapEvent<NoteFieldValue>[]),
+  );
+  threadMapOf(doc).observe((event) => applyThreadEvent(boardId, event));
+  metaMapOf(doc).observe(() => applyMetaEvent(boardId));
 };
 
-const appendProjection = (board: Board): void => {
-  setStore("boards", (prev) => [
-    ...prev,
-    { ...board, stickies: [...board.stickies].sort(byId), threads: [...board.threads].sort(byId) },
+const appendToProjection = (board: Board): void => {
+  setStore("boards", (existing) => [
+    ...existing,
+    {
+      ...board,
+      stickies: [...board.stickies].sort(byId),
+      threads: [...board.threads].sort(byId),
+    },
   ]);
 };
 
 // Bring a NEW board (created/duplicated/imported this session) into the store:
-// seed its doc, attach observer + persistence, add to the projection.
+// seed its doc, attach observers + persistence, add to the projection.
 const registerBoard = (board: Board, activate: boolean): void => {
   const doc = new Y.Doc();
   seedDoc(doc, board);
   installDoc(board.id, doc);
   attachDocPersistence(board.id, doc);
-  appendProjection(board);
+  appendToProjection(board);
   if (activate) setStore("activeBoardId", board.id);
 };
 
@@ -166,11 +372,11 @@ const hydrateBoard = (board: Board): void => {
   installDoc(board.id, doc);
   if (canPersistDocs) {
     attachDocPersistence(board.id, doc, () => {
-      if (!doc.getMap("meta").get("init")) seedDoc(doc, board);
+      if (!metaMapOf(doc).get(META_INIT)) seedDoc(doc, board);
       else syncBoardFromDoc(board.id);
     });
   }
-  appendProjection(board);
+  appendToProjection(board);
 };
 
 const dropBoardDoc = (boardId: string): void => {
@@ -180,12 +386,12 @@ const dropBoardDoc = (boardId: string): void => {
   dirtyGeometry.delete(boardId);
 };
 
-// Run `fn` in a transaction on the board's doc; the observer syncs the
+// Run `mutate` in a transaction on the board's doc; observers update the
 // projection synchronously before this returns. False if the board is gone.
-const transact = (boardId: string, fn: (doc: Y.Doc) => void): boolean => {
+const transact = (boardId: string, mutate: (doc: Y.Doc) => void): boolean => {
   const doc = docs.get(boardId);
   if (!doc || boardIndex(boardId) === -1) return false;
-  doc.transact(() => fn(doc));
+  doc.transact(() => mutate(doc));
   return true;
 };
 
@@ -202,7 +408,10 @@ const writeNow = () => {
   persistTimer = undefined;
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify({ boards: store.boards, activeBoardId: store.activeBoardId })
+    JSON.stringify({
+      boards: store.boards,
+      activeBoardId: store.activeBoardId,
+    }),
   );
 };
 
@@ -232,6 +441,7 @@ if (typeof window !== "undefined") {
 function migrateLegacy(): Board | null {
   const raw = localStorage.getItem(LEGACY_KEY);
   if (!raw) return null;
+  // JSON.parse is untyped; this cast states the legacy persisted format
   const stickies = normalizeStickies(JSON.parse(raw) as StickyNote[]);
   const bgColor = asTone(localStorage.getItem(LEGACY_BG_KEY));
   localStorage.removeItem(LEGACY_KEY);
@@ -241,19 +451,21 @@ function migrateLegacy(): Board | null {
 
 export function loadBoards(): void {
   // reset (tests / re-entry): drop every doc and start from persisted state
-  for (const id of [...docs.keys()]) dropBoardDoc(id);
+  for (const boardId of [...docs.keys()]) dropBoardDoc(boardId);
   setStore({ boards: [], activeBoardId: "" });
 
   // 1. load existing boards from localStorage (or migrate / bootstrap)
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
-    const data = JSON.parse(raw) as BoardStore;
-    for (const b of data.boards) hydrateBoard(normalizeBoard(b));
+    // JSON.parse is untyped; this cast states the persisted snapshot format
+    const snapshot = JSON.parse(raw) as BoardStore;
+    for (const board of snapshot.boards) hydrateBoard(normalizeBoard(board));
+    const activeIsLive = store.boards.some(
+      (board) => board.id === snapshot.activeBoardId,
+    );
     setStore(
       "activeBoardId",
-      store.boards.some((b) => b.id === data.activeBoardId)
-        ? data.activeBoardId
-        : store.boards[0]?.id ?? ""
+      activeIsLive ? snapshot.activeBoardId : (store.boards[0]?.id ?? ""),
     );
   } else {
     const legacy = migrateLegacy();
@@ -265,14 +477,17 @@ export function loadBoards(): void {
   if (shared) {
     // auto-name with the import date (no prompt); rename via the tab if wanted
     const stamp = new Date().toLocaleDateString();
-    const name = deduplicateName(`${shared.name} (imported ${stamp})`, store.boards);
+    const name = deduplicateName(
+      `${shared.name} (imported ${stamp})`,
+      store.boards,
+    );
 
     const sharedStickies = normalizeStickies(shared.stickies);
     const board = makeBoard(
       name,
       sharedStickies,
       asTone(shared.bgColor),
-      normalizeThreads(shared.threads, sharedStickies)
+      normalizeThreads(shared.threads, sharedStickies),
     );
     registerBoard(board, true);
     clearHash();
@@ -290,17 +505,20 @@ export const activeBoardId = () => store.activeBoardId;
 // active board". The active board is a UI concept (focused pane's board, tabs);
 // collab mutations must name their target, since "active" doesn't exist remotely.
 const boardIndex = (boardId: string): number =>
-  store.boards.findIndex((b) => b.id === boardId);
+  store.boards.findIndex((board) => board.id === boardId);
 
-// (boardId, stickyId) -> [boardIdx, stickyIdx], [-1, -1]-ish when either is gone.
+// (boardId, stickyId) -> [boardIdx, stickyIdx]; stickyIdx is -1 when either is gone.
 const locate = (boardId: string, stickyId: string): [number, number] => {
-  const b = boardIndex(boardId);
-  if (b === -1) return [-1, -1];
-  return [b, store.boards[b].stickies.findIndex((s) => s.id === stickyId)];
+  const boardIdx = boardIndex(boardId);
+  if (boardIdx === -1) return [-1, -1];
+  const stickyIdx = store.boards[boardIdx].stickies.findIndex(
+    (sticky) => sticky.id === stickyId,
+  );
+  return [boardIdx, stickyIdx];
 };
 
 export const activeBoard = (): Board | undefined =>
-  store.boards.find((b) => b.id === store.activeBoardId);
+  store.boards.find((board) => board.id === store.activeBoardId);
 
 export const stickies = (): StickyNote[] => activeBoard()?.stickies ?? [];
 export const threads = (): Thread[] => activeBoard()?.threads ?? [];
@@ -322,24 +540,26 @@ export function createBoard(name?: string): string {
 // (so the copy is fully independent) + threads with endpoints remapped + bg color.
 // Returns the new board's id (null if the source is gone).
 export function duplicateBoard(id: string): string | null {
-  const src = store.boards.find((b) => b.id === id);
-  if (!src) return null;
-  const idMap = new Map<string, string>();
-  const stickies = src.stickies.map((s) => {
-    const nid = newId();
-    idMap.set(s.id, nid);
-    return { ...s, id: nid };
+  const source = store.boards.find((board) => board.id === id);
+  if (!source) return null;
+
+  const cloneIdByOriginal = new Map<string, string>();
+  const stickies = source.stickies.map((sticky) => {
+    const cloneId = newId();
+    cloneIdByOriginal.set(sticky.id, cloneId);
+    return { ...sticky, id: cloneId };
   });
-  const threads = src.threads.map((t) => ({
+  const threads = source.threads.map((thread) => ({
     id: newId(),
-    from: idMap.get(t.from) ?? t.from,
-    to: idMap.get(t.to) ?? t.to,
+    from: cloneIdByOriginal.get(thread.from) ?? thread.from,
+    to: cloneIdByOriginal.get(thread.to) ?? thread.to,
   }));
+
   const board = makeBoard(
-    deduplicateName(`${src.name} (copy)`, store.boards),
+    deduplicateName(`${source.name} (copy)`, store.boards),
     stickies,
-    src.bgColor,
-    threads
+    source.bgColor,
+    threads,
   );
   registerBoard(board, true);
   persist();
@@ -347,34 +567,34 @@ export function duplicateBoard(id: string): string | null {
 }
 
 export function deleteBoard(id: string): void {
-  const idx = store.boards.findIndex((b) => b.id === id);
-  if (idx === -1) return;
+  const boardIdx = boardIndex(id);
+  if (boardIdx === -1) return;
 
-  for (const s of store.boards[idx].stickies) {
-    if (s.image) void deleteImage(s.image.id); // free this board's blobs
+  for (const sticky of store.boards[boardIdx].stickies) {
+    if (sticky.image) void deleteImage(sticky.image.id); // free this board's blobs
   }
   clearDocPersistence(id); // drop the stored update log with the board
   dropBoardDoc(id);
-  setStore("boards", (prev) => prev.filter((b) => b.id !== id));
+  setStore("boards", (existing) => existing.filter((board) => board.id !== id));
 
   // if we deleted the active board, switch to a neighbour (or none if empty)
   if (store.activeBoardId === id) {
-    const next = store.boards[Math.min(idx, store.boards.length - 1)];
-    setStore("activeBoardId", next ? next.id : "");
+    const neighbour = store.boards[Math.min(boardIdx, store.boards.length - 1)];
+    setStore("activeBoardId", neighbour ? neighbour.id : "");
   }
   persist();
 }
 
 export function renameBoard(id: string, name: string): void {
-  const idx = store.boards.findIndex((b) => b.id === id);
-  if (idx === -1) return;
-  const others = store.boards.filter((b) => b.id !== id);
-  setStore("boards", idx, "name", deduplicateName(name, others));
+  const boardIdx = boardIndex(id);
+  if (boardIdx === -1) return;
+  const others = store.boards.filter((board) => board.id !== id);
+  setStore("boards", boardIdx, "name", deduplicateName(name, others));
   persist();
 }
 
 export function switchBoard(id: string): void {
-  if (store.boards.some((b) => b.id === id)) {
+  if (store.boards.some((board) => board.id === id)) {
     setStore("activeBoardId", id);
     persist();
   }
@@ -382,31 +602,37 @@ export function switchBoard(id: string): void {
 
 // Move board `fromId` to the slot of `targetId` (drag-reorder of tabs).
 export function reorderBoards(fromId: string, targetId: string): void {
-  const from = store.boards.findIndex((b) => b.id === fromId);
-  const to = store.boards.findIndex((b) => b.id === targetId);
+  const from = boardIndex(fromId);
+  const to = boardIndex(targetId);
   if (from === -1 || to === -1 || from === to) return;
-  const next = [...store.boards];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
-  setStore("boards", next);
+  const reordered = [...store.boards];
+  const [moved] = reordered.splice(from, 1);
+  reordered.splice(to, 0, moved);
+  setStore("boards", reordered);
   persist();
 }
 
 // Move board `id` to `toIndex` in the array AFTER it's removed (0..length-1). Used by
 // the tab sortable, which commits the final position once on drop.
 export function reorderBoardTo(id: string, toIndex: number): void {
-  const from = store.boards.findIndex((b) => b.id === id);
+  const from = boardIndex(id);
   if (from === -1) return;
-  const next = [...store.boards];
-  const [moved] = next.splice(from, 1);
-  next.splice(Math.max(0, Math.min(toIndex, next.length)), 0, moved);
-  if (next.every((b, i) => b.id === store.boards[i].id)) return; // no change
-  setStore("boards", next);
+  const reordered = [...store.boards];
+  const [moved] = reordered.splice(from, 1);
+  reordered.splice(Math.max(0, Math.min(toIndex, reordered.length)), 0, moved);
+  const unchanged = reordered.every(
+    (board, index) => board.id === store.boards[index].id,
+  );
+  if (unchanged) return;
+  setStore("boards", reordered);
   persist();
 }
 
 export function updateBoardBgColor(boardId: string, color: Tone): void {
-  if (transact(boardId, (doc) => doc.getMap("meta").set("bgColor", color))) persist();
+  const changed = transact(boardId, (doc) =>
+    metaMapOf(doc).set(META_BG_COLOR, color),
+  );
+  if (changed) persist();
 }
 
 // ── thread CRUD ──
@@ -416,41 +642,69 @@ export function addThread(boardId: string, from: string, to: string): void {
   const boardIdx = boardIndex(boardId);
   if (boardIdx === -1) return;
   const board = store.boards[boardIdx];
+
   // both endpoints must live on THIS board — a connect drop can land on a note
   // in another pane's board, which isn't a link (threads are intra-board)
-  const ids = new Set(board.stickies.map((s) => s.id));
-  if (!ids.has(from) || !ids.has(to)) return;
+  const noteIds = new Set(board.stickies.map((sticky) => sticky.id));
+  if (!noteIds.has(from) || !noteIds.has(to)) return;
+
   // skip duplicates (either direction)
-  if (board.threads.some((t) => (t.from === from && t.to === to) || (t.from === to && t.to === from))) {
-    return;
-  }
-  const id = newId();
-  if (transact(boardId, (doc) => doc.getMap("threads").set(id, { id, from, to }))) persist();
+  const duplicate = board.threads.some(
+    (thread) =>
+      (thread.from === from && thread.to === to) ||
+      (thread.from === to && thread.to === from),
+  );
+  if (duplicate) return;
+
+  const threadId = newId();
+  const changed = transact(boardId, (doc) =>
+    threadMapOf(doc).set(threadId, { id: threadId, from, to }),
+  );
+  if (changed) persist();
 }
 
 export function deleteThread(boardId: string, id: string): void {
-  if (transact(boardId, (doc) => doc.getMap("threads").delete(id))) persist();
+  const changed = transact(boardId, (doc) => threadMapOf(doc).delete(id));
+  if (changed) persist();
 }
 
 // ── sticky CRUD ──
 
-// Set `update`'s fields on the note's Y.Map — field-level writes, so concurrent
-// edits to DIFFERENT fields of one note both survive (per-field LWW).
-const setNoteFields = (doc: Y.Doc, stickyId: string, update: Partial<StickyNote>): void => {
-  const yn = doc.getMap("stickies").get(stickyId) as Y.Map<unknown> | undefined;
-  if (!yn) return;
-  for (const [k, v] of Object.entries(update)) {
-    if (v !== undefined) yn.set(k, v);
-  }
+// Set `update`'s fields on the note's Y.Map — field-level writes keep the
+// per-field last-write-wins granularity.
+const setNoteFieldsInDoc = (
+  doc: Y.Doc,
+  stickyId: string,
+  update: Partial<StickyNote>,
+): void => {
+  const yNote = stickyMapOf(doc).get(stickyId);
+  if (yNote) setYNoteFields(yNote, update);
+};
+
+// Remove a note from its doc along with every thread touching it (threads are
+// intra-board; a note's links die with it).
+const deleteNoteFromDoc = (doc: Y.Doc, stickyId: string): void => {
+  stickyMapOf(doc).delete(stickyId);
+  const threadMap = threadMapOf(doc);
+  const touching: string[] = [];
+  threadMap.forEach((thread, threadId) => {
+    if (thread.from === stickyId || thread.to === stickyId) {
+      touching.push(threadId);
+    }
+  });
+  for (const threadId of touching) threadMap.delete(threadId);
 };
 
 // Discrete edit (color, content). Persists; does NOT reorder.
 export const updateStickyNote = (
   boardId: string,
   stickyId: string,
-  update: Partial<StickyNote>
+  update: Partial<StickyNote>,
 ) => {
-  if (transact(boardId, (doc) => setNoteFields(doc, stickyId, update))) persist();
+  const changed = transact(boardId, (doc) =>
+    setNoteFieldsInDoc(doc, stickyId, update),
+  );
+  if (changed) persist();
 };
 
 // Transient high-frequency updates (drag / resize). PROJECTION-only writes — no
@@ -458,40 +712,56 @@ export const updateStickyNote = (
 // The note is marked geometry-dirty; commitStickies() (pointer release) writes
 // the final geometry into the doc. (Once live, a throttle will also flush
 // mid-drag so remote peers see the motion.)
-const markDirty = (boardId: string, stickyId: string): void => {
-  let set = dirtyGeometry.get(boardId);
-  if (!set) dirtyGeometry.set(boardId, (set = new Set()));
-  set.add(stickyId);
+const markGeometryDirty = (boardId: string, stickyId: string): void => {
+  let dirtyIds = dirtyGeometry.get(boardId);
+  if (!dirtyIds) {
+    dirtyIds = new Set();
+    dirtyGeometry.set(boardId, dirtyIds);
+  }
+  dirtyIds.add(stickyId);
 };
 
-export const moveStickyNote = (boardId: string, stickyId: string, position: [number, number]) => {
-  const [boardIdx, idx] = locate(boardId, stickyId);
-  if (idx === -1) return;
-  markDirty(boardId, stickyId);
-  setStore("boards", boardIdx, "stickies", idx, "position", position);
+export const moveStickyNote = (
+  boardId: string,
+  stickyId: string,
+  position: [number, number],
+) => {
+  const [boardIdx, stickyIdx] = locate(boardId, stickyId);
+  if (stickyIdx === -1) return;
+  markGeometryDirty(boardId, stickyId);
+  setStore("boards", boardIdx, "stickies", stickyIdx, "position", position);
 };
 
-export const resizeStickyNote = (boardId: string, stickyId: string, dimensions: [number, number]) => {
-  const [boardIdx, idx] = locate(boardId, stickyId);
-  if (idx === -1) return;
-  markDirty(boardId, stickyId);
-  setStore("boards", boardIdx, "stickies", idx, "dimensions", dimensions);
+export const resizeStickyNote = (
+  boardId: string,
+  stickyId: string,
+  dimensions: [number, number],
+) => {
+  const [boardIdx, stickyIdx] = locate(boardId, stickyId);
+  if (stickyIdx === -1) return;
+  markGeometryDirty(boardId, stickyId);
+  setStore("boards", boardIdx, "stickies", stickyIdx, "dimensions", dimensions);
 };
 
 // Flush every note's transient geometry into its board's doc (one transaction
 // per board), then persist. Called once on pointer release.
 export const commitStickies = () => {
-  for (const [boardId, ids] of [...dirtyGeometry]) {
+  for (const [boardId, dirtyIds] of [...dirtyGeometry]) {
     const boardIdx = boardIndex(boardId);
-    const pending =
+    const pendingNotes =
       boardIdx === -1
         ? []
-        : store.boards[boardIdx].stickies.filter((s) => ids.has(s.id));
+        : store.boards[boardIdx].stickies.filter((sticky) =>
+            dirtyIds.has(sticky.id),
+          );
     dirtyGeometry.delete(boardId); // clear FIRST so the sync reads the doc's values
-    if (pending.length === 0) continue;
+    if (pendingNotes.length === 0) continue;
     transact(boardId, (doc) => {
-      for (const s of pending) {
-        setNoteFields(doc, s.id, { position: s.position, dimensions: s.dimensions });
+      for (const note of pendingNotes) {
+        setNoteFieldsInDoc(doc, note.id, {
+          position: note.position,
+          dimensions: note.dimensions,
+        });
       }
     });
   }
@@ -499,30 +769,32 @@ export const commitStickies = () => {
 };
 
 // One above the board's current top (z of the next note to stack on top).
-const nextZ = (boardIdx: number): number =>
-  store.boards[boardIdx].stickies.reduce((m, s) => Math.max(m, s.z), -1) + 1;
+const nextZ = (boardIdx: number): number => {
+  const highest = store.boards[boardIdx].stickies.reduce(
+    (top, sticky) => Math.max(top, sticky.z),
+    -1,
+  );
+  return highest + 1;
+};
 
 // Raise to top of the z-order + persist. No-op if already on top.
 export const raiseSticky = (boardId: string, stickyId: string) => {
-  const [boardIdx, idx] = locate(boardId, stickyId);
-  if (idx === -1) return;
-  const top = nextZ(boardIdx) - 1;
-  if (store.boards[boardIdx].stickies[idx].z === top) return;
-  if (transact(boardId, (doc) => setNoteFields(doc, stickyId, { z: top + 1 }))) persist();
+  const [boardIdx, stickyIdx] = locate(boardId, stickyId);
+  if (stickyIdx === -1) return;
+  const topZ = nextZ(boardIdx) - 1;
+  if (store.boards[boardIdx].stickies[stickyIdx].z === topZ) return;
+  const changed = transact(boardId, (doc) =>
+    setNoteFieldsInDoc(doc, stickyId, { z: topZ + 1 }),
+  );
+  if (changed) persist();
 };
 
 export const deleteStickyNote = (boardId: string, stickyId: string) => {
-  const [boardIdx, idx] = locate(boardId, stickyId);
-  if (idx === -1) return;
-  const removed = store.boards[boardIdx].stickies[idx];
+  const [boardIdx, stickyIdx] = locate(boardId, stickyId);
+  if (stickyIdx === -1) return;
+  const removed = store.boards[boardIdx].stickies[stickyIdx];
   dirtyGeometry.get(boardId)?.delete(stickyId);
-  transact(boardId, (doc) => {
-    doc.getMap("stickies").delete(stickyId);
-    const tm = doc.getMap("threads");
-    for (const [tid, t] of Object.entries(tm.toJSON() as Record<string, Thread>)) {
-      if (t.from === stickyId || t.to === stickyId) tm.delete(tid);
-    }
-  });
+  transact(boardId, (doc) => deleteNoteFromDoc(doc, stickyId));
   if (removed.image) void deleteImage(removed.image.id); // free the blob
   persist();
 };
@@ -535,63 +807,71 @@ export const moveStickyToBoard = (
   stickyId: string,
   fromBoardId: string,
   toBoardId: string,
-  topLeft: { x: number; y: number } // the note's top-left in the target board's world
+  topLeft: { x: number; y: number }, // the note's top-left in the target board's world
 ) => {
   if (fromBoardId === toBoardId) return;
-  const to = boardIndex(toBoardId);
-  const sticky = store.boards[boardIndex(fromBoardId)]?.stickies.find((s) => s.id === stickyId);
-  if (!sticky || to === -1) return;
+  const targetBoardIdx = boardIndex(toBoardId);
+  const sourceBoardIdx = boardIndex(fromBoardId);
+  if (targetBoardIdx === -1 || sourceBoardIdx === -1) return;
+  const note = store.boards[sourceBoardIdx].stickies.find(
+    (sticky) => sticky.id === stickyId,
+  );
+  if (!note) return;
+
   // arrives on top of the TARGET board's stack
-  const moved: StickyNote = { ...sticky, position: [topLeft.y, topLeft.x], z: nextZ(to) };
+  const moved: StickyNote = {
+    ...note,
+    position: [topLeft.y, topLeft.x],
+    z: nextZ(targetBoardIdx),
+  };
   dirtyGeometry.get(fromBoardId)?.delete(stickyId);
-  transact(toBoardId, (doc) => doc.getMap("stickies").set(moved.id, yNote(moved)));
-  transact(fromBoardId, (doc) => {
-    doc.getMap("stickies").delete(stickyId);
-    const tm = doc.getMap("threads");
-    for (const [tid, t] of Object.entries(tm.toJSON() as Record<string, Thread>)) {
-      if (t.from === stickyId || t.to === stickyId) tm.delete(tid);
-    }
-  });
+  transact(toBoardId, (doc) => stickyMapOf(doc).set(moved.id, noteToY(moved)));
+  transact(fromBoardId, (doc) => deleteNoteFromDoc(doc, stickyId));
   persist();
 };
 
 export const clearAllStickies = (boardId: string) => {
   const boardIdx = boardIndex(boardId);
   if (boardIdx === -1) return;
-  for (const s of store.boards[boardIdx].stickies) {
-    if (s.image) void deleteImage(s.image.id); // free the blobs
+  for (const sticky of store.boards[boardIdx].stickies) {
+    if (sticky.image) void deleteImage(sticky.image.id); // free the blobs
   }
   dirtyGeometry.delete(boardId);
   transact(boardId, (doc) => {
-    doc.getMap("stickies").clear();
-    doc.getMap("threads").clear();
+    stickyMapOf(doc).clear();
+    threadMapOf(doc).clear();
   });
   persist();
 };
 
 // New notes always land on top — z is assigned here, never by the caller.
-export const createStickyNote = (boardId: string, sticky: Omit<StickyNote, "z">) => {
+export const createStickyNote = (
+  boardId: string,
+  sticky: Omit<StickyNote, "z">,
+) => {
   const boardIdx = boardIndex(boardId);
   if (boardIdx === -1) return;
   const stacked: StickyNote = { ...sticky, z: nextZ(boardIdx) };
-  if (transact(boardId, (doc) => doc.getMap("stickies").set(stacked.id, yNote(stacked)))) {
-    persist();
-  }
+  const changed = transact(boardId, (doc) =>
+    stickyMapOf(doc).set(stacked.id, noteToY(stacked)),
+  );
+  if (changed) persist();
 };
 
 // Duplicate a note beside itself (new id, offset down-right, top of the z-order).
 // Threads are NOT copied — a duplicate has no connections.
 export const duplicateStickyNote = (boardId: string, stickyId: string) => {
-  const [boardIdx, idx] = locate(boardId, stickyId);
-  if (idx === -1) return;
-  const src = store.boards[boardIdx].stickies[idx];
+  const [boardIdx, stickyIdx] = locate(boardId, stickyId);
+  if (stickyIdx === -1) return;
+  const source = store.boards[boardIdx].stickies[stickyIdx];
   const clone: StickyNote = {
-    ...src,
+    ...source,
     id: newId(),
-    position: [src.position[0] + 24, src.position[1] + 24],
+    position: [source.position[0] + 24, source.position[1] + 24],
     z: nextZ(boardIdx),
   };
-  if (transact(boardId, (doc) => doc.getMap("stickies").set(clone.id, yNote(clone)))) {
-    persist();
-  }
+  const changed = transact(boardId, (doc) =>
+    stickyMapOf(doc).set(clone.id, noteToY(clone)),
+  );
+  if (changed) persist();
 };

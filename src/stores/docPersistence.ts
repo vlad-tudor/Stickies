@@ -11,7 +11,6 @@ const DB_PREFIX = "stickies-doc-";
 // Whether doc persistence is available here. When false (tests), the store
 // seeds docs from the JSON snapshot instead of hydrating from IndexedDB.
 export const canPersistDocs = typeof indexedDB !== "undefined";
-const canPersist = canPersistDocs;
 
 const providers = new Map<string, IndexeddbPersistence>();
 
@@ -23,10 +22,10 @@ export function attachDocPersistence(
   doc: Y.Doc,
   onSynced?: () => void
 ): void {
-  if (!canPersist || providers.has(boardId)) return;
-  const p = new IndexeddbPersistence(`${DB_PREFIX}${boardId}`, doc);
-  providers.set(boardId, p);
-  if (onSynced) p.once("synced", onSynced);
+  if (!canPersistDocs || providers.has(boardId)) return;
+  const provider = new IndexeddbPersistence(`${DB_PREFIX}${boardId}`, doc);
+  providers.set(boardId, provider);
+  if (onSynced) provider.once("synced", onSynced);
 }
 
 // Detach without touching stored data (doc teardown on reload/reset).
@@ -37,11 +36,11 @@ export function detachDocPersistence(boardId: string): void {
 
 // Detach AND delete the stored update log (board deletion).
 export function clearDocPersistence(boardId: string): void {
-  const p = providers.get(boardId);
+  const provider = providers.get(boardId);
   providers.delete(boardId);
-  if (p) {
-    void p.clearData(); // also destroys the provider
-  } else if (canPersist) {
+  if (provider) {
+    void provider.clearData(); // also destroys the provider
+  } else if (canPersistDocs) {
     // board wasn't hydrated this session (defensive) — drop the DB directly
     indexedDB.deleteDatabase(`${DB_PREFIX}${boardId}`);
   }
