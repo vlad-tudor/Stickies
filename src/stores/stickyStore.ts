@@ -1,5 +1,11 @@
 import { createStore, reconcile } from "solid-js/store";
 import * as Y from "yjs";
+import {
+  attachDocPersistence,
+  detachDocPersistence,
+  clearDocPersistence,
+  canPersistDocs,
+} from "~/stores/docPersistence";
 import { readBoardFromHash, clearHash } from "~/utils/urlState";
 import { deleteImage } from "~/utils/imageStore";
 import { newId } from "~/utils/id";
@@ -38,8 +44,10 @@ export type { ImageRef, StickyNote, Thread, Board } from "~/domain/board";
 // local-only registry state, not shared: sharing hands over a board, not your
 // workspace.
 //
-// No provider is wired yet (local-only step). The y-websocket relay client and
-// y-indexeddb attach to these same docs later without touching the mutations.
+// Docs persist their update logs via y-indexeddb (docPersistence) so a reload
+// resumes the SAME CRDT history — required for sessions to reconnect and merge.
+// No provider is wired yet; the y-websocket relay client attaches to these same
+// docs later without touching the mutations.
 
 const STORAGE_KEY = "stickies-boards";
 const LEGACY_KEY = "stickies-storage";
@@ -74,16 +82,19 @@ const yNote = (s: StickyNote): Y.Map<unknown> => {
   return m;
 };
 
-const docFromBoard = (board: Board): Y.Doc => {
-  const doc = new Y.Doc();
+// Write a board's content into its doc. `init` marks the doc as seeded — the
+// projection sync is gated on it, and hydration uses it to tell "empty because
+// never seeded" from "empty because the stored update log hasn't applied yet".
+const seedDoc = (doc: Y.Doc, board: Board): void => {
   doc.transact(() => {
-    doc.getMap("meta").set("bgColor", board.bgColor);
+    const meta = doc.getMap("meta");
+    meta.set("init", true);
+    meta.set("bgColor", board.bgColor);
     const sm = doc.getMap("stickies");
     for (const s of board.stickies) sm.set(s.id, yNote(s));
     const tm = doc.getMap("threads");
     for (const t of board.threads) tm.set(t.id, t);
   });
-  return doc;
 };
 
 // Rebuild one board's projection from its doc (fires after every transaction).
@@ -94,6 +105,9 @@ const syncBoardFromDoc = (boardId: string): void => {
   const doc = docs.get(boardId);
   const idx = boardIndex(boardId);
   if (!doc || idx === -1) return;
+  // Not seeded yet (IDB hydration in flight): the projection still carries the
+  // JSON-snapshot content — syncing now would wipe it with an empty doc.
+  if (!doc.getMap("meta").get("init")) return;
 
   const dirty = dirtyGeometry.get(boardId);
   const current = new Map(store.boards[idx].stickies.map((s) => [s.id, s]));
@@ -117,20 +131,50 @@ const syncBoardFromDoc = (boardId: string): void => {
   setStore("boards", idx, "bgColor", asTone(doc.getMap("meta").get("bgColor")));
 };
 
-// Create the doc for a (normalized) board, attach its projection observer, and
-// add it to the registry/projection. The one entry point for new boards.
-const registerBoard = (board: Board, activate: boolean): void => {
-  const doc = docFromBoard(board);
-  docs.set(board.id, doc);
-  doc.on("update", () => syncBoardFromDoc(board.id));
+const installDoc = (boardId: string, doc: Y.Doc): void => {
+  docs.set(boardId, doc);
+  doc.on("update", () => syncBoardFromDoc(boardId));
+};
+
+const appendProjection = (board: Board): void => {
   setStore("boards", (prev) => [
     ...prev,
     { ...board, stickies: [...board.stickies].sort(byId), threads: [...board.threads].sort(byId) },
   ]);
+};
+
+// Bring a NEW board (created/duplicated/imported this session) into the store:
+// seed its doc, attach observer + persistence, add to the projection.
+const registerBoard = (board: Board, activate: boolean): void => {
+  const doc = new Y.Doc();
+  seedDoc(doc, board);
+  installDoc(board.id, doc);
+  attachDocPersistence(board.id, doc);
+  appendProjection(board);
   if (activate) setStore("activeBoardId", board.id);
 };
 
+// Bring an EXISTING board (from the JSON snapshot) back at load time. With IDB
+// available, its doc hydrates from the stored update log — resuming the same
+// CRDT history — and the JSON content only SEEDS docs that were never persisted
+// (first run after this feature, or a wiped IDB). The projection shows the JSON
+// content immediately either way; once hydrated, the doc state reconciles over
+// it. Without IDB (tests), the doc is seeded from JSON synchronously, as before.
+const hydrateBoard = (board: Board): void => {
+  const doc = new Y.Doc();
+  if (!canPersistDocs) seedDoc(doc, board);
+  installDoc(board.id, doc);
+  if (canPersistDocs) {
+    attachDocPersistence(board.id, doc, () => {
+      if (!doc.getMap("meta").get("init")) seedDoc(doc, board);
+      else syncBoardFromDoc(board.id);
+    });
+  }
+  appendProjection(board);
+};
+
 const dropBoardDoc = (boardId: string): void => {
+  detachDocPersistence(boardId);
   docs.get(boardId)?.destroy();
   docs.delete(boardId);
   dirtyGeometry.delete(boardId);
@@ -145,11 +189,11 @@ const transact = (boardId: string, fn: (doc: Y.Doc) => void): boolean => {
   return true;
 };
 
-// ── persistence ──
-// A JSON snapshot of the projection, same format as ever (boards + active id) —
-// existing data loads unchanged, and boards() keeps feeding share URLs. Once the
-// provider lands, doc persistence moves to y-indexeddb (update history survives
-// offline edits); this snapshot then only carries the registry.
+// ── persistence (JSON snapshot) ──
+// A JSON snapshot of the projection, same format as ever (boards + active id).
+// It carries the registry (names/order/active), seeds docs that IndexedDB has
+// no update log for (first run, wiped IDB, tests), and keeps a human-shaped
+// copy of the data. Board CONTENT truth after hydration is the docs (IDB).
 
 let persistTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -204,7 +248,7 @@ export function loadBoards(): void {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
     const data = JSON.parse(raw) as BoardStore;
-    for (const b of data.boards) registerBoard(normalizeBoard(b), false);
+    for (const b of data.boards) hydrateBoard(normalizeBoard(b));
     setStore(
       "activeBoardId",
       store.boards.some((b) => b.id === data.activeBoardId)
@@ -309,6 +353,7 @@ export function deleteBoard(id: string): void {
   for (const s of store.boards[idx].stickies) {
     if (s.image) void deleteImage(s.image.id); // free this board's blobs
   }
+  clearDocPersistence(id); // drop the stored update log with the board
   dropBoardDoc(id);
   setStore("boards", (prev) => prev.filter((b) => b.id !== id));
 
