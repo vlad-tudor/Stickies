@@ -1,5 +1,5 @@
 import { createMemo, For } from "solid-js";
-import { useViewport } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/workspace/viewportStore";
 
 import "./board-rulers.scss";
 

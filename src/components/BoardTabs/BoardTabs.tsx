@@ -16,7 +16,7 @@ import {
   dropBoardIntoPane,
   boardDrag,
   zoneAt,
-} from "~/stores/paneLayoutStore";
+} from "~/stores/workspace/paneLayoutStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { Pencil, CopyPlus } from "lucide-static";
 import "./board-tabs.scss";

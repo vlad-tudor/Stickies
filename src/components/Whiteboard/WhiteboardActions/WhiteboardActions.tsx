@@ -12,8 +12,8 @@ import { TonePicker } from "~/components/TonePicker/TonePicker";
 import { theme, toggleTheme } from "~/stores/themeStore";
 import { editSticky, markStickyFresh } from "~/stores/uiStore";
 import { confirmDialog } from "~/stores/dialogStore";
-import { useViewport } from "~/stores/viewportStore";
-import { usePane } from "~/stores/paneContext";
+import { useViewport } from "~/stores/workspace/viewportStore";
+import { usePane } from "~/stores/workspace/paneContext";
 import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize, Trash2 } from "lucide-static";
 import "./whiteboard-actions.scss";
 

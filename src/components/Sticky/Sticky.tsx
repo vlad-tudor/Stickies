@@ -21,9 +21,9 @@ import {
   setPendingThread,
   takeStickyFresh,
 } from "~/stores/uiStore";
-import { useViewport } from "~/stores/viewportStore";
-import { usePane } from "~/stores/paneContext";
-import { startStickyDrag, updateStickyDrag, dropSticky } from "~/stores/paneLayoutStore";
+import { useViewport } from "~/stores/workspace/viewportStore";
+import { usePane } from "~/stores/workspace/paneContext";
+import { startStickyDrag, updateStickyDrag, dropSticky } from "~/stores/workspace/paneLayoutStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { toneVar } from "~/utils/tones";
 

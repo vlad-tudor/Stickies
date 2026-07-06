@@ -1,5 +1,5 @@
 import { useDrag } from "~/hooks/useDrag";
-import { useViewport } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/workspace/viewportStore";
 import { MIN_STICKY_WIDTH, MIN_STICKY_HEIGHT } from "~/stores/stickyStore";
 import "./sticky-resize.scss";
 

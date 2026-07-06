@@ -4,7 +4,7 @@ import {
   detachDocPersistence,
   clearDocPersistence,
   canPersistDocs,
-} from "~/stores/docPersistence";
+} from "~/stores/board/docPersistence";
 import { readBoardFromHash, clearHash } from "~/utils/urlState";
 import { deleteImage } from "~/utils/imageStore";
 import { newId } from "~/utils/id";

@@ -1,6 +1,6 @@
 import { createMemo, For, Show } from "solid-js";
 import { threadAnchor, type StickyNote } from "~/stores/stickyStore";
-import { usePane } from "~/stores/paneContext";
+import { usePane } from "~/stores/workspace/paneContext";
 import { pendingThread, selectedThread, setSelectedThread, isInteracting } from "~/stores/uiStore";
 
 const VIEW = 32000; // half-span of the svg coord area (matches the grid)

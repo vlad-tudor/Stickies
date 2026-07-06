@@ -1,7 +1,7 @@
 import { createMemo, For } from "solid-js";
 import { stickyCenter } from "~/stores/stickyStore";
-import { usePane } from "~/stores/paneContext";
-import { useViewport } from "~/stores/viewportStore";
+import { usePane } from "~/stores/workspace/paneContext";
+import { useViewport } from "~/stores/workspace/viewportStore";
 import { isInteracting } from "~/stores/uiStore";
 import { toneVar, type Tone } from "~/utils/tones";
 import { ChevronRight } from "lucide-static";

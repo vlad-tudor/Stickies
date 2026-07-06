@@ -13,14 +13,14 @@ import {
   ViewportProvider,
   registerViewport,
   unregisterViewport,
-} from "~/stores/viewportStore";
-import { createPane, PaneProvider } from "~/stores/paneContext";
+} from "~/stores/workspace/viewportStore";
+import { createPane, PaneProvider } from "~/stores/workspace/paneContext";
 import {
   showBoardInFocusedPane,
   boardDrag,
   stickyDrag,
   type Rect,
-} from "~/stores/paneLayoutStore";
+} from "~/stores/workspace/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
 
 type PaneProps = {

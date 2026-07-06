@@ -8,7 +8,7 @@ import { StickyColorInput } from "../Sticky/StickyColorInput/StickyColorInput";
 import { activeBoard, boards, createBoard, loadBoards } from "~/stores/stickyStore";
 import { beginInteraction, endInteraction } from "~/stores/uiStore";
 import { theme } from "~/stores/themeStore";
-import { getViewport } from "~/stores/viewportStore";
+import { getViewport } from "~/stores/workspace/viewportStore";
 import {
   panes,
   layout,
@@ -24,7 +24,7 @@ import {
   stickyDrag,
   type Divider,
   type Rect,
-} from "~/stores/paneLayoutStore";
+} from "~/stores/workspace/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
 
 import "./whiteboard.scss";

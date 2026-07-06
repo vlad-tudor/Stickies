@@ -1,8 +1,9 @@
 import { createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
+import { createDebouncedWrite } from "~/utils/debouncedWrite";
 import { activeBoardId, switchBoard, moveStickyToBoard, boards } from "~/stores/stickyStore";
 import { exitEditing } from "~/stores/uiStore";
-import { getViewport } from "~/stores/viewportStore";
+import { getViewport } from "~/stores/workspace/viewportStore";
 import type { Tone } from "~/utils/tones";
 
 // Split-view layout. Two parts kept deliberately separate:
@@ -138,36 +139,24 @@ export function findSplit(node: LayoutNode | null, sid: string): SplitNode | nul
 
 const LAYOUT_KEY = "stickies.layout";
 
-let layoutTimer: ReturnType<typeof setTimeout> | undefined;
-const writeLayoutNow = (): void => {
-  if (layoutTimer) clearTimeout(layoutTimer);
-  layoutTimer = undefined;
-  const root = layout();
-  if (!root) {
-    localStorage.removeItem(LAYOUT_KEY);
-    return;
-  }
-  localStorage.setItem(
-    LAYOUT_KEY,
-    JSON.stringify({ panes: [...panes], layout: root, focusedPaneId: focusedPaneId() })
-  );
-};
+// Debounced (per-frame divider drags coalesce); flushed on page hide like the
+// board snapshot.
+const layoutSnapshot = createDebouncedWrite(
+  () => {
+    const root = layout();
+    if (!root) {
+      localStorage.removeItem(LAYOUT_KEY);
+      return;
+    }
+    localStorage.setItem(
+      LAYOUT_KEY,
+      JSON.stringify({ panes: [...panes], layout: root, focusedPaneId: focusedPaneId() })
+    );
+  },
+  { flushOnPageHide: true },
+);
 
-// Debounced (per-frame divider drags coalesce); flushed on page hide like stickyStore.
-const persistLayout = (): void => {
-  if (layoutTimer) clearTimeout(layoutTimer);
-  layoutTimer = setTimeout(writeLayoutNow, 250);
-};
-
-if (typeof window !== "undefined") {
-  const flush = () => {
-    if (layoutTimer) writeLayoutNow();
-  };
-  window.addEventListener("pagehide", flush);
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") flush();
-  });
-}
+const persistLayout = layoutSnapshot.schedule;
 
 // Highest numeric id suffix across the restored panes + split nodes — so the `seq`
 // counter resumes ABOVE everything restored and new ids never collide with old ones.

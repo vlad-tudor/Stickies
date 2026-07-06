@@ -7,6 +7,7 @@ import {
 } from "solid-js";
 import { animate, type JSAnimation } from "animejs";
 import { MOTION } from "~/utils/motion";
+import { createDebouncedWrite } from "~/utils/debouncedWrite";
 import { beginInteraction, endInteraction } from "~/stores/uiStore";
 
 // Board pan/zoom. Applied as a single transform on a viewport wrapper:
@@ -26,6 +27,10 @@ const MAX_ZOOM = 2;
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 const CHROME_TOP = 76; // tab + actions bars cover the top; fit frames below them
+
+// View persistence settles later than the store default: pan writes on every
+// frame of a glide, so give gestures room to finish.
+const VIEW_PERSIST_DELAY_MS = 300;
 
 export type Point = { x: number; y: number };
 
@@ -75,19 +80,25 @@ export function createViewport(
   const [isPinching, setIsPinching] = createSignal(false);
 
   // persist on settle (debounced) — pan changes every drag frame, so never write
-  // synchronously per frame.
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  createEffect(() => {
-    const p = pan();
-    const z = zoom();
-    clearTimeout(timer);
-    timer = setTimeout(() => {
+  // synchronously per frame. Per-viewport writer, no page-hide flush: a stale
+  // view is harmless, and per-pane window listeners would leak.
+  const saveView = createDebouncedWrite(
+    () => {
       try {
-        localStorage.setItem(persistKey, JSON.stringify({ pan: p, zoom: z }));
+        localStorage.setItem(
+          persistKey,
+          JSON.stringify({ pan: pan(), zoom: zoom() }),
+        );
       } catch {
         /* ignore quota / private-mode failures */
       }
-    }, 300);
+    },
+    { delayMs: VIEW_PERSIST_DELAY_MS },
+  );
+  createEffect(() => {
+    pan();
+    zoom();
+    saveView.schedule();
   });
 
   // A view tween in flight (centering / fit / reset). Any direct user gesture cancels

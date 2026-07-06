@@ -7,7 +7,7 @@ import {
   deleteStickyNote,
   duplicateStickyNote,
 } from "~/stores/stickyStore";
-import { usePane } from "~/stores/paneContext";
+import { usePane } from "~/stores/workspace/paneContext";
 import { Sticky } from "../Sticky/Sticky";
 
 export const RenderStickies = () => {
