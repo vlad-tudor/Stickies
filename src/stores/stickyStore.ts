@@ -53,15 +53,50 @@ const STORAGE_KEY = "stickies-boards";
 const LEGACY_KEY = "stickies-storage";
 const LEGACY_BG_KEY = "whiteboard-bg";
 
-// Names of the three shared maps inside every board doc.
-const STICKIES_MAP = "stickies";
-const THREADS_MAP = "threads";
-const META_MAP = "meta";
+// ── string keys, grouped ──
 
-// Meta keys. `init` marks a doc as seeded — hydration uses it to tell "empty
-// because never seeded" from "empty because the update log hasn't applied yet".
-const META_INIT = "init";
-const META_BG_COLOR = "bgColor";
+// Named maps inside every board doc (the CRDT side).
+const DocMap = {
+  Stickies: "stickies",
+  Threads: "threads",
+  Meta: "meta",
+} as const;
+
+// Keys inside a doc's meta map. `Init` marks a doc as seeded — hydration uses
+// it to tell "empty because never seeded" from "empty because the update log
+// hasn't applied yet".
+const MetaKey = {
+  Init: "init",
+  BgColor: "bgColor",
+} as const;
+
+// Solid-store path segments (the projection side), compile-checked against the
+// model types (`satisfies`) so they can't drift from the fields they name.
+const StoreKey = {
+  Boards: "boards",
+  ActiveBoardId: "activeBoardId",
+} as const satisfies Record<string, keyof BoardStore>;
+
+const BoardKey = {
+  Name: "name",
+  Stickies: "stickies",
+  Threads: "threads",
+  BgColor: "bgColor",
+} as const satisfies Record<string, keyof Board>;
+
+const NoteKey = {
+  Position: "position",
+  Dimensions: "dimensions",
+  Z: "z",
+} as const satisfies Record<string, keyof StickyNote>;
+
+// Yjs map-event actions (`change.action`); the union mirrors yjs's own —
+// it doesn't export the type, but `satisfies` breaks if the values drift.
+const YAction = {
+  Add: "add",
+  Update: "update",
+  Delete: "delete",
+} as const satisfies Record<string, "add" | "update" | "delete">;
 
 type NoteField = keyof StickyNote;
 type NoteFieldValue = StickyNote[NoteField];
@@ -71,16 +106,16 @@ type NoteFieldValue = StickyNote[NoteField];
 type YNote = Y.Map<NoteFieldValue>;
 type MetaValue = boolean | Tone;
 
-const stickyMapOf = (doc: Y.Doc): Y.Map<YNote> => doc.getMap(STICKIES_MAP);
-const threadMapOf = (doc: Y.Doc): Y.Map<Thread> => doc.getMap(THREADS_MAP);
-const metaMapOf = (doc: Y.Doc): Y.Map<MetaValue> => doc.getMap(META_MAP);
+const stickyMapOf = (doc: Y.Doc): Y.Map<YNote> => doc.getMap(DocMap.Stickies);
+const threadMapOf = (doc: Y.Doc): Y.Map<Thread> => doc.getMap(DocMap.Threads);
+const metaMapOf = (doc: Y.Doc): Y.Map<MetaValue> => doc.getMap(DocMap.Meta);
 
 // Geometry is gesture-transient: the projection owns these two fields for a
 // note mid drag/resize (see dirtyGeometry), the doc gets them on commit.
 const GEOMETRY_FIELDS: ReadonlySet<string> = new Set([
-  "position",
-  "dimensions",
-] satisfies NoteField[]);
+  NoteKey.Position,
+  NoteKey.Dimensions,
+]);
 
 // The one Yjs -> plain boundary. yjs types toJSON() as any; every write into a
 // YNote goes through typed helpers below, so its shape IS StickyNote.
@@ -140,8 +175,8 @@ const upsertById = <T extends { id: string }>(
 const seedDoc = (doc: Y.Doc, board: Board): void => {
   doc.transact(() => {
     const meta = metaMapOf(doc);
-    meta.set(META_INIT, true);
-    meta.set(META_BG_COLOR, board.bgColor);
+    meta.set(MetaKey.Init, true);
+    meta.set(MetaKey.BgColor, board.bgColor);
     const stickyMap = stickyMapOf(doc);
     for (const sticky of board.stickies) stickyMap.set(sticky.id, noteToY(sticky));
     const threadMap = threadMapOf(doc);
@@ -180,17 +215,17 @@ const upsertStickyInProjection = (
     (sticky) => sticky.id === note.id,
   );
   if (at === -1) {
-    setStore("boards", boardIdx, "stickies", (existing) =>
+    setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, (existing) =>
       [...existing, withGesture].sort(byId),
     );
   } else {
     // reconcile keeps the existing object's identity — untouched fields don't re-render
-    setStore("boards", boardIdx, "stickies", at, reconcile(withGesture));
+    setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, at, reconcile(withGesture));
   }
 };
 
 const removeStickyFromProjection = (boardIdx: number, stickyId: string): void => {
-  setStore("boards", boardIdx, "stickies", (existing) =>
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, (existing) =>
     existing.filter((sticky) => sticky.id !== stickyId),
   );
 };
@@ -203,7 +238,7 @@ const applyStickyMapEvent = (
   event: Y.YMapEvent<NoteFieldValue>,
 ): void => {
   event.changes.keys.forEach((change, stickyId) => {
-    if (change.action === "delete") {
+    if (change.action === YAction.Delete) {
       removeStickyFromProjection(boardIdx, stickyId);
       return;
     }
@@ -237,7 +272,7 @@ const applyNoteFieldEvent = (
     (patch as Record<string, NoteFieldValue | undefined>)[field] =
       yNote.get(field);
   }
-  setStore("boards", boardIdx, "stickies", stickyIdx, patch);
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, stickyIdx, patch);
 };
 
 // observeDeep on the stickies map delivers a mixed batch: events on the map
@@ -267,15 +302,15 @@ const applyThreadEvent = (boardId: string, event: Y.YMapEvent<Thread>): void => 
   const threadMap = threadMapOf(doc);
 
   event.changes.keys.forEach((change, threadId) => {
-    if (change.action === "delete") {
-      setStore("boards", boardIdx, "threads", (existing) =>
+    if (change.action === YAction.Delete) {
+      setStore(StoreKey.Boards, boardIdx, BoardKey.Threads, (existing) =>
         existing.filter((thread) => thread.id !== threadId),
       );
       return;
     }
     const thread = threadMap.get(threadId);
     if (!thread) return;
-    setStore("boards", boardIdx, "threads", (existing) =>
+    setStore(StoreKey.Boards, boardIdx, BoardKey.Threads, (existing) =>
       upsertById(existing, thread),
     );
   });
@@ -286,10 +321,10 @@ const applyMetaEvent = (boardId: string): void => {
   const boardIdx = boardIndex(boardId);
   if (!doc || boardIdx === -1) return;
   setStore(
-    "boards",
+    StoreKey.Boards,
     boardIdx,
-    "bgColor",
-    asTone(metaMapOf(doc).get(META_BG_COLOR)),
+    BoardKey.BgColor,
+    asTone(metaMapOf(doc).get(MetaKey.BgColor)),
   );
 };
 
@@ -303,7 +338,7 @@ const syncBoardFromDoc = (boardId: string): void => {
   if (!doc || boardIdx === -1) return;
   // Not seeded yet (IDB hydration in flight): the projection still carries the
   // JSON-snapshot content — syncing now would wipe it with an empty doc.
-  if (!metaMapOf(doc).get(META_INIT)) return;
+  if (!metaMapOf(doc).get(MetaKey.Init)) return;
 
   const stickies: StickyNote[] = [];
   stickyMapOf(doc).forEach((yNote) => {
@@ -317,13 +352,13 @@ const syncBoardFromDoc = (boardId: string): void => {
   });
   threads.sort(byId);
 
-  setStore("boards", boardIdx, "stickies", reconcile(stickies, { key: "id" }));
-  setStore("boards", boardIdx, "threads", reconcile(threads, { key: "id" }));
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, reconcile(stickies, { key: "id" }));
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Threads, reconcile(threads, { key: "id" }));
   setStore(
-    "boards",
+    StoreKey.Boards,
     boardIdx,
-    "bgColor",
-    asTone(metaMapOf(doc).get(META_BG_COLOR)),
+    BoardKey.BgColor,
+    asTone(metaMapOf(doc).get(MetaKey.BgColor)),
   );
 };
 
@@ -339,7 +374,7 @@ const installDoc = (boardId: string, doc: Y.Doc): void => {
 };
 
 const appendToProjection = (board: Board): void => {
-  setStore("boards", (existing) => [
+  setStore(StoreKey.Boards, (existing) => [
     ...existing,
     {
       ...board,
@@ -357,7 +392,7 @@ const registerBoard = (board: Board, activate: boolean): void => {
   installDoc(board.id, doc);
   attachDocPersistence(board.id, doc);
   appendToProjection(board);
-  if (activate) setStore("activeBoardId", board.id);
+  if (activate) setStore(StoreKey.ActiveBoardId, board.id);
 };
 
 // Bring an EXISTING board (from the JSON snapshot) back at load time. With IDB
@@ -372,7 +407,7 @@ const hydrateBoard = (board: Board): void => {
   installDoc(board.id, doc);
   if (canPersistDocs) {
     attachDocPersistence(board.id, doc, () => {
-      if (!metaMapOf(doc).get(META_INIT)) seedDoc(doc, board);
+      if (!metaMapOf(doc).get(MetaKey.Init)) seedDoc(doc, board);
       else syncBoardFromDoc(board.id);
     });
   }
@@ -464,7 +499,7 @@ export function loadBoards(): void {
       (board) => board.id === snapshot.activeBoardId,
     );
     setStore(
-      "activeBoardId",
+      StoreKey.ActiveBoardId,
       activeIsLive ? snapshot.activeBoardId : (store.boards[0]?.id ?? ""),
     );
   } else {
@@ -575,12 +610,12 @@ export function deleteBoard(id: string): void {
   }
   clearDocPersistence(id); // drop the stored update log with the board
   dropBoardDoc(id);
-  setStore("boards", (existing) => existing.filter((board) => board.id !== id));
+  setStore(StoreKey.Boards, (existing) => existing.filter((board) => board.id !== id));
 
   // if we deleted the active board, switch to a neighbour (or none if empty)
   if (store.activeBoardId === id) {
     const neighbour = store.boards[Math.min(boardIdx, store.boards.length - 1)];
-    setStore("activeBoardId", neighbour ? neighbour.id : "");
+    setStore(StoreKey.ActiveBoardId, neighbour ? neighbour.id : "");
   }
   persist();
 }
@@ -589,13 +624,13 @@ export function renameBoard(id: string, name: string): void {
   const boardIdx = boardIndex(id);
   if (boardIdx === -1) return;
   const others = store.boards.filter((board) => board.id !== id);
-  setStore("boards", boardIdx, "name", deduplicateName(name, others));
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Name, deduplicateName(name, others));
   persist();
 }
 
 export function switchBoard(id: string): void {
   if (store.boards.some((board) => board.id === id)) {
-    setStore("activeBoardId", id);
+    setStore(StoreKey.ActiveBoardId, id);
     persist();
   }
 }
@@ -608,7 +643,7 @@ export function reorderBoards(fromId: string, targetId: string): void {
   const reordered = [...store.boards];
   const [moved] = reordered.splice(from, 1);
   reordered.splice(to, 0, moved);
-  setStore("boards", reordered);
+  setStore(StoreKey.Boards, reordered);
   persist();
 }
 
@@ -624,13 +659,13 @@ export function reorderBoardTo(id: string, toIndex: number): void {
     (board, index) => board.id === store.boards[index].id,
   );
   if (unchanged) return;
-  setStore("boards", reordered);
+  setStore(StoreKey.Boards, reordered);
   persist();
 }
 
 export function updateBoardBgColor(boardId: string, color: Tone): void {
   const changed = transact(boardId, (doc) =>
-    metaMapOf(doc).set(META_BG_COLOR, color),
+    metaMapOf(doc).set(MetaKey.BgColor, color),
   );
   if (changed) persist();
 }
@@ -729,7 +764,7 @@ export const moveStickyNote = (
   const [boardIdx, stickyIdx] = locate(boardId, stickyId);
   if (stickyIdx === -1) return;
   markGeometryDirty(boardId, stickyId);
-  setStore("boards", boardIdx, "stickies", stickyIdx, "position", position);
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, stickyIdx, NoteKey.Position, position);
 };
 
 export const resizeStickyNote = (
@@ -740,7 +775,7 @@ export const resizeStickyNote = (
   const [boardIdx, stickyIdx] = locate(boardId, stickyId);
   if (stickyIdx === -1) return;
   markGeometryDirty(boardId, stickyId);
-  setStore("boards", boardIdx, "stickies", stickyIdx, "dimensions", dimensions);
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, stickyIdx, NoteKey.Dimensions, dimensions);
 };
 
 // Flush every note's transient geometry into its board's doc (one transaction
