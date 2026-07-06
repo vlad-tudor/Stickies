@@ -1,8 +1,9 @@
-// Behavioral contract of the board store — the semantics the Yjs/CRDT rewrite
-// (Phase 7) must preserve. Tests go through the exported store fns only (the
-// same funnel the rewrite swaps out) and assert observable state, not
-// implementation. Where a representation is known to change (z-order = array
-// order today), the test is named for the BEHAVIOR.
+// Behavioral contract of the board store — written pre-CRDT, now guarding the
+// Yjs-backed rewrite. Tests go through the exported store fns only and assert
+// observable state, not implementation. The `stickies`/`threads` array order
+// carries NO meaning (id-sorted projection of Y.Maps) — stacking is the z field;
+// assertions locate notes by id/content, never by index (single-element reads
+// aside).
 import { test, expect, describe } from "bun:test";
 import {
   loadBoards,
@@ -249,15 +250,16 @@ describe("board CRUD", () => {
     expect(copy.name).toBe("A (copy)");
     expect(activeBoardId()).toBe(copyId!);
     expect(copy.stickies.length).toBe(2);
-    // fresh ids, same content/geometry
-    expect(copy.stickies[0].id).not.toBe("s1");
-    expect(copy.stickies[1].id).not.toBe("s2");
-    expect(copy.stickies[0].content).toBe("<p>one</p>");
-    expect(copy.stickies[0].position).toEqual([5, 6]);
+    // fresh ids, same content/geometry (find clones by content — order is id-sorted)
+    const cloneOne = copy.stickies.find((s) => s.content === "<p>one</p>")!;
+    const cloneTwo = copy.stickies.find((s) => s.content === "<p>two</p>")!;
+    expect(cloneOne.id).not.toBe("s1");
+    expect(cloneTwo.id).not.toBe("s2");
+    expect(cloneOne.position).toEqual([5, 6]);
     // thread endpoints remapped onto the clones
     expect(copy.threads.length).toBe(1);
-    expect(copy.threads[0].from).toBe(copy.stickies[0].id);
-    expect(copy.threads[0].to).toBe(copy.stickies[1].id);
+    expect(copy.threads[0].from).toBe(cloneOne.id);
+    expect(copy.threads[0].to).toBe(cloneTwo.id);
     // source untouched
     const src = boards().find((b) => b.id === "a")!;
     expect(src.stickies.map((s) => s.id)).toEqual(["s1", "s2"]);
@@ -391,10 +393,12 @@ describe("sticky CRUD", () => {
     addThread(bid, "a", "b");
     duplicateStickyNote(bid, "a");
     expect(stickies().length).toBe(3);
-    const clone = stickies()[2]; // appended on top
-    expect(clone.id).not.toBe("a");
+    // NB: array order carries no meaning (id-sorted projection) — find the clone
+    const clone = stickies().find((s) => s.id !== "a" && s.id !== "b")!;
+    expect(clone).toBeDefined();
     expect(clone.content).toBe("<p>x</p>");
     expect(clone.position).toEqual([34, 44]); // +24, +24
+    expect(topNote().id).toBe(clone.id); // lands on top
     expect(threads().length).toBe(1); // the clone has no connections
   });
 
