@@ -5,7 +5,14 @@ import { StickyMarkdown } from "../Sticky/StickyMarkdown/StickyMarkdown";
 import { StickyImage } from "../Sticky/StickyImage/StickyImage";
 import { StickyDeleteButton } from "../Sticky/StickyDeleteButton/StickyDeleteButton";
 import { StickyColorInput } from "../Sticky/StickyColorInput/StickyColorInput";
-import { activeBoard, boards, createBoard, loadBoards } from "~/stores/stickyStore";
+import {
+  activeBoard,
+  boards,
+  createBoard,
+  loadBoards,
+  joinSessionFromHash,
+  resumeSessions,
+} from "~/stores/stickyStore";
 import { beginInteraction, endInteraction } from "~/stores/uiStore";
 import { theme } from "~/stores/themeStore";
 import { getViewport } from "~/stores/workspace/viewportStore";
@@ -19,6 +26,7 @@ import {
   resizeSplit,
   ensurePanes,
   reconcilePanes,
+  showBoardInFocusedPane,
   computeLayout,
   findSplit,
   stickyDrag,
@@ -41,6 +49,12 @@ export const Whiteboard = () => {
   onMount(() => {
     loadBoards();
     ensurePanes();
+
+    // a #join=<room> link binds a new local board to that live session; show
+    // it in the focused pane. Then reconnect any sessions from last run.
+    const joinedBoardId = joinSessionFromHash();
+    if (joinedBoardId) showBoardInFocusedPane(joinedBoardId);
+    resumeSessions();
 
     // Two-finger gestures are board pinch — stop the browser from also scrolling
     // note content underneath. Global (page-level).

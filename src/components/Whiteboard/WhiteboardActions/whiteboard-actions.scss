@@ -83,12 +83,24 @@
   .export-stickies,
   .import-stickies,
   .share-board,
+  .go-live,
   .theme-toggle,
   .split-pane,
   .split-pane-down,
   .close-pane {
     padding: 0.4rem;
     svg { width: 100%; height: 100%; }
+  }
+
+  // live session: the radio icon turns thread-red while connected
+  .go-live.live svg {
+    stroke: var(--thread);
+  }
+  .live-count {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--thread);
+    align-self: center;
   }
 
   // pane controls (zoom + split/close) sit at the right end
