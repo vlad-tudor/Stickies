@@ -15,7 +15,7 @@ export type Pane = {
 };
 
 export function createPane(boardId: Accessor<string>, focused: Accessor<boolean>): Pane {
-  const board = () => boards().find((b) => b.id === boardId());
+  const board = () => boards().find((candidate) => candidate.id === boardId());
   return {
     boardId,
     board,

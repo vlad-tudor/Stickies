@@ -9,7 +9,7 @@ import { copyShareUrl } from "~/utils/urlState";
 import { newId } from "~/utils/id";
 import { type Tone } from "~/utils/tones";
 import { TonePicker } from "~/components/TonePicker/TonePicker";
-import { theme, toggleTheme } from "~/stores/themeStore";
+import { theme, toggleTheme, Theme } from "~/stores/themeStore";
 import { editSticky, markStickyFresh } from "~/stores/uiStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { useViewport } from "~/stores/workspace/viewportStore";
@@ -51,12 +51,6 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   };
 
   const onStickyCreate = () => {
-    /**
-     * @todo move sticky creation to the store.
-     * @note @bug some weird lag when creating multiple stickies quickly.
-     *  -- could be related ot the async "milkdown" editor creation/deletion.
-     *  -- extra largeness accompanied by errors in the console.
-     */
     const mobile = window.innerWidth < 480;
     const z = vp.zoom();
     const p = vp.pan();
@@ -133,9 +127,9 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         </div>
         <button
           class="theme-toggle"
-          title={theme() === "dark" ? "Light mode" : "Dark mode"}
+          title={theme() === Theme.Dark ? "Light mode" : "Dark mode"}
           onClick={toggleTheme}
-          innerHTML={theme() === "dark" ? Sun : Moon}
+          innerHTML={theme() === Theme.Dark ? Sun : Moon}
         />
 
         <div class="toolbar-zoom">

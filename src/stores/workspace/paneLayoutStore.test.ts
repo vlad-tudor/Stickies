@@ -1,132 +1,210 @@
-// Pure layout math of the split tree (rect computation, dividers, drop zones).
-// Not touched by the collab rewrite, but load-bearing for every pane feature.
+// Pane layout state ops: bootstrap/restore, split/close/focus, board rebinding,
+// tab-drop, and divider resize. Pure tree math is covered in domain/layout.test.
 import { test, expect, describe } from "bun:test";
 import {
+  panes,
+  layout,
+  focusedPaneId,
+  ensurePanes,
+  resetPaneLayout,
+  reconcilePanes,
+  focusPane,
+  showBoardInFocusedPane,
+  splitPane,
+  closePane,
+  resizeSplit,
+  dropBoardIntoPane,
   computeLayout,
-  findSplit,
-  zoneAt,
-  type LayoutNode,
+  SplitDir,
+  Zone,
   type SplitNode,
 } from "./paneLayoutStore";
+import {
+  loadBoards,
+  createBoard,
+  deleteBoard,
+  activeBoardId,
+} from "~/stores/stickyStore";
 
-const leaf = (paneId: string): LayoutNode => ({ type: "leaf", paneId });
+// Fresh single board + single pane; returns [boardId, paneId].
+const fresh = (): [string, string] => {
+  localStorage.clear();
+  window.location.hash = "";
+  resetPaneLayout();
+  loadBoards();
+  ensurePanes();
+  return [activeBoardId(), focusedPaneId()];
+};
 
-describe("computeLayout", () => {
-  test("null tree yields nothing", () => {
-    const { paneRects, dividers } = computeLayout(null);
-    expect(paneRects.size).toBe(0);
-    expect(dividers.length).toBe(0);
+// The root as a split node (throws loudly in a test if it isn't one).
+const rootSplit = (): SplitNode => {
+  const root = layout();
+  if (!root || root.type !== "split") throw new Error("expected a split root");
+  return root;
+};
+
+describe("bootstrap", () => {
+  test("ensurePanes creates one focused pane on the active board", () => {
+    const [boardId, paneId] = fresh();
+    expect(panes.length).toBe(1);
+    expect(panes[0].boardId).toBe(boardId);
+    expect(focusedPaneId()).toBe(paneId);
+    expect(layout()).toEqual({ type: "leaf", paneId });
   });
 
-  test("single leaf fills the unit rect", () => {
-    const { paneRects, dividers } = computeLayout(leaf("p1"));
-    expect(paneRects.get("p1")).toEqual({ x: 0, y: 0, w: 1, h: 1 });
-    expect(dividers.length).toBe(0);
+  test("ensurePanes is idempotent", () => {
+    fresh();
+    ensurePanes();
+    expect(panes.length).toBe(1);
+  });
+});
+
+describe("split / close / focus", () => {
+  test("splitPane adds a sibling on the same board and focuses it", () => {
+    const [boardId, paneId] = fresh();
+    splitPane(paneId, SplitDir.Row);
+    expect(panes.length).toBe(2);
+    expect(panes[1].boardId).toBe(boardId);
+    expect(focusedPaneId()).toBe(panes[1].id);
+    const root = rootSplit();
+    expect(root.dir).toBe(SplitDir.Row);
+    expect(root.children.length).toBe(2);
   });
 
-  test("equal row split halves the width and places one divider", () => {
-    const tree: SplitNode = {
-      type: "split",
-      id: "sp1",
-      dir: "row",
-      children: [leaf("p1"), leaf("p2")],
-      sizes: [1, 1],
-    };
-    const { paneRects, dividers } = computeLayout(tree);
-    expect(paneRects.get("p1")).toEqual({ x: 0, y: 0, w: 0.5, h: 1 });
-    expect(paneRects.get("p2")).toEqual({ x: 0.5, y: 0, w: 0.5, h: 1 });
-    expect(dividers).toEqual([
-      { nodeId: "sp1", index: 0, dir: "row", pos: 0.5, start: 0, length: 1, span: 1 },
-    ]);
+  test("closePane collapses back to a single leaf and refocuses a survivor", () => {
+    const [, paneId] = fresh();
+    splitPane(paneId, SplitDir.Col);
+    const opened = focusedPaneId();
+    closePane(opened);
+    expect(panes.length).toBe(1);
+    expect(layout()).toEqual({ type: "leaf", paneId });
+    expect(focusedPaneId()).toBe(paneId);
   });
 
-  test("sizes are flex weights", () => {
-    const tree: SplitNode = {
-      type: "split",
-      id: "sp1",
-      dir: "row",
-      children: [leaf("p1"), leaf("p2")],
-      sizes: [1, 3],
-    };
-    const { paneRects } = computeLayout(tree);
-    expect(paneRects.get("p1")).toEqual({ x: 0, y: 0, w: 0.25, h: 1 });
-    expect(paneRects.get("p2")).toEqual({ x: 0.25, y: 0, w: 0.75, h: 1 });
+  test("the last pane cannot be closed", () => {
+    const [, paneId] = fresh();
+    closePane(paneId);
+    expect(panes.length).toBe(1);
   });
 
-  test("nested col inside row subdivides the child rect", () => {
-    const tree: SplitNode = {
-      type: "split",
-      id: "row1",
-      dir: "row",
-      children: [
-        leaf("p1"),
-        {
+  test("focusPane mirrors the pane's board to the active board", () => {
+    const [firstBoard, paneId] = fresh();
+    splitPane(paneId, SplitDir.Row);
+    const secondBoard = createBoard(); // activates it
+    showBoardInFocusedPane(secondBoard);
+    expect(panes[1].boardId).toBe(secondBoard);
+
+    focusPane(paneId);
+    expect(activeBoardId()).toBe(firstBoard);
+    focusPane(panes[1].id);
+    expect(activeBoardId()).toBe(secondBoard);
+  });
+});
+
+describe("reconcilePanes", () => {
+  test("rebinds panes whose board was deleted", () => {
+    const [firstBoard, paneId] = fresh();
+    splitPane(paneId, SplitDir.Row);
+    const secondBoard = createBoard();
+    showBoardInFocusedPane(secondBoard); // second pane shows the new board
+
+    deleteBoard(secondBoard);
+    reconcilePanes();
+    expect(panes.every((pane) => pane.boardId === firstBoard)).toBe(true);
+    expect(activeBoardId()).toBe(firstBoard);
+  });
+
+  test("drops the whole layout when no boards remain", () => {
+    const [boardId] = fresh();
+    deleteBoard(boardId);
+    reconcilePanes();
+    expect(panes.length).toBe(0);
+    expect(layout()).toBeNull();
+    expect(focusedPaneId()).toBe("");
+  });
+});
+
+describe("dropBoardIntoPane", () => {
+  test("center drop shows the board in that pane", () => {
+    const [, paneId] = fresh();
+    const dropped = createBoard();
+    dropBoardIntoPane(paneId, Zone.Center, dropped);
+    expect(panes[0].boardId).toBe(dropped);
+    expect(focusedPaneId()).toBe(paneId);
+    expect(activeBoardId()).toBe(dropped);
+  });
+
+  test("edge drop splits toward that edge with the new pane first", () => {
+    const [, paneId] = fresh();
+    const dropped = createBoard();
+    dropBoardIntoPane(paneId, Zone.Left, dropped);
+    expect(panes.length).toBe(2);
+    const root = rootSplit();
+    expect(root.dir).toBe(SplitDir.Row);
+    // Zone.Left puts the new pane BEFORE the target
+    const newPane = panes.find((pane) => pane.boardId === dropped)!;
+    expect(root.children[0]).toEqual({ type: "leaf", paneId: newPane.id });
+  });
+});
+
+describe("resizeSplit", () => {
+  test("shifts weight between two children of a split", () => {
+    const [, paneId] = fresh();
+    splitPane(paneId, SplitDir.Row);
+    const root = rootSplit();
+    resizeSplit(root.id, 0, 3, 1);
+    const { paneRects } = computeLayout(layout());
+    expect(paneRects.get(paneId)?.w).toBeCloseTo(0.75);
+    expect(paneRects.get(panes[1].id)?.w).toBeCloseTo(0.25);
+  });
+});
+
+describe("restore from persistence", () => {
+  test("a saved layout restores panes, tree, and focus; stale boards drop out", () => {
+    // build a live board, then hand-craft a saved layout that references it
+    // plus a board that no longer exists
+    const [boardId] = fresh();
+    localStorage.setItem(
+      "stickies.layout",
+      JSON.stringify({
+        panes: [
+          { id: "pane-7", boardId },
+          { id: "pane-8", boardId: "gone-board" },
+        ],
+        layout: {
           type: "split",
-          id: "col1",
-          dir: "col",
-          children: [leaf("p2"), leaf("p3")],
+          id: "split-9",
+          dir: "row",
+          children: [
+            { type: "leaf", paneId: "pane-7" },
+            { type: "leaf", paneId: "pane-8" },
+          ],
           sizes: [1, 1],
         },
-      ],
-      sizes: [1, 1],
-    };
-    const { paneRects, dividers } = computeLayout(tree);
-    expect(paneRects.get("p1")).toEqual({ x: 0, y: 0, w: 0.5, h: 1 });
-    expect(paneRects.get("p2")).toEqual({ x: 0.5, y: 0, w: 0.5, h: 0.5 });
-    expect(paneRects.get("p3")).toEqual({ x: 0.5, y: 0.5, w: 0.5, h: 0.5 });
-    expect(dividers.length).toBe(2);
-    const col = dividers.find((d) => d.nodeId === "col1")!;
-    expect(col).toEqual({
-      nodeId: "col1",
-      index: 0,
-      dir: "col",
-      pos: 0.5,
-      start: 0.5,
-      length: 0.5,
-      span: 1,
-    });
-  });
-});
+        focusedPaneId: "pane-8",
+      }),
+    );
+    resetPaneLayout();
+    ensurePanes();
 
-describe("findSplit", () => {
-  const tree: SplitNode = {
-    type: "split",
-    id: "outer",
-    dir: "row",
-    children: [
-      leaf("p1"),
-      { type: "split", id: "inner", dir: "col", children: [leaf("p2"), leaf("p3")], sizes: [1, 1] },
-    ],
-    sizes: [1, 1],
-  };
+    // the stale pane collapsed out of the tree; focus fell back to a live pane
+    expect(panes.map((pane) => pane.id)).toEqual(["pane-7"]);
+    expect(layout()).toEqual({ type: "leaf", paneId: "pane-7" });
+    expect(focusedPaneId()).toBe("pane-7");
 
-  test("finds nested split nodes by id", () => {
-    expect(findSplit(tree, "inner")?.dir).toBe("col");
-    expect(findSplit(tree, "outer")?.id).toBe("outer");
+    // the id counter resumed above the restored ids — no collisions on split
+    splitPane("pane-7", SplitDir.Row);
+    const ids = panes.map((pane) => pane.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids[1]).toBe("pane-10"); // counter resumed after split-9
   });
 
-  test("returns null for leaves and unknown ids", () => {
-    expect(findSplit(leaf("p1"), "x")).toBeNull();
-    expect(findSplit(tree, "nope")).toBeNull();
-    expect(findSplit(null, "outer")).toBeNull();
-  });
-});
-
-describe("zoneAt (4-way drop zones)", () => {
-  test("center when away from all edges", () => {
-    expect(zoneAt(0.5, 0.5)).toBe("center");
-    expect(zoneAt(0.4, 0.6)).toBe("center");
-  });
-
-  test("edges within the 25% band", () => {
-    expect(zoneAt(0.1, 0.5)).toBe("left");
-    expect(zoneAt(0.9, 0.5)).toBe("right");
-    expect(zoneAt(0.5, 0.1)).toBe("top");
-    expect(zoneAt(0.5, 0.9)).toBe("bottom");
-  });
-
-  test("nearest edge wins in a corner region", () => {
-    expect(zoneAt(0.05, 0.2)).toBe("left");
-    expect(zoneAt(0.2, 0.05)).toBe("top");
+  test("a corrupt saved layout falls back to a fresh single pane", () => {
+    const [boardId] = fresh();
+    localStorage.setItem("stickies.layout", "{corrupt");
+    resetPaneLayout();
+    ensurePanes();
+    expect(panes.length).toBe(1);
+    expect(panes[0].boardId).toBe(boardId);
   });
 });

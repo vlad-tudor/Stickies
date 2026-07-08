@@ -39,19 +39,19 @@ export type Board = {
 
 // World-space center of a note (encapsulates position=[top,left], dims=[w,h]).
 export const stickyCenter = (
-  s: Pick<StickyNote, "position" | "dimensions">
+  note: Pick<StickyNote, "position" | "dimensions">
 ): { x: number; y: number } => ({
-  x: s.position[1] + s.dimensions[0] / 2,
-  y: s.position[0] + s.dimensions[1] / 2,
+  x: note.position[1] + note.dimensions[0] / 2,
+  y: note.position[0] + note.dimensions[1] / 2,
 });
 
 // Where a thread attaches: the connect dot — horizontal center, band middle.
 // 16 = half the band height (--total-sticky-handle-height, 2rem) in sticky.scss.
 export const threadAnchor = (
-  s: Pick<StickyNote, "position" | "dimensions">
+  note: Pick<StickyNote, "position" | "dimensions">
 ): { x: number; y: number } => ({
-  x: s.position[1] + s.dimensions[0] / 2,
-  y: s.position[0] + 16,
+  x: note.position[1] + note.dimensions[0] / 2,
+  y: note.position[0] + 16,
 });
 
 // ── construction ──
@@ -73,12 +73,15 @@ export const normalizeThreads = (
   stickies: StickyNote[]
 ): Thread[] => {
   if (!threads) return [];
-  const ids = new Set(stickies.map((s) => s.id));
-  return threads.filter((t) => ids.has(t.from) && ids.has(t.to));
+  const noteIds = new Set(stickies.map((sticky) => sticky.id));
+  return threads.filter(
+    (thread) => noteIds.has(thread.from) && noteIds.has(thread.to)
+  );
 };
 
 // Content is HTML. Legacy notes stored markdown — convert them once on ingest.
-const looksLikeHtml = (s: string): boolean => /<\/?[a-z][\s\S]*>/i.test(s);
+const looksLikeHtml = (content: string): boolean =>
+  /<\/?[a-z][\s\S]*>/i.test(content);
 const asHtml = (content: string): string =>
   !content || looksLikeHtml(content) ? content : (marked(content) as string);
 
@@ -86,40 +89,44 @@ const asHtml = (content: string): string =>
 // missing z (pre-z boards: array order WAS the z-order) -> array index. z is then
 // compacted to 0..n-1 (raise grows it unbounded between loads), order preserved.
 export const normalizeStickies = (stickies: StickyNote[]): StickyNote[] => {
-  const base = stickies.map((s, i) => ({
-    ...s,
-    color: asTone(s.color),
-    content: asHtml(s.content),
-    z: typeof s.z === "number" ? s.z : i,
+  const coerced = stickies.map((sticky, index) => ({
+    ...sticky,
+    color: asTone(sticky.color),
+    content: asHtml(sticky.content),
+    z: typeof sticky.z === "number" ? sticky.z : index,
   }));
-  const order = new Map([...base].sort((a, b) => a.z - b.z).map((s, i) => [s.id, i]));
-  return base.map((s) => ({ ...s, z: order.get(s.id)! }));
+  const compactZById = new Map(
+    [...coerced]
+      .sort((left, right) => left.z - right.z)
+      .map((sticky, rank) => [sticky.id, rank])
+  );
+  return coerced.map((sticky) => ({ ...sticky, z: compactZById.get(sticky.id)! }));
 };
 
-export const normalizeBoard = (b: Board): Board => {
-  const stickies = normalizeStickies(b.stickies);
+export const normalizeBoard = (board: Board): Board => {
+  const stickies = normalizeStickies(board.stickies);
   return {
-    ...b,
-    bgColor: asTone(b.bgColor),
+    ...board,
+    bgColor: asTone(board.bgColor),
     stickies,
-    threads: normalizeThreads(b.threads, stickies),
+    threads: normalizeThreads(board.threads, stickies),
   };
 };
 
 // ── naming ──
 
 export function deduplicateName(base: string, boards: Board[]): string {
-  const names = new Set(boards.map((b) => b.name));
+  const names = new Set(boards.map((board) => board.name));
   if (!names.has(base)) return base;
-  let i = 1;
-  while (names.has(`${base} (${i})`)) i++;
-  return `${base} (${i})`;
+  let suffix = 1;
+  while (names.has(`${base} (${suffix})`)) suffix++;
+  return `${base} (${suffix})`;
 }
 
 // Lowest free "Board N" — count-based numbering clashes after deletes.
 export function nextBoardName(boards: Board[]): string {
-  const names = new Set(boards.map((b) => b.name));
-  let n = boards.length + 1;
-  while (names.has(`Board ${n}`)) n++;
-  return `Board ${n}`;
+  const names = new Set(boards.map((board) => board.name));
+  let candidate = boards.length + 1;
+  while (names.has(`Board ${candidate}`)) candidate++;
+  return `Board ${candidate}`;
 }

@@ -15,16 +15,13 @@ import { beginInteraction, endInteraction } from "~/stores/uiStore";
 // Stored sticky positions are NEVER mutated by navigation — only this transform
 // changes. Drag/resize deltas divide by zoom; pan is in screen px.
 //
-// This is a FACTORY (createViewport) + context, NOT a global singleton, so each
-// board pane can own its own pan/zoom. Today there's one pane (Whiteboard creates
-// one and provides it); the eventual split-view manager creates one per pane.
-// NOTE for split-view: screen<->world here assumes the pane fills the window from
-// (0,0). Once panes are offset on screen, the conversions need the pane's rect —
-// that offset belongs here (and the chrome math), not scattered in callers.
+// This is a FACTORY (createViewport) + context, NOT a global singleton — each
+// board pane owns its own pan/zoom.
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2;
-const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+const clampZoom = (value: number): number =>
+  Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 
 const CHROME_TOP = 76; // tab + actions bars cover the top; fit frames below them
 
@@ -36,26 +33,27 @@ export type Point = { x: number; y: number };
 
 export type Viewport = {
   pan: Accessor<Point>;
-  setPan: (p: Point) => void;
+  setPan: (next: Point) => void;
   zoom: Accessor<number>;
   isPinching: Accessor<boolean>;
-  setIsPinching: (v: boolean) => void;
-  panBy: (dx: number, dy: number) => void;
-  zoomAt: (factor: number, cx: number, cy: number) => void;
+  setIsPinching: (pinching: boolean) => void;
+  panBy: (deltaX: number, deltaY: number) => void;
+  zoomAt: (factor: number, anchorX: number, anchorY: number) => void;
   resetView: () => void;
   fitView: (
     rects: { x: number; y: number; w: number; h: number }[],
-    view: { w: number; h: number }
+    view: { w: number; h: number },
   ) => void;
   tweenTo: (pan: Point, zoom: number, duration?: number) => void;
-  worldToScreen: (p: Point) => Point;
-  screenToWorld: (p: Point) => Point;
-  eventToWorld: (p: Point) => Point;
+  worldToScreen: (point: Point) => Point;
+  screenToWorld: (point: Point) => Point;
+  eventToWorld: (point: Point) => Point;
 };
 
 const readSavedView = (key: string): { pan: Point; zoom: number } | null => {
   try {
     const raw = localStorage.getItem(key);
+    // JSON.parse is untyped; this cast states the persisted view format
     return raw ? (JSON.parse(raw) as { pan: Point; zoom: number }) : null;
   } catch {
     return null;
@@ -69,7 +67,7 @@ export function createViewport(
   persistKey = "stickies.view",
   // the pane's top-left in window coords — lets eventToWorld() map raw pointer
   // events into this pane. Defaults to (0,0) (a pane that fills the window).
-  origin: Accessor<Point> = () => ({ x: 0, y: 0 })
+  origin: Accessor<Point> = () => ({ x: 0, y: 0 }),
 ): Viewport {
   const saved = readSavedView(persistKey);
   const [pan, setPan] = createSignal<Point>(saved?.pan ?? { x: 0, y: 0 });
@@ -122,41 +120,48 @@ export function createViewport(
   // Smoothly animate pan+zoom to a target instead of snapping (anime.js tweens a plain
   // object; onUpdate writes the signals so the transform follows). Overlays pause for
   // the glide so off-screen markers / thread clipping settle once on arrival.
-  const tweenTo = (targetPan: Point, targetZoom: number, duration: number = MOTION.view): void => {
+  const tweenTo = (
+    targetPan: Point,
+    targetZoom: number,
+    duration: number = MOTION.view,
+  ): void => {
     cancelTween();
     beginInteraction();
-    const o = { x: pan().x, y: pan().y, z: zoom() };
-    viewTween = animate(o, {
+    const animated = { x: pan().x, y: pan().y, zoom: zoom() };
+    viewTween = animate(animated, {
       x: targetPan.x,
       y: targetPan.y,
-      z: clampZoom(targetZoom),
+      zoom: clampZoom(targetZoom),
       duration,
       ease: MOTION.ease,
       onUpdate: () => {
-        setPan({ x: o.x, y: o.y });
-        setZoom(o.z);
+        setPan({ x: animated.x, y: animated.y });
+        setZoom(animated.zoom);
       },
       onComplete: clearTween,
     });
   };
 
-  const panBy = (dx: number, dy: number): void => {
+  const panBy = (deltaX: number, deltaY: number): void => {
     cancelTween();
-    const p = pan();
-    setPan({ x: p.x + dx, y: p.y + dy });
+    const current = pan();
+    setPan({ x: current.x + deltaX, y: current.y + deltaY });
   };
 
-  // Multiply zoom by `factor`, keeping the point (cx, cy) — relative to the pane's
-  // top-left — anchored under the cursor.
-  const zoomAt = (factor: number, cx: number, cy: number): void => {
+  // Multiply zoom by `factor`, keeping the point (anchorX, anchorY) — relative
+  // to the pane's top-left — anchored under the cursor.
+  const zoomAt = (factor: number, anchorX: number, anchorY: number): void => {
     cancelTween();
-    const z = zoom();
-    const nz = clampZoom(z * factor);
-    if (nz === z) return;
-    const ratio = nz / z;
-    const p = pan();
-    setPan({ x: cx - (cx - p.x) * ratio, y: cy - (cy - p.y) * ratio });
-    setZoom(nz);
+    const currentZoom = zoom();
+    const nextZoom = clampZoom(currentZoom * factor);
+    if (nextZoom === currentZoom) return;
+    const ratio = nextZoom / currentZoom;
+    const currentPan = pan();
+    setPan({
+      x: anchorX - (anchorX - currentPan.x) * ratio,
+      y: anchorY - (anchorY - currentPan.y) * ratio,
+    });
+    setZoom(nextZoom);
   };
 
   const resetView = (): void => {
@@ -167,53 +172,61 @@ export function createViewport(
   // into the visible area (below the top chrome), centered. Empty -> reset.
   const fitView = (
     rects: { x: number; y: number; w: number; h: number }[],
-    view: { w: number; h: number }
+    view: { w: number; h: number },
   ): void => {
     if (!rects.length) {
       resetView();
       return;
     }
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const r of rects) {
-      minX = Math.min(minX, r.x);
-      minY = Math.min(minY, r.y);
-      maxX = Math.max(maxX, r.x + r.w);
-      maxY = Math.max(maxY, r.y + r.h);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const rect of rects) {
+      minX = Math.min(minX, rect.x);
+      minY = Math.min(minY, rect.y);
+      maxX = Math.max(maxX, rect.x + rect.w);
+      maxY = Math.max(maxY, rect.y + rect.h);
     }
     const pad = 60;
-    const availW = view.w - pad * 2;
-    const availH = view.h - CHROME_TOP - pad * 2;
-    const bw = maxX - minX || 1;
-    const bh = maxY - minY || 1;
+    const availableWidth = view.w - pad * 2;
+    const availableHeight = view.h - CHROME_TOP - pad * 2;
+    const boxWidth = maxX - minX || 1;
+    const boxHeight = maxY - minY || 1;
     // Fit is zoom-OUT only: never magnify past 100% just because the notes are
     // small/few — that's disorienting. Cap at 1, then clamp to the usual range.
-    const z = clampZoom(Math.min(availW / bw, availH / bh, 1));
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
+    const targetZoom = clampZoom(
+      Math.min(availableWidth / boxWidth, availableHeight / boxHeight, 1),
+    );
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
     tweenTo(
-      { x: view.w / 2 - cx * z, y: CHROME_TOP + (view.h - CHROME_TOP) / 2 - cy * z },
-      z
+      {
+        x: view.w / 2 - centerX * targetZoom,
+        y: CHROME_TOP + (view.h - CHROME_TOP) / 2 - centerY * targetZoom,
+      },
+      targetZoom,
     );
   };
 
   // ── coordinate transforms (the one definition of the world<->screen mapping) ──
-  const worldToScreen = (p: Point): Point => {
-    const z = zoom();
-    const o = pan();
-    return { x: o.x + p.x * z, y: o.y + p.y * z };
+  const worldToScreen = (point: Point): Point => {
+    const scale = zoom();
+    const offset = pan();
+    return { x: offset.x + point.x * scale, y: offset.y + point.y * scale };
   };
 
-  const screenToWorld = (p: Point): Point => {
-    const z = zoom();
-    const o = pan();
-    return { x: (p.x - o.x) / z, y: (p.y - o.y) / z };
+  const screenToWorld = (point: Point): Point => {
+    const scale = zoom();
+    const offset = pan();
+    return { x: (point.x - offset.x) / scale, y: (point.y - offset.y) / scale };
   };
 
   // Map a raw pointer event's WINDOW coords to world, accounting for the pane's
   // screen offset. Use this for pointer handlers; screenToWorld takes coords that
   // are already pane-local (e.g. a fixed in-pane anchor).
-  const eventToWorld = (p: Point): Point =>
-    screenToWorld({ x: p.x - origin().x, y: p.y - origin().y });
+  const eventToWorld = (point: Point): Point =>
+    screenToWorld({ x: point.x - origin().x, y: point.y - origin().y });
 
   return {
     pan,
@@ -239,17 +252,18 @@ export const ViewportProvider = ViewportContext.Provider;
 // Registry of live pane viewports by pane id — lets a cross-pane drop resolve the
 // TARGET pane's world coords (its viewport lives in its own component).
 const paneViewports = new Map<string, Viewport>();
-export const registerViewport = (id: string, vp: Viewport): void => {
-  paneViewports.set(id, vp);
+export const registerViewport = (id: string, viewport: Viewport): void => {
+  paneViewports.set(id, viewport);
 };
 export const unregisterViewport = (id: string): void => {
   paneViewports.delete(id);
 };
-export const getViewport = (id: string): Viewport | undefined => paneViewports.get(id);
+export const getViewport = (id: string): Viewport | undefined =>
+  paneViewports.get(id);
 
 // Read the viewport for the current pane. Must be under a <ViewportProvider>.
 export function useViewport(): Viewport {
-  const vp = useContext(ViewportContext);
-  if (!vp) throw new Error("useViewport must be used within a <ViewportProvider>");
-  return vp;
+  const viewport = useContext(ViewportContext);
+  if (!viewport) throw new Error("useViewport must be used within a <ViewportProvider>");
+  return viewport;
 }
