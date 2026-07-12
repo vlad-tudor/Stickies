@@ -7,7 +7,13 @@ import { ThreadPopover } from "../ThreadPopover";
 import { OffscreenIndicators } from "../OffscreenIndicators";
 import { BoardRulers } from "../BoardRulers/BoardRulers";
 import { updateBoardBgColor } from "~/stores/stickyStore";
-import { exitEditing, setSelectedThread, beginInteraction, endInteraction } from "~/stores/uiStore";
+import {
+  exitEditing,
+  setSelectedThread,
+  clearStickySelection,
+  beginInteraction,
+  endInteraction,
+} from "~/stores/uiStore";
 import {
   createViewport,
   ViewportProvider,
@@ -120,6 +126,7 @@ export const Pane = (props: PaneProps) => {
     if (onBoard) {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       exitEditing(); // bare-board press closes any editor
+      clearStickySelection(); // ...deselects the note
       setSelectedThread(null); // ...and dismisses the thread popover
     }
     if (pointers.size >= 2) {

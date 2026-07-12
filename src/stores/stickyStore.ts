@@ -39,6 +39,16 @@ export {
 } from "./board/boardActions";
 
 export {
+  sessionFor,
+  startSession,
+  endSession,
+  joinSessionFromHash,
+  resumeSessions,
+  SessionStatus,
+  type Session,
+} from "./board/collabSession";
+
+export {
   addThread,
   deleteThread,
   updateStickyNote,

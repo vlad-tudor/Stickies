@@ -6,6 +6,7 @@
     "dev": "vite",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
     "test": "bun test --conditions=browser",
+    "relay": "HOST=localhost PORT=1234 y-websocket-server",
     "build": "bun run typecheck && vite build",
     "preview": "vite preview"
   },
@@ -28,6 +29,7 @@
     "marked": "^17.0.5",
     "solid-js": "^1.9.1",
     "y-indexeddb": "^9.0.12",
+    "y-websocket": "^3.0.0",
     "yjs": "^13.6.31"
   },
   "devDependencies": {
@@ -39,6 +41,8 @@
     "sass": "^1.79.4",
     "typescript": "^6.0.3",
     "vite": "^8.0.0",
-    "vite-plugin-solid": "^2.11.0"
+    "vite-plugin-solid": "^2.11.0",
+    "ws": "^8.21.0",
+    "y-websocket-legacy": "npm:y-websocket@1.5.4"
   }
 }

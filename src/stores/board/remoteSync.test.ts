@@ -8,9 +8,12 @@ import * as Y from "yjs";
 import {
   loadBoards,
   activeBoardId,
+  boards,
   stickies,
   threads,
   activeBgColor,
+  createBoard,
+  renameBoard,
   createStickyNote,
   updateStickyNote,
   moveStickyNote,
@@ -144,6 +147,28 @@ describe("remote updates reach the projection", () => {
     deliver(peer, local);
 
     expect(activeBgColor()).toBe("sage");
+  });
+
+  test("a local rename replicates into the doc for peers", () => {
+    const { boardId, local } = freshBoard();
+    const peer = spawnPeer(local);
+
+    renameBoard(boardId, "Trip plan");
+    deliver(local, peer);
+
+    expect(metaMapOf(peer).get(MetaKey.Name)).toBe("Trip plan");
+  });
+
+  test("a remote rename is adopted locally, deduped against other boards", () => {
+    const { boardId, local } = freshBoard();
+    createBoard("Taken"); // a DIFFERENT local board already owns this name
+    const peer = spawnPeer(local);
+
+    metaMapOf(peer).set(MetaKey.Name, "Taken");
+    deliver(peer, local);
+
+    const renamed = boards().find((board) => board.id === boardId)!;
+    expect(renamed.name).toBe("Taken (1)"); // adopted, local uniqueness kept
   });
 });
 

@@ -2,6 +2,9 @@ import { createSignal, Show } from "solid-js";
 import {
   clearAllStickies,
   createStickyNote,
+  sessionFor,
+  startSession,
+  endSession,
   MIN_STICKY_WIDTH,
   MIN_STICKY_HEIGHT,
 } from "~/stores/stickyStore";
@@ -14,7 +17,7 @@ import { editSticky, markStickyFresh } from "~/stores/uiStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { useViewport } from "~/stores/workspace/viewportStore";
 import { usePane } from "~/stores/workspace/paneContext";
-import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize, Trash2 } from "lucide-static";
+import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize, Trash2, Radio } from "lucide-static";
 import "./whiteboard-actions.scss";
 
 // screen-space anchor for new notes: just under the "+" button
@@ -105,6 +108,26 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     showToast("Link copied to clipboard");
   };
 
+  const session = () => sessionFor(pane.boardId());
+
+  // Start a live session, or re-copy the join link of the running one
+  // (startSession is idempotent — it returns the existing room's URL).
+  const onGoLive = async () => {
+    const wasLive = !!session();
+    const joinUrl = startSession(pane.boardId());
+    if (!joinUrl) return;
+    await navigator.clipboard.writeText(joinUrl);
+    showToast(wasLive ? "Join link copied" : "Live — join link copied");
+  };
+
+  const onEndLive = async () => {
+    const end = await confirmDialog(
+      "End the live session for this board? Everyone keeps their copy.",
+      { title: "End live session", confirmText: "End session", danger: true },
+    );
+    if (end) endSession(pane.boardId());
+  };
+
   return (
     <>
     <div class={`share-toast ${toast() ? "visible" : ""}`}>{toast()}</div>
@@ -115,6 +138,30 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         </button>
         <button class="clear-all-stickies" title="Clear all stickies" onClick={onClearAllStickies} innerHTML={Trash2} />
         <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
+        <button
+          class="go-live"
+          classList={{ live: !!session() }}
+          title={
+            session()
+              ? `Live — ${session()!.peers} here (click to copy the join link)`
+              : "Start live session"
+          }
+          onClick={onGoLive}
+          innerHTML={Radio}
+        />
+        <Show when={session()}>
+          {(live) => (
+            <>
+              <span class="live-count">{live().peers}</span>
+              <button
+                class="end-live"
+                title="End live session"
+                onClick={onEndLive}
+                innerHTML={X}
+              />
+            </>
+          )}
+        </Show>
 
         <div class="board-hue">
           <TonePicker

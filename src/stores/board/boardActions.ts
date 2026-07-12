@@ -83,6 +83,22 @@ const hydrateBoard = (board: Board): void => {
   appendToProjection(board);
 };
 
+// Bring a board JOINED from a live session into the store: an EMPTY doc that
+// fills over the wire once the provider connects. Never seeded locally — a
+// seed would write init/bgColor into the SHARED doc and could clobber the
+// host's meta. The projection shows an empty board until the room state lands.
+export function registerJoinedBoard(name: string): string {
+  const board = makeBoard(deduplicateName(name, store.boards));
+  const doc = new Y.Doc();
+  registerDoc(board.id, doc);
+  installDoc(board.id, doc);
+  attachDocPersistence(board.id, doc);
+  appendToProjection(board);
+  setStore(StoreKey.ActiveBoardId, board.id);
+  persist();
+  return board.id;
+}
+
 const dropBoard = (boardId: string): void => {
   detachDocPersistence(boardId);
   destroyDoc(boardId);
@@ -218,12 +234,11 @@ export function renameBoard(id: string, name: string): void {
   const boardIdx = boardIndex(id);
   if (boardIdx === -1) return;
   const others = store.boards.filter((board) => board.id !== id);
-  setStore(
-    StoreKey.Boards,
-    boardIdx,
-    BoardKey.Name,
-    deduplicateName(name, others),
-  );
+  const deduped = deduplicateName(name, others);
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Name, deduped);
+  // replicate into the doc so live-session peers follow the rename (the meta
+  // observer skips-if-equal, so this doesn't loop locally)
+  transact(id, (doc) => metaMapOf(doc).set(MetaKey.Name, deduped));
   persist();
 }
 

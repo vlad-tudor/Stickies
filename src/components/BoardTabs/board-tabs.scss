@@ -105,6 +105,26 @@
   min-width: 0;
 }
 
+// live-session marker: thread-red dot on every live board's tab; the active
+// tab (already wider) also shows the peer count
+.board-tab-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex: none;
+}
+.board-tab-live-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--thread);
+}
+.board-tab-live-count {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--thread);
+}
+
 .board-tab-rename {
   background: transparent;
   border: none;

@@ -3,6 +3,8 @@
 import { test, expect, describe } from "bun:test";
 import {
   editingStickyId,
+  selectedStickyId,
+  clearStickySelection,
   selectSticky,
   editSticky,
   exitEditing,
@@ -18,6 +20,7 @@ import {
   loadBoards,
   activeBoardId,
   createStickyNote,
+  raiseSticky,
   stickies,
   type StickyNote,
 } from "./stickyStore";
@@ -46,13 +49,30 @@ const topNote = (): StickyNote =>
   stickies().reduce((top, sticky) => (sticky.z > top.z ? sticky : top));
 
 describe("selection / editing intents", () => {
-  test("selectSticky raises the note and dismisses the thread popover", () => {
+  test("selectSticky selects, raises, and dismisses the thread popover", () => {
     const boardId = freshNotes();
     setSelectedThread({ boardId, id: "t1", x: 0, y: 0 });
     selectSticky(boardId, "a");
+    expect(selectedStickyId()).toBe("a");
     expect(topNote().id).toBe("a");
     expect(selectedThread()).toBeNull();
     expect(editingStickyId()).toBeNull(); // select alone never opens an editor
+  });
+
+  test("selection is per-client state: a doc-level raise doesn't move it", () => {
+    const boardId = freshNotes();
+    selectSticky(boardId, "a");
+    // a remote peer raising "b" arrives as a doc z change — selection stays ours
+    raiseSticky(boardId, "b");
+    expect(topNote().id).toBe("b");
+    expect(selectedStickyId()).toBe("a");
+  });
+
+  test("clearStickySelection deselects (bare-board press)", () => {
+    const boardId = freshNotes();
+    selectSticky(boardId, "a");
+    clearStickySelection();
+    expect(selectedStickyId()).toBeNull();
   });
 
   test("selecting another note closes the open editor; reselecting keeps it", () => {

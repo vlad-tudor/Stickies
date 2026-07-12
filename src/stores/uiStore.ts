@@ -6,6 +6,16 @@ import { raiseSticky } from "./stickyStore";
 // unreliable because our drag handles call preventDefault.
 export const [editingStickyId, setEditingStickyId] = createSignal<string | null>(null);
 
+// The sticky currently SELECTED on this device (drives the resize affordances
+// and active styling), or null. Strictly per-client UI state — selection must
+// NOT be derived from z-order, which is shared document state: a peer raising
+// a note would steal everyone's selection indicator.
+export const [selectedStickyId, setSelectedStickyId] = createSignal<string | null>(null);
+
+export const clearStickySelection = (): void => {
+  setSelectedStickyId(null);
+};
+
 // in-progress thread drag: source sticky id + current cursor in WORLD coords,
 // or null when not connecting. Drives the live "rubber-band" line.
 export const [pendingThread, setPendingThread] = createSignal<
@@ -35,6 +45,7 @@ export const endInteraction = () => setInteractionCount((n) => Math.max(0, n - 1
 export function selectSticky(boardId: string, id: string): void {
   if (editingStickyId() !== id) setEditingStickyId(null);
   setSelectedThread(null); // interacting with a note dismisses the thread popover
+  setSelectedStickyId(id);
   raiseSticky(boardId, id);
 }
 
@@ -43,6 +54,7 @@ export function selectSticky(boardId: string, id: string): void {
 // an intentional tap, and inside a user gesture so it actually shows.
 export function editSticky(boardId: string, id: string): void {
   raiseSticky(boardId, id);
+  setSelectedStickyId(id);
   setEditingStickyId(id);
 }
 
