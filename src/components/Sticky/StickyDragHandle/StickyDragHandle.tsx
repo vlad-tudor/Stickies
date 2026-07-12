@@ -1,5 +1,5 @@
 import { useDrag } from "~/hooks/useDrag";
-import { useViewport } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/workspace/viewportStore";
 import "./sticky-drag-handle.scss";
 
 type StickyDragHandleProps = {

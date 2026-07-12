@@ -13,14 +13,14 @@ import {
   ViewportProvider,
   registerViewport,
   unregisterViewport,
-} from "~/stores/viewportStore";
-import { createPane, PaneProvider } from "~/stores/paneContext";
+} from "~/stores/workspace/viewportStore";
+import { createPane, PaneProvider } from "~/stores/workspace/paneContext";
 import {
   showBoardInFocusedPane,
   boardDrag,
   stickyDrag,
   type Rect,
-} from "~/stores/paneLayoutStore";
+} from "~/stores/workspace/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
 
 type PaneProps = {
@@ -223,7 +223,7 @@ export const Pane = (props: PaneProps) => {
           <BoardTabs boardId={props.boardId} onSelect={showBoardInFocusedPane} />
           <WhiteboardActions
             bgColor={pane.bgColor()}
-            updateBgColor={updateBoardBgColor}
+            updateBgColor={(color) => updateBoardBgColor(props.boardId, color)}
             zoom={vp.zoom()}
             onZoomIn={() => zoomCentered(1.2)}
             onZoomOut={() => zoomCentered(1 / 1.2)}

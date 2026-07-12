@@ -4,6 +4,8 @@
 // URL at render time. This blob-out-of-band / ref-in-doc shape also survives the
 // Phase 7 CRDT swap and feeds the Phase 8 archive.
 
+import { newId } from "~/utils/id";
+
 const DB_NAME = "stickies-images";
 const STORE = "images";
 const VERSION = 1;
@@ -41,7 +43,7 @@ async function run<T>(
 const urlCache = new Map<string, string>();
 
 export async function putImage(blob: Blob): Promise<string> {
-  const id = `img-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = `img-${newId()}`;
   await run("readwrite", (s) => s.put(blob, id));
   return id;
 }

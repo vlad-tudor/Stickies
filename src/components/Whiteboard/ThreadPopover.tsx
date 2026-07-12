@@ -7,18 +7,18 @@ import { Trash2 } from "lucide-static";
 
 // Fade out every segment of a thread (across panes), then prune it from the store —
 // node-stays-mounted exit, same trick as the sticky delete.
-const removeThreadAnimated = (id: string): void => {
+const removeThreadAnimated = (boardId: string, id: string): void => {
   setSelectedThread(null);
   const els = document.querySelectorAll(`.thread-seg[data-tid="${id}"]`);
   if (els.length === 0) {
-    deleteThread(id);
+    deleteThread(boardId, id);
     return;
   }
   animate(els, {
     opacity: 0,
     duration: MOTION.leave,
     ease: "outQuad",
-    onComplete: () => deleteThread(id),
+    onComplete: () => deleteThread(boardId, id),
   });
 };
 
@@ -32,7 +32,7 @@ export const ThreadPopover = () => (
         style={{ left: `${t().x}px`, top: `${t().y}px` }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button onClick={() => removeThreadAnimated(t().id)}>
+        <button onClick={() => removeThreadAnimated(t().boardId, t().id)}>
           <span class="ico" innerHTML={Trash2} />
           Remove
         </button>

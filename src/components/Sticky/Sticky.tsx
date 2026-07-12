@@ -21,16 +21,16 @@ import {
   setPendingThread,
   takeStickyFresh,
 } from "~/stores/uiStore";
-import { useViewport } from "~/stores/viewportStore";
-import { usePane } from "~/stores/paneContext";
-import { startStickyDrag, updateStickyDrag, dropSticky } from "~/stores/paneLayoutStore";
+import { useViewport } from "~/stores/workspace/viewportStore";
+import { usePane } from "~/stores/workspace/paneContext";
+import { startStickyDrag, updateStickyDrag, dropSticky } from "~/stores/workspace/paneLayoutStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { toneVar } from "~/utils/tones";
 
 import "./sticky.scss";
 
 type StickyProps = {
-  index: number;
+  z: number;
   seq: number;
   sticky: StickyNote;
   active: boolean;
@@ -42,9 +42,6 @@ type StickyProps = {
   duplicateSticky: () => void;
 };
 
-/**
- * @note it's odd that we need the shouldDelete flag to prevent the sticky from lingering
- */
 export const Sticky = (props: StickyProps) => {
   const vp = useViewport();
   const pane = usePane();
@@ -86,35 +83,31 @@ export const Sticky = (props: StickyProps) => {
     props.duplicateSticky();
   };
 
-  // for some reason the updated sticky lingers on
-  let shouldDelete = false;
-
   // Curated tones are all light in light mode, all dark in dark mode, so the
-  // per-sticky ink contrast follows the global chrome theme.
+  // per-sticky ink contrast follows the global chrome theme (same values).
   const stickyClass = () => {
-    const contrast = theme() === "dark" ? "dark" : "light";
-    return `sticky ${contrast}${props.active ? " active" : ""}${props.sticky.image ? " is-image" : ""}`;
+    return `sticky ${theme()}${props.active ? " active" : ""}${props.sticky.image ? " is-image" : ""}`;
   };
 
   const stickyStyleOverrides = () => ({
-    top: `${props.sticky.position?.[0]}px`,
-    left: `${props.sticky.position?.[1]}px`,
-    width: `${props.sticky.dimensions?.[0]}px`,
-    height: `${props.sticky.dimensions?.[1]}px`,
+    top: `${props.sticky.position[0]}px`,
+    left: `${props.sticky.position[1]}px`,
+    width: `${props.sticky.dimensions[0]}px`,
+    height: `${props.sticky.dimensions[1]}px`,
     ["background-color"]: toneVar(props.sticky.color),
     ["--note-bg"]: toneVar(props.sticky.color), // resize pills match the note's paper
     // NB: kebab-case — Solid's style object uses setProperty, so camelCase
     // `zIndex` is silently ignored (stacking relies on this, not DOM order).
     // Notes are >= 0; finished threads sit behind at z -1, grid at -2.
-    ["z-index"]: `${props.index}`,
+    ["z-index"]: `${props.z}`,
   });
 
   // Press selects/raises (cheap, no editor). A real tap (click) opens the
   // editor — clicks don't fire for a 2-finger pinch or a drag, so the iOS
   // keyboard only appears on an intentional tap.
-  const onPointerDown = () => selectSticky(props.sticky.id);
+  const onPointerDown = () => selectSticky(pane.boardId(), props.sticky.id);
   const onClick = () => {
-    if (!props.sticky.image) editSticky(props.sticky.id); // image notes have no editor
+    if (!props.sticky.image) editSticky(pane.boardId(), props.sticky.id); // image notes have no editor
   };
 
   // Drag the band's connect node onto another note to link them.
@@ -136,7 +129,7 @@ export const Sticky = (props: StickyProps) => {
       const target = document
         .elementFromPoint(ev.clientX, ev.clientY)
         ?.closest<HTMLElement>("[data-sticky-id]")?.dataset.stickyId;
-      if (target && target !== props.sticky.id) addThread(props.sticky.id, target);
+      if (target && target !== props.sticky.id) addThread(pane.boardId(), props.sticky.id, target);
       setPendingThread(null);
     };
     node.addEventListener("pointermove", onMove);
@@ -149,7 +142,6 @@ export const Sticky = (props: StickyProps) => {
       confirmText: "Delete",
       danger: true,
     }))) return;
-    shouldDelete = true;
     if (editingStickyId() === props.sticky.id) exitEditing();
     // Animate OUT first, then remove from the store on complete — the node stays
     // mounted for the animation (no exit-timing infra needed).

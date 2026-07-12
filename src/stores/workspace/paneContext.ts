@@ -1,14 +1,13 @@
 import { createContext, useContext, type Accessor } from "solid-js";
-import { boards, type StickyNote, type Thread } from "~/stores/stickyStore";
+import { boards, type Board, type StickyNote, type Thread } from "~/stores/stickyStore";
 import { DEFAULT_TONE, type Tone } from "~/utils/tones";
 
-// A board pane, scoped to one boardId. RENDERING reads its board through this (NOT
-// the global active board), so multiple panes can each show a different board.
-// Mutations still go through the global (active-board) store fns for now —
-// interacting with a pane focuses it (sets the active board), so they land on the
-// right board. Fully boardId-scoped mutations come with the recursive layout (C).
+// A board pane, scoped to one boardId. Rendering reads its board through this
+// (NOT the global active board), and mutations pass `boardId()` to the
+// boardId-scoped store fns — a pane never touches "the active board".
 export type Pane = {
   boardId: Accessor<string>;
+  board: Accessor<Board | undefined>;
   stickies: Accessor<StickyNote[]>;
   threads: Accessor<Thread[]>;
   bgColor: Accessor<Tone>;
@@ -16,9 +15,10 @@ export type Pane = {
 };
 
 export function createPane(boardId: Accessor<string>, focused: Accessor<boolean>): Pane {
-  const board = () => boards().find((b) => b.id === boardId());
+  const board = () => boards().find((candidate) => candidate.id === boardId());
   return {
     boardId,
+    board,
     stickies: () => board()?.stickies ?? [],
     threads: () => board()?.threads ?? [],
     bgColor: () => board()?.bgColor ?? DEFAULT_TONE,

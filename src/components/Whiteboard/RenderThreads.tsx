@@ -1,6 +1,6 @@
 import { createMemo, For, Show } from "solid-js";
 import { threadAnchor, type StickyNote } from "~/stores/stickyStore";
-import { usePane } from "~/stores/paneContext";
+import { usePane } from "~/stores/workspace/paneContext";
 import { pendingThread, selectedThread, setSelectedThread, isInteracting } from "~/stores/uiStore";
 
 const VIEW = 32000; // half-span of the svg coord area (matches the grid)
@@ -147,7 +147,9 @@ export const RenderThreads = () => {
               y1={s.y1}
               x2={s.x2}
               y2={s.y2}
-              onClick={(e) => setSelectedThread({ id: s.tid, x: e.clientX, y: e.clientY })}
+              onClick={(e) =>
+                setSelectedThread({ boardId: pane.boardId(), id: s.tid, x: e.clientX, y: e.clientY })
+              }
             />
             <line
               class={`thread-seg${selectedThread()?.id === s.tid ? " selected" : ""}`}

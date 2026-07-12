@@ -2,20 +2,27 @@ import { createSignal } from "solid-js";
 
 // Global chrome theme — separate from the per-sticky ink contrast.
 // Drives `data-theme="dark"` on <html>; all design tokens flip under it.
-// Restored before first paint by an inline script in index.html (same key)
-// to avoid a flash; this store reads the same key for its initial value.
+// Restored before first paint by an inline script in index.html (same key
+// and values — keep them in sync) to avoid a flash; this store reads the
+// same key for its initial value.
 
-export type Theme = "light" | "dark";
+export const Theme = {
+  Light: "light",
+  Dark: "dark",
+} as const;
+export type Theme = (typeof Theme)[keyof typeof Theme];
 
 const THEME_KEY = "stickies-theme";
 
 function readStored(): Theme {
-  return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+  return localStorage.getItem(THEME_KEY) === Theme.Dark
+    ? Theme.Dark
+    : Theme.Light;
 }
 
 function apply(theme: Theme): void {
   const root = document.documentElement;
-  if (theme === "dark") root.dataset.theme = "dark";
+  if (theme === Theme.Dark) root.dataset.theme = Theme.Dark;
   else delete root.dataset.theme;
 }
 
@@ -30,5 +37,5 @@ export function setTheme(next: Theme): void {
 }
 
 export function toggleTheme(): void {
-  setTheme(theme() === "dark" ? "light" : "dark");
+  setTheme(theme() === Theme.Dark ? Theme.Light : Theme.Dark);
 }

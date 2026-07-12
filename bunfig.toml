@@ -1,0 +1,5 @@
+# Run tests via `bun run test` — it passes --conditions=browser, which bun test
+# can't set from bunfig. Without it, bun resolves solid-js's SERVER build, whose
+# `reconcile` can't shrink keyed arrays (deletions silently leave null holes).
+[test]
+preload = ["./src/test/setup.ts"]

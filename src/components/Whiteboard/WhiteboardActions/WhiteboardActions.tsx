@@ -2,18 +2,18 @@ import { createSignal, Show } from "solid-js";
 import {
   clearAllStickies,
   createStickyNote,
-  activeBoard,
-  stickies,
   MIN_STICKY_WIDTH,
   MIN_STICKY_HEIGHT,
 } from "~/stores/stickyStore";
 import { copyShareUrl } from "~/utils/urlState";
+import { newId } from "~/utils/id";
 import { type Tone } from "~/utils/tones";
 import { TonePicker } from "~/components/TonePicker/TonePicker";
-import { theme, toggleTheme } from "~/stores/themeStore";
+import { theme, toggleTheme, Theme } from "~/stores/themeStore";
 import { editSticky, markStickyFresh } from "~/stores/uiStore";
 import { confirmDialog } from "~/stores/dialogStore";
-import { useViewport } from "~/stores/viewportStore";
+import { useViewport } from "~/stores/workspace/viewportStore";
+import { usePane } from "~/stores/workspace/paneContext";
 import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize, Trash2 } from "lucide-static";
 import "./whiteboard-actions.scss";
 
@@ -36,6 +36,7 @@ type WhiteboardActionsProps = {
 
 export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   const vp = useViewport();
+  const pane = usePane();
   // remember the last spawn so we only stagger when nothing has changed since
   let lastSpawn: { id: string; pos: [number, number]; px: number; py: number; z: number } | null = null;
 
@@ -45,17 +46,11 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       confirmText: "Clear all",
       danger: true,
     })) {
-      clearAllStickies();
+      clearAllStickies(pane.boardId());
     }
   };
 
   const onStickyCreate = () => {
-    /**
-     * @todo move sticky creation to the store.
-     * @note @bug some weird lag when creating multiple stickies quickly.
-     *  -- could be related ot the async "milkdown" editor creation/deletion.
-     *  -- extra largeness accompanied by errors in the console.
-     */
     const mobile = window.innerWidth < 480;
     const z = vp.zoom();
     const p = vp.pan();
@@ -68,7 +63,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     // previous note still exists, hasn't been moved, and the view hasn't
     // panned/zoomed. Otherwise drop the new note fresh under the "+".
     if (lastSpawn) {
-      const prev = stickies().find((s) => s.id === lastSpawn!.id);
+      const prev = pane.stickies().find((s) => s.id === lastSpawn!.id);
       const unmoved =
         prev &&
         prev.position[0] === lastSpawn.pos[0] &&
@@ -80,11 +75,11 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       }
     }
 
-    const id = Date.now().toString();
+    const id = newId();
     // BEFORE create: the new Sticky's onMount can flush synchronously inside
     // createStickyNote, so the fresh flag must already be set when it runs.
     markStickyFresh(id);
-    createStickyNote({
+    createStickyNote(pane.boardId(), {
       id,
       position,
       // never narrower than the editor toolbar
@@ -93,7 +88,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       color: "butter",
     });
     lastSpawn = { id, pos: position, px: p.x, py: p.y, z };
-    editSticky(id); // select + open the new note straight into the editor
+    editSticky(pane.boardId(), id); // select + open the new note straight into the editor
   };
 
   const [toast, setToast] = createSignal("");
@@ -104,7 +99,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   };
 
   const onShare = () => {
-    const board = activeBoard();
+    const board = pane.board();
     if (!board) return;
     copyShareUrl(board);
     showToast("Link copied to clipboard");
@@ -132,9 +127,9 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
         </div>
         <button
           class="theme-toggle"
-          title={theme() === "dark" ? "Light mode" : "Dark mode"}
+          title={theme() === Theme.Dark ? "Light mode" : "Dark mode"}
           onClick={toggleTheme}
-          innerHTML={theme() === "dark" ? Sun : Moon}
+          innerHTML={theme() === Theme.Dark ? Sun : Moon}
         />
 
         <div class="toolbar-zoom">

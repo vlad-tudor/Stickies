@@ -8,7 +8,7 @@ import { StickyColorInput } from "../Sticky/StickyColorInput/StickyColorInput";
 import { activeBoard, boards, createBoard, loadBoards } from "~/stores/stickyStore";
 import { beginInteraction, endInteraction } from "~/stores/uiStore";
 import { theme } from "~/stores/themeStore";
-import { getViewport } from "~/stores/viewportStore";
+import { getViewport } from "~/stores/workspace/viewportStore";
 import {
   panes,
   layout,
@@ -24,7 +24,7 @@ import {
   stickyDrag,
   type Divider,
   type Rect,
-} from "~/stores/paneLayoutStore";
+} from "~/stores/workspace/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
 
 import "./whiteboard.scss";
@@ -83,7 +83,8 @@ export const Whiteboard = () => {
     const d = crossGhost();
     return (d?.targetPaneId && getViewport(d.targetPaneId)?.zoom()) || 1;
   });
-  const ghostContrast = () => (theme() === "dark" ? "dark" : "light");
+  // per-sticky ink contrast follows the chrome theme (same values)
+  const ghostContrast = () => theme();
 
   // Drag a divider: shift weight between the two children of its split node. Listen
   // on window (not the element) so the drag survives the divider being re-created as
