@@ -17,4 +17,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ${{ secrets.SITE_PATH }}
+            # pull BEFORE running the script — a script must never replace ITSELF
+            # mid-run (the shell keeps executing the old bytes, so deploy.sh
+            # changes would otherwise lag one deploy behind)
+            git pull
             sh deploy.sh
