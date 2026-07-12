@@ -11,6 +11,20 @@ services:
       - "traefik.http.routers.stickies.tls.certresolver=letsencrypt"
       - "traefik.http.services.stickies.loadbalancer.server.port=3000"
 
+  # collab relay (see relay/Dockerfile) — wss://collab.<domain>; Traefik
+  # terminates TLS and proxies the WebSocket upgrade to plain ws inside.
+  stickies-relay:
+    image: stickies-relay:latest
+    restart: unless-stopped
+    networks:
+      - infra-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.stickies-relay.rule=Host(`collab.${DOMAIN}`)"
+      - "traefik.http.routers.stickies-relay.entrypoints=websecure"
+      - "traefik.http.routers.stickies-relay.tls.certresolver=letsencrypt"
+      - "traefik.http.services.stickies-relay.loadbalancer.server.port=1234"
+
 networks:
   infra-net:
     external: true
