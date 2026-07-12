@@ -110,15 +110,17 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
 
   const session = () => sessionFor(pane.boardId());
 
-  // Start a live session (copies the join link) / end the running one.
+  // Start a live session, or re-copy the join link of the running one
+  // (startSession is idempotent — it returns the existing room's URL).
   const onGoLive = async () => {
-    if (!session()) {
-      const joinUrl = startSession(pane.boardId());
-      if (!joinUrl) return;
-      await navigator.clipboard.writeText(joinUrl);
-      showToast("Live — join link copied");
-      return;
-    }
+    const wasLive = !!session();
+    const joinUrl = startSession(pane.boardId());
+    if (!joinUrl) return;
+    await navigator.clipboard.writeText(joinUrl);
+    showToast(wasLive ? "Join link copied" : "Live — join link copied");
+  };
+
+  const onEndLive = async () => {
     const end = await confirmDialog(
       "End the live session for this board? Everyone keeps their copy.",
       { title: "End live session", confirmText: "End session", danger: true },
@@ -141,14 +143,24 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
           classList={{ live: !!session() }}
           title={
             session()
-              ? `Live — ${session()!.peers} here (click to end)`
+              ? `Live — ${session()!.peers} here (click to copy the join link)`
               : "Start live session"
           }
           onClick={onGoLive}
           innerHTML={Radio}
         />
         <Show when={session()}>
-          {(live) => <span class="live-count">{live().peers}</span>}
+          {(live) => (
+            <>
+              <span class="live-count">{live().peers}</span>
+              <button
+                class="end-live"
+                title="End live session"
+                onClick={onEndLive}
+                innerHTML={X}
+              />
+            </>
+          )}
         </Show>
 
         <div class="board-hue">

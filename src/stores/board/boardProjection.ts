@@ -2,7 +2,7 @@ import { createStore, reconcile } from "solid-js/store";
 import type * as Y from "yjs";
 import { createDebouncedWrite } from "~/utils/debouncedWrite";
 import { asTone, DEFAULT_TONE, type Tone } from "~/utils/tones";
-import type { Board, StickyNote, Thread } from "~/domain/board";
+import { deduplicateName, type Board, type StickyNote, type Thread } from "~/domain/board";
 import {
   docOf,
   stickyMapOf,
@@ -287,6 +287,19 @@ const applyThreadEvent = (
   });
 };
 
+// Adopt the doc's replicated board name into the local registry — deduped
+// against OTHER local boards (local uniqueness holds even if a remote name
+// collides). Skip-if-equal keeps local renames (which write meta themselves)
+// from ping-ponging.
+const adoptMetaName = (boardId: string, boardIdx: number, doc: Y.Doc): void => {
+  const metaName = metaMapOf(doc).get(MetaKey.Name);
+  if (typeof metaName !== "string" || metaName === store.boards[boardIdx].name) {
+    return;
+  }
+  const others = store.boards.filter((board) => board.id !== boardId);
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Name, deduplicateName(metaName, others));
+};
+
 const applyMetaEvent = (boardId: string): void => {
   const doc = docOf(boardId);
   const boardIdx = boardIndex(boardId);
@@ -297,6 +310,7 @@ const applyMetaEvent = (boardId: string): void => {
     BoardKey.BgColor,
     asTone(metaMapOf(doc).get(MetaKey.BgColor)),
   );
+  adoptMetaName(boardId, boardIdx, doc);
 };
 
 // One-time true-up: full rebuild of a board's projection from its doc. Used at
@@ -343,6 +357,7 @@ export const syncBoardFromDoc = (boardId: string): void => {
     BoardKey.BgColor,
     asTone(metaMapOf(doc).get(MetaKey.BgColor)),
   );
+  adoptMetaName(boardId, boardIdx, doc);
 };
 
 // Attach the doc -> projection observers to a board's doc.

@@ -15,6 +15,8 @@ import { StickyDeleteButton } from "./StickyDeleteButton/StickyDeleteButton";
 import { theme } from "~/stores/themeStore";
 import {
   editingStickyId,
+  selectedStickyId,
+  clearStickySelection,
   selectSticky,
   editSticky,
   exitEditing,
@@ -28,6 +30,10 @@ import { confirmDialog } from "~/stores/dialogStore";
 import { toneVar } from "~/utils/tones";
 
 import "./sticky.scss";
+
+// Rendered z while this client edits a note — far above any real note z, so
+// remote raises/drags can't cover the open editor. Never written to the doc.
+const EDITING_Z = 9999;
 
 type StickyProps = {
   z: number;
@@ -99,7 +105,9 @@ export const Sticky = (props: StickyProps) => {
     // NB: kebab-case — Solid's style object uses setProperty, so camelCase
     // `zIndex` is silently ignored (stacking relies on this, not DOM order).
     // Notes are >= 0; finished threads sit behind at z -1, grid at -2.
-    ["z-index"]: `${props.z}`,
+    // While EDITING, boost the rendered z LOCALLY only — a peer's raise/drag
+    // must not bury the note being typed in; the doc's z is untouched.
+    ["z-index"]: editing() ? `${EDITING_Z}` : `${props.z}`,
   });
 
   // Press selects/raises (cheap, no editor). A real tap (click) opens the
@@ -143,6 +151,7 @@ export const Sticky = (props: StickyProps) => {
       danger: true,
     }))) return;
     if (editingStickyId() === props.sticky.id) exitEditing();
+    if (selectedStickyId() === props.sticky.id) clearStickySelection();
     // Animate OUT first, then remove from the store on complete — the node stays
     // mounted for the animation (no exit-timing infra needed).
     animate(rootEl, {

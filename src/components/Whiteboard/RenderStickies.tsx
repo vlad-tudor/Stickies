@@ -8,6 +8,7 @@ import {
   duplicateStickyNote,
 } from "~/stores/stickyStore";
 import { usePane } from "~/stores/workspace/paneContext";
+import { selectedStickyId } from "~/stores/uiStore";
 import { Sticky } from "../Sticky/Sticky";
 
 export const RenderStickies = () => {
@@ -21,9 +22,6 @@ export const RenderStickies = () => {
     [...pane.stickies()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   );
 
-  // stacking comes from each note's z field; the top one is the "active" note
-  const maxZ = createMemo(() => pane.stickies().reduce((m, s) => Math.max(m, s.z), -1));
-
   return (
     <For each={renderList()}>
       {(sticky, renderIdx) => {
@@ -32,7 +30,9 @@ export const RenderStickies = () => {
           <Sticky
             z={sticky.z}
             seq={renderIdx() + 1}
-            active={sticky.z === maxZ()}
+            // selection is per-CLIENT ui state, never derived from z — z is
+            // shared doc state, so a peer's raise must not steal the selection
+            active={selectedStickyId() === sticky.id}
             sticky={sticky}
             updateSticky={(update) => updateStickyNote(boardId(), sticky.id, update)}
             moveSticky={(position) => moveStickyNote(boardId(), sticky.id, position)}

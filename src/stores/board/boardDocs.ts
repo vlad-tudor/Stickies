@@ -22,10 +22,12 @@ export const DocMap = {
 
 // Keys inside a doc's meta map. `Init` marks a doc as seeded — hydration uses
 // it to tell "empty because never seeded" from "empty because the update log
-// hasn't applied yet".
+// hasn't applied yet". `Name` replicates the board name so live-session
+// joiners adopt the host's name instead of a placeholder.
 export const MetaKey = {
   Init: "init",
   BgColor: "bgColor",
+  Name: "name",
 } as const;
 
 // Yjs map-event actions (`change.action`); the union mirrors yjs's own —
@@ -44,7 +46,8 @@ export type NoteFieldValue = StickyNote[NoteField];
 // A note inside a doc: its fields as a Y.Map, so concurrent edits to DIFFERENT
 // fields of one note both survive (per-field last-write-wins).
 export type YNote = Y.Map<NoteFieldValue>;
-export type MetaValue = boolean | Tone;
+// init flag | bgColor tone | board name
+export type MetaValue = boolean | Tone | string;
 
 export const stickyMapOf = (doc: Y.Doc): Y.Map<YNote> =>
   doc.getMap(DocMap.Stickies);
@@ -110,6 +113,7 @@ export const seedDoc = (doc: Y.Doc, board: Board): void => {
     const meta = metaMapOf(doc);
     meta.set(MetaKey.Init, true);
     meta.set(MetaKey.BgColor, board.bgColor);
+    meta.set(MetaKey.Name, board.name);
     const stickyMap = stickyMapOf(doc);
     for (const sticky of board.stickies) {
       stickyMap.set(sticky.id, noteToY(sticky));

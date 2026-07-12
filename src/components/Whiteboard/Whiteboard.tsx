@@ -51,9 +51,17 @@ export const Whiteboard = () => {
     ensurePanes();
 
     // a #join=<room> link binds a new local board to that live session; show
-    // it in the focused pane. Then reconnect any sessions from last run.
-    const joinedBoardId = joinSessionFromHash();
-    if (joinedBoardId) showBoardInFocusedPane(joinedBoardId);
+    // it in the focused pane. Handled at mount AND on hashchange — pasting a
+    // join link into an already-running app must work without a reload.
+    const handleJoinLink = () => {
+      const joinedBoardId = joinSessionFromHash();
+      if (joinedBoardId) showBoardInFocusedPane(joinedBoardId);
+    };
+    handleJoinLink();
+    window.addEventListener("hashchange", handleJoinLink);
+    onCleanup(() => window.removeEventListener("hashchange", handleJoinLink));
+
+    // reconnect any sessions from the last run
     resumeSessions();
 
     // Two-finger gestures are board pinch — stop the browser from also scrolling

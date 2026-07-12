@@ -6,6 +6,7 @@ import {
   deleteBoard,
   renameBoard,
   reorderBoardTo,
+  sessionFor,
   Board,
 } from "~/stores/stickyStore";
 import {
@@ -262,6 +263,21 @@ export const BoardTabs = (props: BoardTabsProps) => {
               ) : (
                 <span class="board-tab-name">{board.name}</span>
               )}
+              {/* live-session marker: a dot on any live board; the ACTIVE tab
+                  expands it with the peer count */}
+              <Show when={sessionFor(board.id)}>
+                {(live) => (
+                  <span
+                    class="board-tab-live"
+                    title={`Live — ${live().peers} here`}
+                  >
+                    <span class="board-tab-live-dot" />
+                    <Show when={board.id === props.boardId}>
+                      <span class="board-tab-live-count">{live().peers}</span>
+                    </Show>
+                  </span>
+                )}
+              </Show>
               {boards().length > 1 && (
                 <button
                   class="board-tab-close"

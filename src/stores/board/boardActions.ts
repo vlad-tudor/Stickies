@@ -234,12 +234,11 @@ export function renameBoard(id: string, name: string): void {
   const boardIdx = boardIndex(id);
   if (boardIdx === -1) return;
   const others = store.boards.filter((board) => board.id !== id);
-  setStore(
-    StoreKey.Boards,
-    boardIdx,
-    BoardKey.Name,
-    deduplicateName(name, others),
-  );
+  const deduped = deduplicateName(name, others);
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Name, deduped);
+  // replicate into the doc so live-session peers follow the rename (the meta
+  // observer skips-if-equal, so this doesn't loop locally)
+  transact(id, (doc) => metaMapOf(doc).set(MetaKey.Name, deduped));
   persist();
 }
 
