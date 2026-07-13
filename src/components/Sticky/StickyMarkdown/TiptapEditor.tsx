@@ -1,6 +1,6 @@
 import { createEffect, createSignal, on, onCleanup, onMount, Show } from "solid-js";
 import { animate } from "animejs";
-import { Editor } from "@tiptap/core";
+import { Editor, type Extensions } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
@@ -8,6 +8,12 @@ import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
+import type * as Y from "yjs";
+import type { Awareness } from "y-protocols/awareness";
+import { localIdentity } from "~/utils/identity";
+import { toneVar } from "~/utils/tones";
 import {
   Bold,
   Italic,
@@ -24,6 +30,11 @@ import { MOTION } from "~/utils/motion";
 
 type TiptapEditorProps = {
   content: string;
+  // the note's shared body fragment — when present, the editor binds to it
+  // (character-level co-editing) and `content` only seeds a still-empty one
+  fragment?: Y.XmlFragment;
+  // the live session's awareness — enables in-editor peer carets
+  awareness?: Awareness;
   onChange: (html: string) => void;
   onExit: () => void;
   exiting?: boolean; // editing has ended; play the toolbar out-animation before unmount
@@ -54,18 +65,38 @@ export const TiptapEditor = (props: TiptapEditorProps) => {
   );
 
   onMount(() => {
+    const fragment = props.fragment;
+
+    // Fragment-backed notes get the collaboration binding: the fragment is the
+    // content source (never the HTML string), StarterKit's history yields to
+    // yjs undo (scoped to OUR edits), and carets ride awareness when live.
+    const collabExtensions: Extensions = [];
+    if (fragment) {
+      collabExtensions.push(Collaboration.configure({ fragment }));
+      if (props.awareness) {
+        const identity = localIdentity();
+        collabExtensions.push(
+          CollaborationCursor.configure({
+            provider: { awareness: props.awareness },
+            user: { name: identity.name, color: toneVar(identity.color) },
+          }),
+        );
+      }
+    }
+
     const ed = new Editor({
       element: host,
       extensions: [
-        StarterKit,
+        StarterKit.configure(fragment ? { history: false } : {}),
         Underline,
         Link.configure({ openOnClick: false }),
         Table.configure({ resizable: true }),
         TableRow,
         TableHeader,
         TableCell,
+        ...collabExtensions,
       ],
-      content: props.content || "",
+      content: fragment ? undefined : props.content || "",
       editorProps: {
         handleKeyDown: (_view, event) => {
           if (event.key === "Escape") {
@@ -85,6 +116,12 @@ export const TiptapEditor = (props: TiptapEditorProps) => {
         bumpEditorTick();
       },
     });
+    // First edit of a legacy note: its fragment was just created empty — seed
+    // it from the mirrored HTML (becomes part of the shared history; safe from
+    // double-seeding because fragment creation is hold-guarded upstream).
+    if (fragment && fragment.length === 0 && props.content) {
+      ed.commands.setContent(props.content, false);
+    }
     ed.commands.focus("end");
     setEditor(ed);
     setActiveEditor(ed); // expose to sticky-level chrome (the table strip)

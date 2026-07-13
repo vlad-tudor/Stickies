@@ -19,6 +19,8 @@ import {
   moveStickyNote,
   commitStickies,
   addThread,
+  ensureNoteBody,
+  noteHasBodyFragment,
   type StickyNote,
 } from "~/stores/stickyStore";
 import {
@@ -169,6 +171,47 @@ describe("remote updates reach the projection", () => {
 
     const renamed = boards().find((board) => board.id === boardId)!;
     expect(renamed.name).toBe("Taken (1)"); // adopted, local uniqueness kept
+  });
+});
+
+describe("body fragments (the co-editing channel)", () => {
+  test("the fragment never leaks into the projection or plain note objects", () => {
+    const { boardId } = freshBoard();
+    createStickyNote(boardId, makeNote("a", { content: "<p>hi</p>" }));
+    const fragment = ensureNoteBody(boardId, "a");
+    expect(fragment).toBeDefined();
+    expect(ensureNoteBody(boardId, "a")).toBe(fragment!); // get-or-create is stable
+    expect(noteHasBodyFragment(boardId, "a")).toBe(true);
+
+    const projected = projectionNote("a")!;
+    expect("body" in projected).toBe(false);
+    expect(projected.content).toBe("<p>hi</p>");
+  });
+
+  test("remote fragment traffic flows without disturbing the projection", () => {
+    const { boardId, local } = freshBoard();
+    createStickyNote(boardId, makeNote("a", { content: "<p>hi</p>" }));
+    ensureNoteBody(boardId, "a");
+    const peer = spawnPeer(local);
+
+    // a peer "types": content lands inside the shared fragment
+    const peerFragment = stickyMapOf(peer)
+      .get("a")!
+      .get("body") as Y.XmlFragment;
+    peer.transact(() => {
+      const paragraph = new Y.XmlElement("paragraph");
+      paragraph.insert(0, [new Y.XmlText("typed remotely")]);
+      peerFragment.insert(0, [paragraph]);
+    });
+    deliver(peer, local);
+
+    // the keystroke arrived (fragment converged) but the projection only ever
+    // carries plain note data — the mirrored HTML is written by editors
+    const localFragment = stickyMapOf(local).get("a")!.get("body") as Y.XmlFragment;
+    expect(localFragment.length).toBe(1);
+    const projected = projectionNote("a")!;
+    expect("body" in projected).toBe(false);
+    expect(projected.content).toBe("<p>hi</p>");
   });
 });
 

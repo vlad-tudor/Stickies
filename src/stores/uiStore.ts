@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import { raiseSticky } from "./stickyStore";
+import { noteHasBodyFragment } from "./board/boardDocs";
 import {
   remoteHoldOn,
   holdSticky,
@@ -58,10 +59,12 @@ export function selectSticky(boardId: string, id: string): void {
 // Enter edit: open this sticky's editor (mount + focus). Triggered by a real
 // tap/click — never by a pinch or a drag — so the iOS keyboard only appears on
 // an intentional tap, and inside a user gesture so it actually shows.
-// Refused while a live-session peer holds the note (their lease must expire
-// or release first); on success, WE claim the editing hold.
+// Fragment-backed notes CO-EDIT freely (character-level merge + carets); a
+// peer's hold only refuses entry on legacy notes still awaiting their fragment
+// (created by the first editor — the hold guards that seeding window). The
+// claim is still published either way, so peers see who's in the note.
 export function editSticky(boardId: string, id: string): void {
-  if (remoteHoldOn(boardId, id)) return;
+  if (remoteHoldOn(boardId, id) && !noteHasBodyFragment(boardId, id)) return;
   raiseSticky(boardId, id);
   setSelectedStickyId(id);
   setEditingStickyId(id);

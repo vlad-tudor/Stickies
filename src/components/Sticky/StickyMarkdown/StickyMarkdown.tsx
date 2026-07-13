@@ -1,5 +1,6 @@
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
-import { StickyNote } from "~/stores/stickyStore";
+import { StickyNote, ensureNoteBody, awarenessFor } from "~/stores/stickyStore";
+import { usePane } from "~/stores/workspace/paneContext";
 import { MOTION } from "~/utils/motion";
 import { TiptapEditor } from "./TiptapEditor";
 
@@ -13,6 +14,8 @@ type StickyMarkdownProps = {
 };
 
 export const StickyMarkdown = (props: StickyMarkdownProps) => {
+  const pane = usePane();
+
   // Keep the editor mounted for MOTION.leave after editing ends, so its toolbar can
   // animate out (`exiting`). The rendered view is pixel-identical, so the final swap
   // is invisible — only the toolbar is seen fading.
@@ -46,6 +49,8 @@ export const StickyMarkdown = (props: StickyMarkdownProps) => {
     >
       <TiptapEditor
         content={props.sticky.content}
+        fragment={ensureNoteBody(pane.boardId(), props.sticky.id)}
+        awareness={awarenessFor(pane.boardId())}
         onChange={props.updateContent}
         onExit={props.onExit}
         exiting={exiting()}

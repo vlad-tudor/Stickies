@@ -43,9 +43,18 @@ export const YAction = {
 export type NoteField = keyof StickyNote;
 export type NoteFieldValue = StickyNote[NoteField];
 
+// The note's rich content as a shared Y.XmlFragment (character-level
+// co-editing lives there). Stored INSIDE the note's Y.Map under this key —
+// deliberately NOT a StickyNote field: noteFromY strips it and the projection
+// skips it, so the fragment never leaks into plain note objects, the JSON
+// snapshot, or share payloads. The mirrored HTML `content` string stays the
+// at-rest/interop representation.
+export const NOTE_BODY_KEY = "body";
+
 // A note inside a doc: its fields as a Y.Map, so concurrent edits to DIFFERENT
-// fields of one note both survive (per-field last-write-wins).
-export type YNote = Y.Map<NoteFieldValue>;
+// fields of one note both survive (per-field last-write-wins) — plus the
+// nested body fragment.
+export type YNote = Y.Map<NoteFieldValue | Y.XmlFragment>;
 // init flag | bgColor tone | board name
 export type MetaValue = boolean | Tone | string;
 
@@ -56,10 +65,14 @@ export const threadMapOf = (doc: Y.Doc): Y.Map<Thread> =>
 export const metaMapOf = (doc: Y.Doc): Y.Map<MetaValue> =>
   doc.getMap(DocMap.Meta);
 
-// The one Yjs -> plain boundary. yjs types toJSON() as any; every write into a
-// YNote goes through setYNoteFields, so its shape IS StickyNote.
-export const noteFromY = (yNote: YNote): StickyNote =>
-  yNote.toJSON() as StickyNote;
+// The one Yjs -> plain boundary. yjs types toJSON() as any; every field write
+// into a YNote goes through setYNoteFields, so after stripping the body
+// fragment its shape IS StickyNote.
+export const noteFromY = (yNote: YNote): StickyNote => {
+  const json = yNote.toJSON() as Record<string, unknown>;
+  delete json[NOTE_BODY_KEY];
+  return json as unknown as StickyNote;
+};
 
 export const noteToY = (note: StickyNote): YNote => {
   const yNote: YNote = new Y.Map();
@@ -132,6 +145,43 @@ export const setNoteFieldsInDoc = (
 ): void => {
   const yNote = stickyMapOf(doc).get(stickyId);
   if (yNote) setYNoteFields(yNote, update);
+};
+
+// ── note body fragments (co-editing) ──
+
+const noteBodyFragmentOf = (
+  doc: Y.Doc,
+  stickyId: string,
+): Y.XmlFragment | undefined => {
+  const value = stickyMapOf(doc).get(stickyId)?.get(NOTE_BODY_KEY);
+  return value instanceof Y.XmlFragment ? value : undefined;
+};
+
+// Whether a note is fragment-backed (true co-editing available). Legacy notes
+// become fragment-backed the first time someone edits them.
+export const noteHasBodyFragment = (
+  boardId: string,
+  stickyId: string,
+): boolean => {
+  const doc = docOf(boardId);
+  return !!doc && !!noteBodyFragmentOf(doc, stickyId);
+};
+
+// Get-or-create a note's body fragment (created EMPTY — the creating editor
+// seeds it from the mirrored HTML). Creation is guarded upstream by the
+// editing hold, so two clients can't mint competing fragments for one note.
+export const ensureNoteBody = (
+  boardId: string,
+  stickyId: string,
+): Y.XmlFragment | undefined => {
+  const doc = docOf(boardId);
+  const yNote = doc ? stickyMapOf(doc).get(stickyId) : undefined;
+  if (!doc || !yNote) return undefined;
+  const existing = noteBodyFragmentOf(doc, stickyId);
+  if (existing) return existing;
+  const fragment = new Y.XmlFragment();
+  doc.transact(() => yNote.set(NOTE_BODY_KEY, fragment));
+  return fragment;
 };
 
 // Remove a note from its doc along with every thread touching it (threads are

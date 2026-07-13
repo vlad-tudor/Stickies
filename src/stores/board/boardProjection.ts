@@ -11,6 +11,7 @@ import {
   noteFromY,
   MetaKey,
   YAction,
+  NOTE_BODY_KEY,
   type NoteFieldValue,
 } from "./boardDocs";
 
@@ -240,11 +241,13 @@ const applyNoteFieldEvent = (
 
   const patch: Partial<StickyNote> = {};
   for (const field of changedFields) {
+    // the body fragment is co-editing machinery, never projection data
+    if (field === NOTE_BODY_KEY) continue;
     // projection is ahead of the doc on dirty geometry — don't snap it back
     if (noteIsDirty && GEOMETRY_FIELDS.has(field)) continue;
     // TS can't correlate a dynamic key with its value type — one localized cast
     (patch as Record<string, NoteFieldValue | undefined>)[field] =
-      yNote.get(field);
+      yNote.get(field) as NoteFieldValue | undefined;
   }
   setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, stickyIdx, patch);
 };
@@ -262,10 +265,14 @@ const applyStickyEvents = (
 
   for (const event of events) {
     if (event.path.length === 0) {
+      // the stickies map itself: note add/remove/replace
       applyStickyMapEvent(boardId, boardIdx, stickyMap, event);
-    } else {
+    } else if (event.path.length === 1) {
+      // one note's field map: [noteId]
       applyNoteFieldEvent(boardId, boardIdx, event);
     }
+    // deeper paths ([noteId, "body", ...]) are body-fragment traffic — the
+    // editor's collaboration binding consumes those; the projection ignores them
   }
 };
 

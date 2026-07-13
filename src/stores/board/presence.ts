@@ -178,6 +178,10 @@ export const detachPresence = (boardId: string): void => {
 export const isPresenceLive = (boardId: string): boolean =>
   awarenessByBoard.has(boardId);
 
+// The session's awareness instance (in-editor peer carets bind to it).
+export const awarenessFor = (boardId: string): Awareness | undefined =>
+  awarenessByBoard.get(boardId);
+
 // ── local claims ──
 
 // Claim (or keep alive) a hold on a sticky. Throttled: refreshing the same

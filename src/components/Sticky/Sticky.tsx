@@ -7,6 +7,7 @@ import {
   remoteHoldOn,
   holdSticky,
   presenceClientId,
+  noteHasBodyFragment,
   HoldKind,
 } from "~/stores/stickyStore";
 import { MOTION } from "~/utils/motion";
@@ -79,11 +80,14 @@ export const Sticky = (props: StickyProps) => {
   // A live-session peer's unexpired hold on this note (editing or moving it).
   const remoteHold = () => remoteHoldOn(pane.boardId(), props.sticky.id);
 
-  // Edit-claim race (both opened before either claim propagated): the LOWER
-  // awareness client id keeps the editor — deterministic on both sides.
+  // Edit-claim race on a LEGACY note (both opened before either claim or the
+  // body fragment propagated): the LOWER awareness client id keeps the editor —
+  // deterministic on both sides. Fragment-backed notes co-edit freely, so no
+  // eviction applies there.
   createEffect(() => {
     const hold = remoteHold();
     if (!hold || !editing()) return;
+    if (noteHasBodyFragment(pane.boardId(), props.sticky.id)) return;
     const ourClientId = presenceClientId(pane.boardId());
     if (ourClientId !== undefined && hold.clientId < ourClientId) exitEditing();
   });

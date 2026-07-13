@@ -56,10 +56,13 @@ export {
   publishCursor,
   clearCursor,
   remoteCursorsOn,
+  awarenessFor,
   HoldKind,
   type RemoteHold,
   type RemoteCursor,
 } from "./board/presence";
+
+export { ensureNoteBody, noteHasBodyFragment } from "./board/boardDocs";
 
 export {
   addThread,

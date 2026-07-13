@@ -2,6 +2,7 @@ import { createSignal, Show } from "solid-js";
 import {
   clearAllStickies,
   createStickyNote,
+  ensureNoteBody,
   sessionFor,
   startSession,
   endSession,
@@ -90,6 +91,8 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
       content: "",
       color: "butter",
     });
+    // new notes are fragment-backed from birth (no legacy seeding race later)
+    ensureNoteBody(pane.boardId(), id);
     lastSpawn = { id, pos: position, px: p.x, py: p.y, z };
     editSticky(pane.boardId(), id); // select + open the new note straight into the editor
   };

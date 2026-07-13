@@ -212,3 +212,32 @@
 
   &.is-active { opacity: 1; background: var(--tint-press); }
 }
+
+// ── collaboration carets (y-prosemirror cursor plugin) ──
+// Border/background colors are injected inline by the extension from each
+// peer's identity tone; these rules handle geometry and the name flag.
+.collaboration-cursor__caret {
+  position: relative;
+  border-left: 1px solid;
+  border-right: 1px solid;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+  word-break: normal;
+}
+
+.collaboration-cursor__label {
+  position: absolute;
+  top: -1.3em;
+  left: -1px;
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px 3px 3px 0;
+  color: var(--ink);
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
