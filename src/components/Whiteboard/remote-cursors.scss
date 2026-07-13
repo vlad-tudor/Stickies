@@ -1,0 +1,26 @@
+// Peers' live pointers — world-positioned, screen-sized (counter-scaled by
+// the component), always above notes, never interactive.
+.remote-cursor {
+  position: absolute;
+  z-index: 10000;
+  pointer-events: none;
+  transform-origin: 0 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.15rem;
+
+  svg {
+    display: block;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+  }
+}
+
+.remote-cursor-name {
+  margin-top: 0.9rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+}

@@ -3,10 +3,11 @@ import { BoardTabs } from "../../BoardTabs/BoardTabs";
 import { WhiteboardActions } from "../WhiteboardActions/WhiteboardActions";
 import { RenderStickies } from "../RenderStickies";
 import { RenderThreads } from "../RenderThreads";
+import { RemoteCursors } from "../RemoteCursors";
 import { ThreadPopover } from "../ThreadPopover";
 import { OffscreenIndicators } from "../OffscreenIndicators";
 import { BoardRulers } from "../BoardRulers/BoardRulers";
-import { updateBoardBgColor } from "~/stores/stickyStore";
+import { updateBoardBgColor, publishCursor, clearCursor } from "~/stores/stickyStore";
 import {
   exitEditing,
   setSelectedThread,
@@ -137,6 +138,11 @@ export const Pane = (props: PaneProps) => {
   };
 
   const onBoardPointerMove = (e: PointerEvent) => {
+    // live sessions: share where our pointer is (world coords; throttled and
+    // a no-op unless this board has an active session)
+    const world = vp.eventToWorld({ x: e.clientX, y: e.clientY });
+    publishCursor(props.boardId, world.x, world.y);
+
     const rec = pointers.get(e.pointerId);
     if (!rec) return;
     rec.x = e.clientX;
@@ -225,6 +231,7 @@ export const Pane = (props: PaneProps) => {
           onPointerMove={onBoardPointerMove}
           onPointerUp={onBoardPointerUp}
           onPointerCancel={onBoardPointerUp}
+          onPointerLeave={() => clearCursor(props.boardId)}
           onWheel={onWheel}
         >
           <BoardTabs boardId={props.boardId} onSelect={showBoardInFocusedPane} />
@@ -249,6 +256,7 @@ export const Pane = (props: PaneProps) => {
             <div class="board-grid" />
             <RenderStickies />
             <RenderThreads />
+            <RemoteCursors />
           </div>
 
           <OffscreenIndicators size={size} />

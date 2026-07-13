@@ -53,8 +53,12 @@ export {
   holdSticky,
   releaseHold,
   presenceClientId,
+  publishCursor,
+  clearCursor,
+  remoteCursorsOn,
   HoldKind,
   type RemoteHold,
+  type RemoteCursor,
 } from "./board/presence";
 
 export {

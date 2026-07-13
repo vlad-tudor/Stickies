@@ -21,9 +21,16 @@ import {
   unmarkGeometryDirty,
   dropGeometryDirty,
   geometryDirtyEntries,
+  geometryDirtyFor,
   persist,
 } from "./boardProjection";
-import { remoteHoldOn, holdSticky, releaseHold, HoldKind } from "./presence";
+import {
+  remoteHoldOn,
+  holdSticky,
+  releaseHold,
+  isPresenceLive,
+  HoldKind,
+} from "./presence";
 
 // Board CONTENT mutations: stickies and the threads linking them. Every write
 // goes through the board's doc (transact) — the projection follows via the
@@ -77,11 +84,47 @@ export const updateStickyNote = (
   if (changed) persist();
 };
 
+// While a board is LIVE, stream in-flight geometry into the doc every ~90ms so
+// peers see the note glide instead of teleporting on release. Reads the dirty
+// set WITHOUT clearing it (the gesture continues); our own doc echo is skipped
+// by the projection's dirty-guard. Single-player boards stay doc-silent until
+// release, exactly as before.
+const LIVE_DRAG_FLUSH_MS = 90;
+const liveFlushTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+const flushLiveGeometry = (boardId: string): void => {
+  const dirtyIds = geometryDirtyFor(boardId);
+  const boardIdx = boardIndex(boardId);
+  if (!dirtyIds || dirtyIds.size === 0 || boardIdx === -1) return;
+  const inFlight = store.boards[boardIdx].stickies.filter((sticky) =>
+    dirtyIds.has(sticky.id),
+  );
+  transact(boardId, (doc) => {
+    for (const note of inFlight) {
+      setNoteFieldsInDoc(doc, note.id, {
+        position: note.position,
+        dimensions: note.dimensions,
+      });
+    }
+  });
+};
+
+const scheduleLiveGeometryFlush = (boardId: string): void => {
+  if (!isPresenceLive(boardId) || liveFlushTimers.has(boardId)) return;
+  liveFlushTimers.set(
+    boardId,
+    setTimeout(() => {
+      liveFlushTimers.delete(boardId);
+      flushLiveGeometry(boardId);
+    }, LIVE_DRAG_FLUSH_MS),
+  );
+};
+
 // Transient high-frequency updates (drag / resize). PROJECTION-only writes — no
 // doc transaction, no persist — so a drag frame costs one nested signal write.
 // The note is marked geometry-dirty; commitStickies() (pointer release) writes
-// the final geometry into the doc. (Once live, a throttle will also flush
-// mid-drag so remote peers see the motion.)
+// the final geometry into the doc. Live boards additionally stream the motion
+// (scheduleLiveGeometryFlush).
 export const moveStickyNote = (
   boardId: string,
   stickyId: string,
@@ -100,6 +143,7 @@ export const moveStickyNote = (
     NoteKey.Position,
     position,
   );
+  scheduleLiveGeometryFlush(boardId);
 };
 
 export const resizeStickyNote = (
@@ -120,12 +164,19 @@ export const resizeStickyNote = (
     NoteKey.Dimensions,
     dimensions,
   );
+  scheduleLiveGeometryFlush(boardId);
 };
 
 // Flush every note's transient geometry into its board's doc (one transaction
 // per board), then persist. Called once on pointer release.
 export const commitStickies = () => {
   for (const [boardId, dirtyIds] of geometryDirtyEntries()) {
+    // the release flush below supersedes any pending mid-drag flush
+    const pendingFlush = liveFlushTimers.get(boardId);
+    if (pendingFlush) {
+      clearTimeout(pendingFlush);
+      liveFlushTimers.delete(boardId);
+    }
     const boardIdx = boardIndex(boardId);
     const pendingNotes =
       boardIdx === -1

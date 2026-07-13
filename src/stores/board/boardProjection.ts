@@ -144,6 +144,12 @@ export const geometryDirtyEntries = (): [string, ReadonlySet<string>][] => [
   ...dirtyGeometry.entries(),
 ];
 
+// One board's dirty set (the live mid-drag flush reads it WITHOUT clearing —
+// the gesture is still in progress).
+export const geometryDirtyFor = (
+  boardId: string,
+): ReadonlySet<string> | undefined => dirtyGeometry.get(boardId);
+
 const isGeometryDirty = (boardId: string, stickyId: string): boolean =>
   dirtyGeometry.get(boardId)?.has(stickyId) ?? false;
 
