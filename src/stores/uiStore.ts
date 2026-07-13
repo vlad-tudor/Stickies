@@ -1,5 +1,11 @@
 import { createSignal } from "solid-js";
 import { raiseSticky } from "./stickyStore";
+import {
+  remoteHoldOn,
+  holdSticky,
+  releaseHold,
+  HoldKind,
+} from "./board/presence";
 
 // The single sticky currently being edited (its id), or null. Global so only
 // one editor/toolbar can exist at a time — independent of focus/blur, which is
@@ -52,15 +58,20 @@ export function selectSticky(boardId: string, id: string): void {
 // Enter edit: open this sticky's editor (mount + focus). Triggered by a real
 // tap/click — never by a pinch or a drag — so the iOS keyboard only appears on
 // an intentional tap, and inside a user gesture so it actually shows.
+// Refused while a live-session peer holds the note (their lease must expire
+// or release first); on success, WE claim the editing hold.
 export function editSticky(boardId: string, id: string): void {
+  if (remoteHoldOn(boardId, id)) return;
   raiseSticky(boardId, id);
   setSelectedStickyId(id);
   setEditingStickyId(id);
+  holdSticky(boardId, id, HoldKind.Editing);
 }
 
 // Leave edit mode (click outside / Escape / delete).
 export function exitEditing(): void {
   setEditingStickyId(null);
+  releaseHold();
 }
 
 // Notes the user just created (vs. loaded/imported), so the Sticky can play its enter

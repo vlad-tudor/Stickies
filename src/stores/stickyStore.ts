@@ -49,6 +49,15 @@ export {
 } from "./board/collabSession";
 
 export {
+  remoteHoldOn,
+  holdSticky,
+  releaseHold,
+  presenceClientId,
+  HoldKind,
+  type RemoteHold,
+} from "./board/presence";
+
+export {
   addThread,
   deleteThread,
   updateStickyNote,

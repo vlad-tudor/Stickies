@@ -7,6 +7,7 @@ import { clearHash, joinUrlFor, readJoinRoomFromHash } from "~/utils/urlState";
 import { docOf } from "./boardDocs";
 import { boardIndex } from "./boardProjection";
 import { switchBoard, registerJoinedBoard } from "./boardActions";
+import { attachPresence, detachPresence } from "./presence";
 
 // Live collab sessions — explicit opt-in per board. "Go live" binds a board's
 // existing Y.Doc to a fresh relay room; the join URL (#join=<roomId>) is an
@@ -68,6 +69,7 @@ const connect = (boardId: string, roomId: string): boolean => {
   // client's awareness entry once it has set local state — without this, peers
   // never see each other and the peer count stays at 1.
   provider.awareness.setLocalStateField("user", localIdentity());
+  attachPresence(boardId, provider.awareness);
 
   provider.on("status", (event: { status: string }) => {
     if (sessions[boardId]) {
@@ -96,6 +98,7 @@ export function startSession(boardId: string): string | null {
 
 // Disconnect a board from its room. The local copy stays (doc + IDB log).
 export function endSession(boardId: string): void {
+  detachPresence(boardId);
   providers.get(boardId)?.destroy();
   providers.delete(boardId);
   setSessions(produce((all) => delete all[boardId]));

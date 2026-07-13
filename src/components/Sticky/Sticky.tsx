@@ -1,7 +1,14 @@
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import { animate } from "animejs";
 import { Copy } from "lucide-static";
-import { StickyNote, addThread } from "~/stores/stickyStore";
+import {
+  StickyNote,
+  addThread,
+  remoteHoldOn,
+  holdSticky,
+  presenceClientId,
+  HoldKind,
+} from "~/stores/stickyStore";
 import { MOTION } from "~/utils/motion";
 
 import { StickyMarkdown } from "./StickyMarkdown/StickyMarkdown";
@@ -69,6 +76,18 @@ export const Sticky = (props: StickyProps) => {
   // show the live-updating rendered view (instead of a second, stale editor).
   const editing = () => editingStickyId() === props.sticky.id && pane.focused();
 
+  // A live-session peer's unexpired hold on this note (editing or moving it).
+  const remoteHold = () => remoteHoldOn(pane.boardId(), props.sticky.id);
+
+  // Edit-claim race (both opened before either claim propagated): the LOWER
+  // awareness client id keeps the editor — deterministic on both sides.
+  createEffect(() => {
+    const hold = remoteHold();
+    if (!hold || !editing()) return;
+    const ourClientId = presenceClientId(pane.boardId());
+    if (ourClientId !== undefined && hold.clientId < ourClientId) exitEditing();
+  });
+
   // Title is derived from the note's text (titles abolished), capped at 10 chars
   // and left-aligned so the center of the band stays clear (for thread anchors).
   // Derived on focus-loss, NOT per keystroke: the effect bails while editing, so
@@ -92,7 +111,7 @@ export const Sticky = (props: StickyProps) => {
   // Curated tones are all light in light mode, all dark in dark mode, so the
   // per-sticky ink contrast follows the global chrome theme (same values).
   const stickyClass = () => {
-    return `sticky ${theme()}${props.active ? " active" : ""}${props.sticky.image ? " is-image" : ""}`;
+    return `sticky ${theme()}${props.active ? " active" : ""}${props.sticky.image ? " is-image" : ""}${remoteHold() ? " remote-held" : ""}`;
   };
 
   const stickyStyleOverrides = () => ({
@@ -108,6 +127,8 @@ export const Sticky = (props: StickyProps) => {
     // While EDITING, boost the rendered z LOCALLY only — a peer's raise/drag
     // must not bury the note being typed in; the doc's z is untouched.
     ["z-index"]: editing() ? `${EDITING_Z}` : `${props.z}`,
+    // the holder's identity tone drives the hold outline + chip
+    ["--hold-tone"]: remoteHold() ? toneVar(remoteHold()!.color) : undefined,
   });
 
   // Press selects/raises (cheap, no editor). A real tap (click) opens the
@@ -212,6 +233,17 @@ export const Sticky = (props: StickyProps) => {
         <span class="sticky-title-label">{title()}</span>
       </div>
 
+      <Show when={remoteHold()}>
+        {(hold) => (
+          <div
+            class="sticky-remote-hold"
+            style={{ "background-color": toneVar(hold().color) }}
+          >
+            {hold().name}
+          </div>
+        )}
+      </Show>
+
       <button
         class="sticky-copy-button"
         title="Duplicate note"
@@ -230,7 +262,11 @@ export const Sticky = (props: StickyProps) => {
               sticky={props.sticky}
               editing={editing()}
               onExit={exitEditing}
-              updateContent={(content) => props.updateSticky({ content })}
+              updateContent={(content) => {
+                // each keystroke refreshes the editing lease (throttled inside)
+                holdSticky(pane.boardId(), props.sticky.id, HoldKind.Editing);
+                props.updateSticky({ content });
+              }}
             />
           </>
         }

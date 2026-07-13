@@ -23,6 +23,7 @@ import {
   geometryDirtyEntries,
   persist,
 } from "./boardProjection";
+import { remoteHoldOn, holdSticky, releaseHold, HoldKind } from "./presence";
 
 // Board CONTENT mutations: stickies and the threads linking them. Every write
 // goes through the board's doc (transact) — the projection follows via the
@@ -86,9 +87,11 @@ export const moveStickyNote = (
   stickyId: string,
   position: [number, number],
 ) => {
+  if (remoteHoldOn(boardId, stickyId)) return; // a peer is holding this note
   const [boardIdx, stickyIdx] = locate(boardId, stickyId);
   if (stickyIdx === -1) return;
   markGeometryDirty(boardId, stickyId);
+  holdSticky(boardId, stickyId, HoldKind.Moving);
   setStore(
     StoreKey.Boards,
     boardIdx,
@@ -104,9 +107,11 @@ export const resizeStickyNote = (
   stickyId: string,
   dimensions: [number, number],
 ) => {
+  if (remoteHoldOn(boardId, stickyId)) return; // a peer is holding this note
   const [boardIdx, stickyIdx] = locate(boardId, stickyId);
   if (stickyIdx === -1) return;
   markGeometryDirty(boardId, stickyId);
+  holdSticky(boardId, stickyId, HoldKind.Moving);
   setStore(
     StoreKey.Boards,
     boardIdx,
@@ -139,6 +144,7 @@ export const commitStickies = () => {
       }
     });
   }
+  releaseHold(); // the gesture is over — free the note for peers
   persist();
 };
 

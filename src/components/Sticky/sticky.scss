@@ -126,3 +126,26 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+// ── live-session hold (a peer is editing/moving this note) ──
+// Outline in the holder's identity tone + a name chip above the band;
+// move/resize/edit are refused upstream while the hold's lease is fresh.
+.sticky.remote-held {
+  outline: 2px solid var(--hold-tone);
+  outline-offset: 2px;
+}
+
+.sticky-remote-hold {
+  position: absolute;
+  top: -1.5rem;
+  left: 0;
+  z-index: 7;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: var(--hold-tone);
+  color: var(--ink);
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
