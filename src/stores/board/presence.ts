@@ -52,7 +52,7 @@ const HEARTBEAT_MIN_MS = 400;
 const SWEEP_INTERVAL_MS = 500;
 
 // A stale cursor fades out (peer stopped moving / left the board area).
-const CURSOR_LEASE_MS = 6000;
+const CURSOR_LEASE_MS = 3000;
 
 // Cursor publish throttle — pointermove fires per frame; peers only need
 // ~25 updates/s for smooth motion.
@@ -63,11 +63,16 @@ type PublishedHold = { stickyId: string; kind: HoldKind; at: number };
 type PublishedCursor = { x: number; y: number; at: number };
 
 // What a peer's awareness state looks like to us (fields are set by
-// collabSession ("user") and this module ("hold"/"cursor")).
+// collabSession ("user") and this module ("hold"/"pointer")). NB: the pointer
+// field must NOT be named "cursor" — y-prosemirror's collaboration-cursor plugin
+// owns that awareness key for editor selections ({anchor,head}) and calls
+// createRelativePositionFromJSON on it every transaction; a board-pointer
+// {x,y} there crashes the plugin (json.type of undefined) and takes the editor
+// down with it. Keep the two cursor concepts on separate awareness fields.
 type PeerState = {
   user?: Identity;
   hold?: PublishedHold | null;
-  cursor?: PublishedCursor | null;
+  pointer?: PublishedCursor | null;
 };
 
 const awarenessByBoard = new Map<string, Awareness>();
@@ -132,16 +137,16 @@ const rebuildBoardPresence = (boardId: string, awareness: Awareness): void => {
       };
     }
 
-    if (peer.cursor) {
+    if (peer.pointer) {
       const cursorKey = String(clientId);
       const existing = previousCursors[cursorKey];
-      const moved = !existing || existing.x !== peer.cursor.x || existing.y !== peer.cursor.y;
+      const moved = !existing || existing.x !== peer.pointer.x || existing.y !== peer.pointer.y;
       nextCursors[cursorKey] = {
         clientId,
         name: peer.user.name,
         color: peer.user.color,
-        x: peer.cursor.x,
-        y: peer.cursor.y,
+        x: peer.pointer.x,
+        y: peer.pointer.y,
         seenAt: moved ? localNow : existing.seenAt,
       };
     }
@@ -226,12 +231,12 @@ export const publishCursor = (boardId: string, x: number, y: number): void => {
   if (at - last < CURSOR_MIN_INTERVAL_MS) return;
   lastCursorPublish.set(boardId, at);
   const published: PublishedCursor = { x, y, at };
-  awareness.setLocalStateField("cursor", published);
+  awareness.setLocalStateField("pointer", published);
 };
 
 // The pointer left the board — stop showing our cursor to peers.
 export const clearCursor = (boardId: string): void => {
-  awarenessByBoard.get(boardId)?.setLocalStateField("cursor", null);
+  awarenessByBoard.get(boardId)?.setLocalStateField("pointer", null);
   lastCursorPublish.delete(boardId);
 };
 
