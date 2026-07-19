@@ -167,6 +167,17 @@ export const noteHasBodyFragment = (
   return !!doc && !!noteBodyFragmentOf(doc, stickyId);
 };
 
+// The note's EXISTING body fragment, or undefined — never creates one (unlike
+// ensureNoteBody). For read-only viewers (a peer's live edit), which must not
+// mint a competing fragment that would collide on the note's body key.
+export const noteBodyFragment = (
+  boardId: string,
+  stickyId: string,
+): Y.XmlFragment | undefined => {
+  const doc = docOf(boardId);
+  return doc ? noteBodyFragmentOf(doc, stickyId) : undefined;
+};
+
 // Get-or-create a note's body fragment (created EMPTY — the creating editor
 // seeds it from the mirrored HTML). Creation is guarded upstream by the
 // editing hold, so two clients can't mint competing fragments for one note.

@@ -1,19 +1,8 @@
 import { createEffect, createSignal, on, onCleanup, onMount, Show } from "solid-js";
 import { animate } from "animejs";
-import { Editor, type Extensions } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import Link from "@tiptap/extension-link";
-import Table from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableHeader from "@tiptap/extension-table-header";
-import TableCell from "@tiptap/extension-table-cell";
-import Collaboration from "@tiptap/extension-collaboration";
-import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
+import { Editor } from "@tiptap/core";
 import type * as Y from "yjs";
 import type { Awareness } from "y-protocols/awareness";
-import { localIdentity } from "~/utils/identity";
-import { toneVar } from "~/utils/tones";
 import {
   Bold,
   Italic,
@@ -27,6 +16,7 @@ import {
 } from "lucide-static";
 import { setActiveEditor, bumpEditorTick } from "~/stores/editorStore";
 import { MOTION } from "~/utils/motion";
+import { stickyBodyExtensions } from "./editorExtensions";
 
 type TiptapEditorProps = {
   content: string;
@@ -67,35 +57,11 @@ export const TiptapEditor = (props: TiptapEditorProps) => {
   onMount(() => {
     const fragment = props.fragment;
 
-    // Fragment-backed notes get the collaboration binding: the fragment is the
-    // content source (never the HTML string), StarterKit's history yields to
-    // yjs undo (scoped to OUR edits), and carets ride awareness when live.
-    const collabExtensions: Extensions = [];
-    if (fragment) {
-      collabExtensions.push(Collaboration.configure({ fragment }));
-      if (props.awareness) {
-        const identity = localIdentity();
-        collabExtensions.push(
-          CollaborationCursor.configure({
-            provider: { awareness: props.awareness },
-            user: { name: identity.name, color: toneVar(identity.color) },
-          }),
-        );
-      }
-    }
-
+    // Fragment-backed notes bind to the collaboration extensions (the fragment is
+    // the content source, never the HTML string; carets ride awareness when live).
     const ed = new Editor({
       element: host,
-      extensions: [
-        StarterKit.configure(fragment ? { history: false } : {}),
-        Underline,
-        Link.configure({ openOnClick: false }),
-        Table.configure({ resizable: true }),
-        TableRow,
-        TableHeader,
-        TableCell,
-        ...collabExtensions,
-      ],
+      extensions: stickyBodyExtensions({ fragment, awareness: props.awareness }),
       content: fragment ? undefined : props.content || "",
       editorProps: {
         handleKeyDown: (_view, event) => {

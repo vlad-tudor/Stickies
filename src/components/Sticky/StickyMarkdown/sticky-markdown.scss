@@ -116,6 +116,15 @@
 // the same total — so entering edit never shifts the text.
 .sticky-markdown.rendered { padding-top: calc(var(--toolbar-h) + 0.5rem); }
 
+// The read-only fragment view (a peer's live edit): purely display. Pointer
+// events pass through to the sticky root so a click opens OUR editor instead of
+// focusing this one (which must never grab focus / publish a cursor). Its inner
+// ProseMirror inherits the shared prose styling via the `.rendered` class.
+.sticky-fragment-view {
+  pointer-events: none;
+  .ProseMirror { outline: none; }
+}
+
 // ---- editor (note being edited) ----
 // Toolbar and text are fully decoupled: the toolbar is absolutely positioned in
 // the top strip (zero layout influence), and the scroll surface is absolutely

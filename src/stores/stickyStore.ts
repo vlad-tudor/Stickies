@@ -62,7 +62,7 @@ export {
   type RemoteCursor,
 } from "./board/presence";
 
-export { ensureNoteBody, noteHasBodyFragment } from "./board/boardDocs";
+export { ensureNoteBody, noteHasBodyFragment, noteBodyFragment } from "./board/boardDocs";
 
 export {
   addThread,
