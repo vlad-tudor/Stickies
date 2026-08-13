@@ -1,13 +1,7 @@
 // Pure layout math of the split tree (rect computation, dividers, drop zones).
 // Not touched by the collab rewrite, but load-bearing for every pane feature.
 import { test, expect, describe } from "bun:test";
-import {
-  computeLayout,
-  findSplit,
-  zoneAt,
-  type LayoutNode,
-  type SplitNode,
-} from "./layout";
+import { computeLayout, findSplit, zoneAt, type LayoutNode, type SplitNode } from "./layout";
 
 const leaf = (paneId: string): LayoutNode => ({ type: "leaf", paneId });
 

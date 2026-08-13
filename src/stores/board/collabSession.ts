@@ -35,8 +35,7 @@ const SESSIONS_KEY = "stickies.sessions";
 
 const [sessions, setSessions] = createStore<Record<string, Session>>({});
 
-export const sessionFor = (boardId: string): Session | undefined =>
-  sessions[boardId];
+export const sessionFor = (boardId: string): Session | undefined => sessions[boardId];
 
 const providers = new Map<string, WebsocketProvider>();
 
@@ -50,9 +49,7 @@ const persistSessions = (): void => {
 
 const asSessionStatus = (value: string): SessionStatus => {
   const known = Object.values(SessionStatus) as string[];
-  return known.includes(value)
-    ? (value as SessionStatus)
-    : SessionStatus.Connecting;
+  return known.includes(value) ? (value as SessionStatus) : SessionStatus.Connecting;
 };
 
 // Bind a board's doc to a relay room. False if the board has no doc.
@@ -113,9 +110,7 @@ export function joinSessionFromHash(): string | null {
   if (!roomId) return null;
   clearHash();
 
-  const alreadyJoined = Object.entries(sessions).find(
-    ([, session]) => session.roomId === roomId,
-  );
+  const alreadyJoined = Object.entries(sessions).find(([, session]) => session.roomId === roomId);
   if (alreadyJoined) {
     switchBoard(alreadyJoined[0]);
     return alreadyJoined[0];

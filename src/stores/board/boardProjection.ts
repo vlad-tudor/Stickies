@@ -62,10 +62,7 @@ export const NoteKey = {
 
 // Geometry is gesture-transient: the projection owns these two fields for a
 // note mid drag/resize (see the dirty-geometry set), the doc gets them on commit.
-const GEOMETRY_FIELDS: ReadonlySet<string> = new Set([
-  NoteKey.Position,
-  NoteKey.Dimensions,
-]);
+const GEOMETRY_FIELDS: ReadonlySet<string> = new Set([NoteKey.Position, NoteKey.Dimensions]);
 
 // ── ordering ──
 
@@ -78,10 +75,7 @@ const byId = <T extends { id: string }>(left: T, right: T): number => {
 };
 
 // Insert-or-replace by id, keeping the id-sorted order on insert.
-const upsertById = <T extends { id: string }>(
-  list: readonly T[],
-  item: T,
-): T[] => {
+const upsertById = <T extends { id: string }>(list: readonly T[], item: T): T[] => {
   const at = list.findIndex((existing) => existing.id === item.id);
   if (at === -1) return [...list, item].sort(byId);
   return list.map((existing, index) => (index === at ? item : existing));
@@ -102,9 +96,7 @@ export const boardIndex = (boardId: string): number =>
 export const locate = (boardId: string, stickyId: string): [number, number] => {
   const boardIdx = boardIndex(boardId);
   if (boardIdx === -1) return [-1, -1];
-  const stickyIdx = store.boards[boardIdx].stickies.findIndex(
-    (sticky) => sticky.id === stickyId,
-  );
+  const stickyIdx = store.boards[boardIdx].stickies.findIndex((sticky) => sticky.id === stickyId);
   return [boardIdx, stickyIdx];
 };
 
@@ -147,9 +139,8 @@ export const geometryDirtyEntries = (): [string, ReadonlySet<string>][] => [
 
 // One board's dirty set (the live mid-drag flush reads it WITHOUT clearing —
 // the gesture is still in progress).
-export const geometryDirtyFor = (
-  boardId: string,
-): ReadonlySet<string> | undefined => dirtyGeometry.get(boardId);
+export const geometryDirtyFor = (boardId: string): ReadonlySet<string> | undefined =>
+  dirtyGeometry.get(boardId);
 
 const isGeometryDirty = (boardId: string, stickyId: string): boolean =>
   dirtyGeometry.get(boardId)?.has(stickyId) ?? false;
@@ -158,15 +149,9 @@ const isGeometryDirty = (boardId: string, stickyId: string): boolean =>
 
 // Keep a mid-gesture note's transient geometry: the projection is AHEAD of the
 // doc for dirty notes until commitStickies().
-const overlayDirtyGeometry = (
-  boardId: string,
-  boardIdx: number,
-  note: StickyNote,
-): StickyNote => {
+const overlayDirtyGeometry = (boardId: string, boardIdx: number, note: StickyNote): StickyNote => {
   if (!isGeometryDirty(boardId, note.id)) return note;
-  const projected = store.boards[boardIdx].stickies.find(
-    (sticky) => sticky.id === note.id,
-  );
+  const projected = store.boards[boardIdx].stickies.find((sticky) => sticky.id === note.id);
   if (!projected) return note;
   return {
     ...note,
@@ -175,15 +160,9 @@ const overlayDirtyGeometry = (
   };
 };
 
-const upsertStickyInProjection = (
-  boardId: string,
-  boardIdx: number,
-  note: StickyNote,
-): void => {
+const upsertStickyInProjection = (boardId: string, boardIdx: number, note: StickyNote): void => {
   const withGesture = overlayDirtyGeometry(boardId, boardIdx, note);
-  const at = store.boards[boardIdx].stickies.findIndex(
-    (sticky) => sticky.id === note.id,
-  );
+  const at = store.boards[boardIdx].stickies.findIndex((sticky) => sticky.id === note.id);
   if (at === -1) {
     setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, (existing) =>
       [...existing, withGesture].sort(byId),
@@ -194,10 +173,7 @@ const upsertStickyInProjection = (
   }
 };
 
-const removeStickyFromProjection = (
-  boardIdx: number,
-  stickyId: string,
-): void => {
+const removeStickyFromProjection = (boardIdx: number, stickyId: string): void => {
   setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, (existing) =>
     existing.filter((sticky) => sticky.id !== stickyId),
   );
@@ -230,9 +206,7 @@ const applyNoteFieldEvent = (
 ): void => {
   // the note's id is the map's key in its parent — the event path
   const stickyId = String(event.path[0]);
-  const stickyIdx = store.boards[boardIdx].stickies.findIndex(
-    (sticky) => sticky.id === stickyId,
-  );
+  const stickyIdx = store.boards[boardIdx].stickies.findIndex((sticky) => sticky.id === stickyId);
   if (stickyIdx === -1) return;
 
   const yNote = event.target;
@@ -246,8 +220,8 @@ const applyNoteFieldEvent = (
     // projection is ahead of the doc on dirty geometry — don't snap it back
     if (noteIsDirty && GEOMETRY_FIELDS.has(field)) continue;
     // TS can't correlate a dynamic key with its value type — one localized cast
-    (patch as Record<string, NoteFieldValue | undefined>)[field] =
-      yNote.get(field) as NoteFieldValue | undefined;
+    (patch as Record<string, NoteFieldValue | undefined>)[field] = yNote.get(field) as
+      NoteFieldValue | undefined;
   }
   setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, stickyIdx, patch);
 };
@@ -276,10 +250,7 @@ const applyStickyEvents = (
   }
 };
 
-const applyThreadEvent = (
-  boardId: string,
-  event: Y.YMapEvent<Thread>,
-): void => {
+const applyThreadEvent = (boardId: string, event: Y.YMapEvent<Thread>): void => {
   const doc = docOf(boardId);
   const boardIdx = boardIndex(boardId);
   if (!doc || boardIdx === -1) return;
@@ -340,9 +311,7 @@ export const syncBoardFromDoc = (boardId: string): void => {
 
   const nextStickies: StickyNote[] = [];
   stickyMapOf(doc).forEach((yNote) => {
-    nextStickies.push(
-      overlayDirtyGeometry(boardId, boardIdx, noteFromY(yNote)),
-    );
+    nextStickies.push(overlayDirtyGeometry(boardId, boardIdx, noteFromY(yNote)));
   });
   nextStickies.sort(byId);
 
@@ -352,18 +321,8 @@ export const syncBoardFromDoc = (boardId: string): void => {
   });
   nextThreads.sort(byId);
 
-  setStore(
-    StoreKey.Boards,
-    boardIdx,
-    BoardKey.Stickies,
-    reconcile(nextStickies, { key: "id" }),
-  );
-  setStore(
-    StoreKey.Boards,
-    boardIdx,
-    BoardKey.Threads,
-    reconcile(nextThreads, { key: "id" }),
-  );
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, reconcile(nextStickies, { key: "id" }));
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Threads, reconcile(nextThreads, { key: "id" }));
   setStore(
     StoreKey.Boards,
     boardIdx,

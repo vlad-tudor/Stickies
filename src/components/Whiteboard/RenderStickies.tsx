@@ -19,7 +19,7 @@ export const RenderStickies = () => {
   // compare, NOT Number(): image-note ids aren't numeric, so `Number(id)` is NaN
   // → an unstable sort → DOM reorder mid-drag → lost pointer capture → stuck drag.
   const renderList = createMemo(() =>
-    [...pane.stickies()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    [...pane.stickies()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
   );
 
   return (

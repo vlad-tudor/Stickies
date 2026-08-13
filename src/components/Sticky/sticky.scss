@@ -9,10 +9,10 @@
 .sticky {
   --total-sticky-height: 20rem;
   --total-sticky-handle-height: 2rem;
-  --toolbar-h: 2rem;   // editor toolbar height (reserved at content top)
+  --toolbar-h: 2rem; // editor toolbar height (reserved at content top)
 
   position: absolute;
-  min-width: 16rem;   // == MIN_STICKY_WIDTH (256px): fits the editor toolbar
+  min-width: 16rem; // == MIN_STICKY_WIDTH (256px): fits the editor toolbar
   min-height: var(--total-sticky-height);
 
   display: flex;
@@ -22,7 +22,7 @@
   border-radius: var(--radius-paper);
   box-shadow: var(--shadow-1);
   // gentle top sheen over the note's own (inline) background color
-  background-image: linear-gradient(180deg, var(--sheen), rgba(0,0,0,0) 22%);
+  background-image: linear-gradient(180deg, var(--sheen), rgba(0, 0, 0, 0) 22%);
 
   // ---- per-sticky ink contrast (decided by isLightBackground) ----
   // Sets BOTH the chrome ink and the Crepe editor ink for this note.
@@ -32,7 +32,9 @@
     --note-border: rgba(0, 0, 0, 0.12);
     border: 1px solid var(--note-border);
     // bump the var (not just border-color) so the resize pills' border matches
-    &.active { --note-border: rgba(0, 0, 0, 0.28); }
+    &.active {
+      --note-border: rgba(0, 0, 0, 0.28);
+    }
   }
 
   &.dark {
@@ -40,12 +42,16 @@
     --crepe-color-on-background: var(--sticky-ink-light);
     --note-border: rgba(255, 255, 255, 0.14);
     border: 1px solid var(--note-border);
-    &.active { --note-border: rgba(255, 255, 255, 0.35); }
+    &.active {
+      --note-border: rgba(255, 255, 255, 0.35);
+    }
   }
 
   // Image notes size to the picture (band + aspect-locked body), so drop the
   // text-writing min-height. Min-width stays so the band still fits its buttons.
-  &.is-image { min-height: 0; }
+  &.is-image {
+    min-height: 0;
+  }
 }
 
 // ---- top band: title (center), delete (right) ----
@@ -55,20 +61,20 @@
   position: absolute;
   top: 0;
   left: 0.6rem;
-  right: 6rem;            // leave the top-right for the color + copy + delete buttons
+  right: 6rem; // leave the top-right for the color + copy + delete buttons
   height: var(--total-sticky-handle-height);
   display: flex;
   align-items: center;
-  justify-content: flex-start;   // left-aligned; center of the band stays clear
-  pointer-events: none;          // derived title is read-only; band drags through it
+  justify-content: flex-start; // left-aligned; center of the band stays clear
+  pointer-events: none; // derived title is read-only; band drags through it
 }
 
 // copy-contents — quiet icon button left of the delete "×"
 .sticky-copy-button {
   position: absolute;
   top: 0;
-  right: 2rem;                   // sits just left of the delete button (right: 0)
-  z-index: 5;                    // stay clickable over the top resize rim (z 4)
+  right: 2rem; // sits just left of the delete button (right: 0)
+  z-index: 5; // stay clickable over the top resize rim (z 4)
   width: 2rem;
   height: var(--total-sticky-handle-height);
   padding: 0.45rem;
@@ -82,9 +88,14 @@
   border-radius: var(--radius-paper);
   opacity: 0.5;
 
-  svg { width: 100%; height: 100%; }
+  svg {
+    width: 100%;
+    height: 100%;
+  }
 
-  &:active { opacity: 0.9; }
+  &:active {
+    opacity: 0.9;
+  }
 }
 
 // Connect node — centered in the band's cleared center; drag to another note.
@@ -92,7 +103,7 @@
   position: absolute;
   top: 0;
   left: 50%;
-  z-index: 5;                    // stay grabbable over the top resize rim (z 4)
+  z-index: 5; // stay grabbable over the top resize rim (z 4)
   transform: translateX(-50%);
   height: var(--total-sticky-handle-height);
   width: 1.4rem;
@@ -104,7 +115,7 @@
   border: none;
   color: inherit;
   cursor: crosshair;
-  touch-action: none;   // drag from it on touch instead of scrolling
+  touch-action: none; // drag from it on touch instead of scrolling
   opacity: 0.5;
 
   &::before {

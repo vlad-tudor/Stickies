@@ -5,7 +5,7 @@
 // ============================================================
 
 .board-tabs {
-  position: absolute;    // within the pane (was window-fixed) — one strip per pane
+  position: absolute; // within the pane (was window-fixed) — one strip per pane
   top: 0;
   left: 0;
   right: 0;
@@ -16,7 +16,9 @@
 
   background: var(--paper-soft);
   border-bottom: 1px solid var(--rule);
-  box-shadow: inset 0 1px 0 var(--topbar-hairline), var(--topbar-shadow);
+  box-shadow:
+    inset 0 1px 0 var(--topbar-hairline),
+    var(--topbar-shadow);
   user-select: none;
 }
 
@@ -28,7 +30,9 @@
   min-width: 0;
 
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .board-tab {
@@ -36,31 +40,35 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0.25rem;             // sit the tab body off the bar's top edge
+  margin-top: 0.25rem; // sit the tab body off the bar's top edge
   padding: 0 0.85rem;
   min-width: 0;
   max-width: 12rem;
   cursor: pointer;
 
   border-right: 1px solid var(--rule-soft);
-  border-radius: var(--radius-chrome) var(--radius-chrome) 0 0;  // chrome-style top
+  border-radius: var(--radius-chrome) var(--radius-chrome) 0 0; // chrome-style top
   background: transparent;
   color: var(--ink-mid);
   font-family: var(--font-serif);
   font-size: 0.8rem;
   font-weight: 500;
   white-space: nowrap;
-  touch-action: none;              // pointer-drag the tab (reorder / split) on touch
+  touch-action: none; // pointer-drag the tab (reorder / split) on touch
   // select-expand: the active tab grows + turns to paper — glide it (padding drives the
   // width, so neighbours shift smoothly too). Layout props only; no transform/position.
-  transition: padding 0.18s ease, background-color 0.18s ease, color 0.18s ease,
-    border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    padding 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 
   // selected tab = raised paper that connects to the board surface below
   &.active {
     color: var(--ink);
     background: var(--paper);
-    padding: 0 1.15rem;             // extra breathing room when selected
+    padding: 0 1.15rem; // extra breathing room when selected
     border-right-color: transparent;
     box-shadow: inset 0 1px 0 var(--topbar-hairline);
     // bleed over the bar's bottom border so the tab merges with the content
@@ -68,8 +76,11 @@
     padding-bottom: 1px;
   }
 
-  &.dimmed { opacity: 0.45; }        // dragged tab while being dropped onto a pane (split)
-  &.lifted {                          // dragged tab while reordering — rides above, no easing
+  &.dimmed {
+    opacity: 0.45;
+  } // dragged tab while being dropped onto a pane (split)
+  &.lifted {
+    // dragged tab while reordering — rides above, no easing
     z-index: 10;
     box-shadow: var(--shadow-2);
     transition: none;
@@ -79,8 +90,12 @@
 // During a reorder the non-dragged tabs slide (transform) to open/close the gap; the
 // lifted tab tracks the cursor with no easing. On drop the `.reordering` class drops,
 // so transforms clear instantly (no easing back) as the committed order takes over.
-.board-tabs-list.reordering .board-tab { transition: transform 0.16s ease; }
-.board-tabs-list.reordering .board-tab.lifted { transition: none; }
+.board-tabs-list.reordering .board-tab {
+  transition: transform 0.16s ease;
+}
+.board-tabs-list.reordering .board-tab.lifted {
+  transition: none;
+}
 
 // pencil — rename trigger, shown on the active tab to the left of its name
 .board-tab-edit,
@@ -96,7 +111,10 @@
   color: var(--ink-mid);
   opacity: 0.7;
 
-  svg { width: 100%; height: 100%; }
+  svg {
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .board-tab-name {
@@ -155,7 +173,7 @@
   justify-content: center;
   width: 2.25rem;
   flex-shrink: 0;
-  border-right: 1px solid var(--rule);   // sits first, on the left
+  border-right: 1px solid var(--rule); // sits first, on the left
   cursor: pointer;
   color: var(--ink-soft);
   font-size: 1.1rem;
@@ -165,7 +183,7 @@
 .board-tab-ghost {
   position: fixed;
   z-index: 2000;
-  transform: translate(-50%, -50%) rotate(-3deg);   // slight lifted tilt
+  transform: translate(-50%, -50%) rotate(-3deg); // slight lifted tilt
   pointer-events: none;
   max-width: 12rem;
   padding: 0.3rem 0.6rem;
@@ -183,5 +201,8 @@
   animation: board-tab-ghost-in 0.14s ease;
 }
 @keyframes board-tab-ghost-in {
-  from { opacity: 0; transform: translate(-50%, -50%) rotate(-3deg) scale(0.9); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-3deg) scale(0.9);
+  }
 }

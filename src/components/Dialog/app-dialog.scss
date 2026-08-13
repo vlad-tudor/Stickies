@@ -3,7 +3,7 @@
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 3000;            // above board ghosts (2000) + all chrome
+  z-index: 3000; // above board ghosts (2000) + all chrome
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,7 +55,9 @@
   font-family: var(--font-sans);
   font-size: 0.85rem;
   cursor: pointer;
-  &:active { background: var(--paper-deep); }
+  &:active {
+    background: var(--paper-deep);
+  }
 }
 
 .dialog-confirm {
@@ -66,12 +68,19 @@
 .dialog-confirm.danger {
   background: #bf5141;
   color: #fff;
-  &:active { background: #a8442f; }
+  &:active {
+    background: #a8442f;
+  }
 }
 
 @keyframes dialog-fade-in {
-  from { opacity: 0; }
+  from {
+    opacity: 0;
+  }
 }
 @keyframes dialog-pop-in {
-  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
 }

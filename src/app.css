@@ -4,13 +4,13 @@ html,
 body {
   height: 100%;
   margin: 0;
-  overflow: hidden;            /* the page itself never scrolls */
-  overscroll-behavior: none;   /* no rubber-band / pull-to-refresh on mobile */
+  overflow: hidden; /* the page itself never scrolls */
+  overscroll-behavior: none; /* no rubber-band / pull-to-refresh on mobile */
 }
 
 body {
-  font-family: Gordita, Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
-    "Helvetica Neue", sans-serif;
+  font-family:
+    Gordita, Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
 #app,

@@ -15,10 +15,7 @@ type DialogState = ConfirmOptions & { message: string; resolve: (ok: boolean) =>
 const [dialog, setDialog] = createSignal<DialogState | null>(null);
 export { dialog };
 
-export function confirmDialog(
-  message: string,
-  options: ConfirmOptions = {},
-): Promise<boolean> {
+export function confirmDialog(message: string, options: ConfirmOptions = {}): Promise<boolean> {
   return new Promise((resolve) => setDialog({ message, ...options, resolve }));
 }
 

@@ -11,7 +11,11 @@ type Seg = { tid: string; x1: number; y1: number; x2: number; y2: number };
 // Liang–Barsky: param interval [t0,t1] of segment A->B that lies inside the
 // rect, or null if it never enters.
 function rectInterval(
-  ax: number, ay: number, bx: number, by: number, r: Rect
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  r: Rect,
 ): [number, number] | null {
   const dx = bx - ax;
   const dy = by - ay;
@@ -134,7 +138,10 @@ export const RenderThreads = () => {
           <line
             class={`thread-seg faded${selectedThread()?.id === s.tid ? " selected" : ""}`}
             data-tid={s.tid}
-            x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
+            x1={s.x1}
+            y1={s.y1}
+            x2={s.x2}
+            y2={s.y2}
           />
         )}
       </For>
@@ -148,13 +155,21 @@ export const RenderThreads = () => {
               x2={s.x2}
               y2={s.y2}
               onClick={(e) =>
-                setSelectedThread({ boardId: pane.boardId(), id: s.tid, x: e.clientX, y: e.clientY })
+                setSelectedThread({
+                  boardId: pane.boardId(),
+                  id: s.tid,
+                  x: e.clientX,
+                  y: e.clientY,
+                })
               }
             />
             <line
               class={`thread-seg${selectedThread()?.id === s.tid ? " selected" : ""}`}
               data-tid={s.tid}
-              x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
+              x1={s.x1}
+              y1={s.y1}
+              x2={s.x2}
+              y2={s.y2}
             />
           </g>
         )}

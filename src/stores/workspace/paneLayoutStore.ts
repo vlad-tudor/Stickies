@@ -1,12 +1,7 @@
 import { createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { createDebouncedWrite } from "~/utils/debouncedWrite";
-import {
-  activeBoardId,
-  switchBoard,
-  moveStickyToBoard,
-  boards,
-} from "~/stores/stickyStore";
+import { activeBoardId, switchBoard, moveStickyToBoard, boards } from "~/stores/stickyStore";
 import { exitEditing } from "~/stores/uiStore";
 import { getViewport } from "~/stores/workspace/viewportStore";
 import {
@@ -35,14 +30,7 @@ import type { Tone } from "~/utils/tones";
 // The focused pane's board is mirrored to the global active board, so board-tab
 // UI and share follow the pane the user is working in.
 // Re-exported domain pieces keep one import site for layout consumers.
-export {
-  computeLayout,
-  findSplit,
-  zoneAt,
-  DROP_EDGE,
-  SplitDir,
-  Zone,
-} from "~/domain/layout";
+export { computeLayout, findSplit, zoneAt, DROP_EDGE, SplitDir, Zone } from "~/domain/layout";
 export type { LayoutNode, SplitNode, LeafNode, Rect, Divider, DropZone } from "~/domain/layout";
 
 export type PaneDef = { id: string; boardId: string };
@@ -102,9 +90,7 @@ function restoreLayout(): boolean {
 
     const liveBoards = new Set(boards().map((board) => board.id));
     const keepPaneIds = new Set(
-      saved.panes
-        .filter((pane) => liveBoards.has(pane.boardId))
-        .map((pane) => pane.id),
+      saved.panes.filter((pane) => liveBoards.has(pane.boardId)).map((pane) => pane.id),
     );
     if (keepPaneIds.size === 0) return false;
 
@@ -122,7 +108,10 @@ function restoreLayout(): boolean {
     // resume above everything SAVED (not just kept): a dropped stale pane's id
     // must never be re-minted — the new pane would inherit its persisted
     // viewport key (stickies.view.<paneId>)
-    idCounter = maxIdSuffix(saved.layout, saved.panes.map((pane) => pane.id));
+    idCounter = maxIdSuffix(
+      saved.layout,
+      saved.panes.map((pane) => pane.id),
+    );
     setPanes(restored);
     setLayout(tree);
     const focus =
@@ -179,9 +168,7 @@ export function reconcilePanes(): void {
     persistLayout();
     return;
   }
-  const fallback = liveBoards.has(activeBoardId())
-    ? activeBoardId()
-    : boards()[0].id;
+  const fallback = liveBoards.has(activeBoardId()) ? activeBoardId() : boards()[0].id;
   let changed = false;
   panes.forEach((pane, index) => {
     if (!liveBoards.has(pane.boardId)) {
@@ -247,8 +234,7 @@ function splitPaneWithBoard(
 
 // Split a pane (new sibling shows the same board) — used by the split button.
 export function splitPane(targetId: string, dir: SplitDir, before = false): void {
-  const boardId =
-    panes.find((pane) => pane.id === targetId)?.boardId ?? activeBoardId();
+  const boardId = panes.find((pane) => pane.id === targetId)?.boardId ?? activeBoardId();
   splitPaneWithBoard(targetId, dir, before, boardId);
 }
 
@@ -277,12 +263,7 @@ export function closePane(id: string): void {
 }
 
 // Resize two adjacent children of a split node (during a divider drag).
-export function resizeSplit(
-  nodeId: string,
-  index: number,
-  sizeA: number,
-  sizeB: number,
-): void {
+export function resizeSplit(nodeId: string, index: number, sizeA: number, sizeB: number): void {
   const root = layout();
   if (!root) return;
   setLayout(
@@ -334,11 +315,7 @@ export function clearBoardDrag(): void {
 
 // Drop a dragged board onto a pane: center = show it in that pane; an edge = split
 // the pane that way with a new pane showing the board.
-export function dropBoardIntoPane(
-  overPaneId: string,
-  zone: DropZone,
-  boardId: string,
-): void {
+export function dropBoardIntoPane(overPaneId: string, zone: DropZone, boardId: string): void {
   if (zone === Zone.Center) {
     const paneIdx = panes.findIndex((pane) => pane.id === overPaneId);
     if (paneIdx >= 0) setPanes(paneIdx, "boardId", boardId);
@@ -376,9 +353,7 @@ export function startStickyDrag(info: Omit<StickyDrag, "targetPaneId">): void {
 export function updateStickyDrag(x: number, y: number): void {
   const drag = stickyDrag();
   if (!drag) return;
-  const paneElement = document
-    .elementFromPoint(x, y)
-    ?.closest<HTMLElement>("[data-pane-id]");
+  const paneElement = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-pane-id]");
   const targetPaneId = paneElement?.dataset.paneId ?? null;
   setStickyDrag({ ...drag, x, y, targetPaneId });
 }

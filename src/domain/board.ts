@@ -39,7 +39,7 @@ export type Board = {
 
 // World-space center of a note (encapsulates position=[top,left], dims=[w,h]).
 export const stickyCenter = (
-  note: Pick<StickyNote, "position" | "dimensions">
+  note: Pick<StickyNote, "position" | "dimensions">,
 ): { x: number; y: number } => ({
   x: note.position[1] + note.dimensions[0] / 2,
   y: note.position[0] + note.dimensions[1] / 2,
@@ -48,7 +48,7 @@ export const stickyCenter = (
 // Where a thread attaches: the connect dot — horizontal center, band middle.
 // 16 = half the band height (--total-sticky-handle-height, 2rem) in sticky.scss.
 export const threadAnchor = (
-  note: Pick<StickyNote, "position" | "dimensions">
+  note: Pick<StickyNote, "position" | "dimensions">,
 ): { x: number; y: number } => ({
   x: note.position[1] + note.dimensions[0] / 2,
   y: note.position[0] + 16,
@@ -60,7 +60,7 @@ export function makeBoard(
   name: string,
   stickies: StickyNote[] = [],
   bgColor: Tone = DEFAULT_TONE,
-  threads: Thread[] = []
+  threads: Thread[] = [],
 ): Board {
   return { id: newId(), name, stickies, threads, bgColor };
 }
@@ -70,18 +70,15 @@ export function makeBoard(
 // Drop threads whose endpoints no longer exist (deleted/replaced stickies).
 export const normalizeThreads = (
   threads: Thread[] | undefined,
-  stickies: StickyNote[]
+  stickies: StickyNote[],
 ): Thread[] => {
   if (!threads) return [];
   const noteIds = new Set(stickies.map((sticky) => sticky.id));
-  return threads.filter(
-    (thread) => noteIds.has(thread.from) && noteIds.has(thread.to)
-  );
+  return threads.filter((thread) => noteIds.has(thread.from) && noteIds.has(thread.to));
 };
 
 // Content is HTML. Legacy notes stored markdown — convert them once on ingest.
-const looksLikeHtml = (content: string): boolean =>
-  /<\/?[a-z][\s\S]*>/i.test(content);
+const looksLikeHtml = (content: string): boolean => /<\/?[a-z][\s\S]*>/i.test(content);
 const asHtml = (content: string): string =>
   !content || looksLikeHtml(content) ? content : (marked(content) as string);
 
@@ -96,9 +93,7 @@ export const normalizeStickies = (stickies: StickyNote[]): StickyNote[] => {
     z: typeof sticky.z === "number" ? sticky.z : index,
   }));
   const compactZById = new Map(
-    [...coerced]
-      .sort((left, right) => left.z - right.z)
-      .map((sticky, rank) => [sticky.id, rank])
+    [...coerced].sort((left, right) => left.z - right.z).map((sticky, rank) => [sticky.id, rank]),
   );
   return coerced.map((sticky) => ({ ...sticky, z: compactZById.get(sticky.id)! }));
 };

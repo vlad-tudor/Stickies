@@ -76,10 +76,7 @@ export const StickyResizeHandle = (props: StickyResizeHandleProps) => {
 
       props.resizeSticky([w, h]);
       if (north || west) {
-        props.moveSticky([
-          north ? s.top + (s.h - h) : s.top,
-          west ? s.left + (s.w - w) : s.left,
-        ]);
+        props.moveSticky([north ? s.top + (s.h - h) : s.top, west ? s.left + (s.w - w) : s.left]);
       }
     },
     onEnd: () => props.onResizeEnd?.(),

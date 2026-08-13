@@ -153,8 +153,18 @@ export const Whiteboard = () => {
 
   const dividerStyle = (d: Divider) =>
     d.dir === "row"
-      ? { left: `calc(${d.pos * 100}% - 3px)`, top: `${d.start * 100}%`, height: `${d.length * 100}%`, width: "6px" }
-      : { top: `calc(${d.pos * 100}% - 3px)`, left: `${d.start * 100}%`, width: `${d.length * 100}%`, height: "6px" };
+      ? {
+          left: `calc(${d.pos * 100}% - 3px)`,
+          top: `${d.start * 100}%`,
+          height: `${d.length * 100}%`,
+          width: "6px",
+        }
+      : {
+          top: `calc(${d.pos * 100}% - 3px)`,
+          left: `${d.start * 100}%`,
+          width: `${d.length * 100}%`,
+          height: "6px",
+        };
 
   return (
     <div class="whiteboard-container">

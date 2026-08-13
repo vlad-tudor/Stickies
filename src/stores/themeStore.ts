@@ -15,9 +15,7 @@ export type Theme = (typeof Theme)[keyof typeof Theme];
 const THEME_KEY = "stickies-theme";
 
 function readStored(): Theme {
-  return localStorage.getItem(THEME_KEY) === Theme.Dark
-    ? Theme.Dark
-    : Theme.Light;
+  return localStorage.getItem(THEME_KEY) === Theme.Dark ? Theme.Dark : Theme.Light;
 }
 
 function apply(theme: Theme): void {

@@ -1,10 +1,4 @@
-import {
-  createContext,
-  createEffect,
-  createSignal,
-  useContext,
-  type Accessor,
-} from "solid-js";
+import { createContext, createEffect, createSignal, useContext, type Accessor } from "solid-js";
 import { animate, type JSAnimation } from "animejs";
 import { MOTION } from "~/utils/motion";
 import { createDebouncedWrite } from "~/utils/debouncedWrite";
@@ -20,8 +14,7 @@ import { beginInteraction, endInteraction } from "~/stores/uiStore";
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2;
-const clampZoom = (value: number): number =>
-  Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
+const clampZoom = (value: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 
 const CHROME_TOP = 76; // tab + actions bars cover the top; fit frames below them
 
@@ -83,10 +76,7 @@ export function createViewport(
   const saveView = createDebouncedWrite(
     () => {
       try {
-        localStorage.setItem(
-          persistKey,
-          JSON.stringify({ pan: pan(), zoom: zoom() }),
-        );
+        localStorage.setItem(persistKey, JSON.stringify({ pan: pan(), zoom: zoom() }));
       } catch {
         /* ignore quota / private-mode failures */
       }
@@ -120,11 +110,7 @@ export function createViewport(
   // Smoothly animate pan+zoom to a target instead of snapping (anime.js tweens a plain
   // object; onUpdate writes the signals so the transform follows). Overlays pause for
   // the glide so off-screen markers / thread clipping settle once on arrival.
-  const tweenTo = (
-    targetPan: Point,
-    targetZoom: number,
-    duration: number = MOTION.view,
-  ): void => {
+  const tweenTo = (targetPan: Point, targetZoom: number, duration: number = MOTION.view): void => {
     cancelTween();
     beginInteraction();
     const animated = { x: pan().x, y: pan().y, zoom: zoom() };
@@ -258,8 +244,7 @@ export const registerViewport = (id: string, viewport: Viewport): void => {
 export const unregisterViewport = (id: string): void => {
   paneViewports.delete(id);
 };
-export const getViewport = (id: string): Viewport | undefined =>
-  paneViewports.get(id);
+export const getViewport = (id: string): Viewport | undefined => paneViewports.get(id);
 
 // Read the viewport for the current pane. Must be under a <ViewportProvider>.
 export function useViewport(): Viewport {

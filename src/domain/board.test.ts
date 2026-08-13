@@ -33,9 +33,7 @@ describe("normalizeStickies", () => {
   });
 
   test("maps legacy hex colors to the nearest tone", () => {
-    const [note] = normalizeStickies([
-      makeNote("a", { color: "#f0d98a" as StickyNote["color"] }),
-    ]);
+    const [note] = normalizeStickies([makeNote("a", { color: "#f0d98a" as StickyNote["color"] })]);
     expect(note.color).toBe("butter");
   });
 
@@ -47,10 +45,7 @@ describe("normalizeStickies", () => {
     expect(legacy.find((note) => note.id === "bottom")?.z).toBe(0);
     expect(legacy.find((note) => note.id === "top")?.z).toBe(1);
 
-    const compacted = normalizeStickies([
-      makeNote("low", { z: 2 }),
-      makeNote("high", { z: 17 }),
-    ]);
+    const compacted = normalizeStickies([makeNote("low", { z: 2 }), makeNote("high", { z: 17 })]);
     expect(compacted.find((note) => note.id === "low")?.z).toBe(0);
     expect(compacted.find((note) => note.id === "high")?.z).toBe(1);
   });

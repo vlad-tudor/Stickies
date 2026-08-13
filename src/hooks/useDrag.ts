@@ -1,7 +1,7 @@
 type UseDragOptions = {
   cursor?: string;
-  threshold?: number;        // px of movement before it counts as a drag (default 3)
-  preventDefault?: boolean;  // default true
+  threshold?: number; // px of movement before it counts as a drag (default 3)
+  preventDefault?: boolean; // default true
   onStart?: (e: PointerEvent) => void;
   onMove: (e: PointerEvent) => void;
   onEnd?: (e: PointerEvent) => void;

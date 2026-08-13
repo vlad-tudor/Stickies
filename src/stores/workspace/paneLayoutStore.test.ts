@@ -19,12 +19,7 @@ import {
   Zone,
   type SplitNode,
 } from "./paneLayoutStore";
-import {
-  loadBoards,
-  createBoard,
-  deleteBoard,
-  activeBoardId,
-} from "~/stores/stickyStore";
+import { loadBoards, createBoard, deleteBoard, activeBoardId } from "~/stores/stickyStore";
 
 // Fresh single board + single pane; returns [boardId, paneId].
 const fresh = (): [string, string] => {

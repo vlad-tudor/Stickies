@@ -18,7 +18,17 @@ import { editSticky, markStickyFresh } from "~/stores/uiStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { useViewport } from "~/stores/workspace/viewportStore";
 import { usePane } from "~/stores/workspace/paneContext";
-import { Share2, Sun, Moon, SquareSplitHorizontal, SquareSplitVertical, X, Maximize, Trash2, Radio } from "lucide-static";
+import {
+  Share2,
+  Sun,
+  Moon,
+  SquareSplitHorizontal,
+  SquareSplitVertical,
+  X,
+  Maximize,
+  Trash2,
+  Radio,
+} from "lucide-static";
 import "./whiteboard-actions.scss";
 
 // screen-space anchor for new notes: just under the "+" button
@@ -42,14 +52,17 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
   const vp = useViewport();
   const pane = usePane();
   // remember the last spawn so we only stagger when nothing has changed since
-  let lastSpawn: { id: string; pos: [number, number]; px: number; py: number; z: number } | null = null;
+  let lastSpawn: { id: string; pos: [number, number]; px: number; py: number; z: number } | null =
+    null;
 
   const onClearAllStickies = async () => {
-    if (await confirmDialog("Clear every sticky on this board? This can't be undone.", {
-      title: "Clear board",
-      confirmText: "Clear all",
-      danger: true,
-    })) {
+    if (
+      await confirmDialog("Clear every sticky on this board? This can't be undone.", {
+        title: "Clear board",
+        confirmText: "Clear all",
+        danger: true,
+      })
+    ) {
       clearAllStickies(pane.boardId());
     }
   };
@@ -69,9 +82,7 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
     if (lastSpawn) {
       const prev = pane.stickies().find((s) => s.id === lastSpawn!.id);
       const unmoved =
-        prev &&
-        prev.position[0] === lastSpawn.pos[0] &&
-        prev.position[1] === lastSpawn.pos[1];
+        prev && prev.position[0] === lastSpawn.pos[0] && prev.position[1] === lastSpawn.pos[1];
       const viewSame = p.x === lastSpawn.px && p.y === lastSpawn.py && z === lastSpawn.z;
       if (unmoved && viewSame) {
         const step = 30 / z; // ~30 screen px down-right
@@ -133,71 +144,95 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
 
   return (
     <>
-    <div class={`share-toast ${toast() ? "visible" : ""}`}>{toast()}</div>
-    <div class="whiteboard-actions">
-      <div class="whiteboard-actions-scroll">
-        <button class="create-sticky" title="New sticky" onClick={onStickyCreate}>
-          +
-        </button>
-        <button class="clear-all-stickies" title="Clear all stickies" onClick={onClearAllStickies} innerHTML={Trash2} />
-        <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
-        <button
-          class="go-live"
-          classList={{ live: !!session() }}
-          title={
-            session()
-              ? `Live — ${session()!.peers} here (click to copy the join link)`
-              : "Start live session"
-          }
-          onClick={onGoLive}
-          innerHTML={Radio}
-        />
-        <Show when={session()}>
-          {(live) => (
-            <>
-              <span class="live-count">{live().peers}</span>
-              <button
-                class="end-live"
-                title="End live session"
-                onClick={onEndLive}
-                innerHTML={X}
-              />
-            </>
-          )}
-        </Show>
-
-        <div class="board-hue">
-          <TonePicker
-            value={props.bgColor}
-            onChange={props.updateBgColor}
-            title="Board color"
-            direction="down"
-            portal
-          />
-        </div>
-        <button
-          class="theme-toggle"
-          title={theme() === Theme.Dark ? "Light mode" : "Dark mode"}
-          onClick={toggleTheme}
-          innerHTML={theme() === Theme.Dark ? Sun : Moon}
-        />
-
-        <div class="toolbar-zoom">
-          <button class="zoom-fit" title="Fit all notes" onClick={props.onFit} innerHTML={Maximize} />
-          <button title="Zoom out" onClick={props.onZoomOut}>−</button>
-          <button class="zoom-reset" title="Reset view" onClick={props.onZoomReset}>
-            {Math.round(props.zoom * 100)}%
+      <div class={`share-toast ${toast() ? "visible" : ""}`}>{toast()}</div>
+      <div class="whiteboard-actions">
+        <div class="whiteboard-actions-scroll">
+          <button class="create-sticky" title="New sticky" onClick={onStickyCreate}>
+            +
           </button>
-          <button title="Zoom in" onClick={props.onZoomIn}>+</button>
-        </div>
+          <button
+            class="clear-all-stickies"
+            title="Clear all stickies"
+            onClick={onClearAllStickies}
+            innerHTML={Trash2}
+          />
+          <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
+          <button
+            class="go-live"
+            classList={{ live: !!session() }}
+            title={
+              session()
+                ? `Live — ${session()!.peers} here (click to copy the join link)`
+                : "Start live session"
+            }
+            onClick={onGoLive}
+            innerHTML={Radio}
+          />
+          <Show when={session()}>
+            {(live) => (
+              <>
+                <span class="live-count">{live().peers}</span>
+                <button
+                  class="end-live"
+                  title="End live session"
+                  onClick={onEndLive}
+                  innerHTML={X}
+                />
+              </>
+            )}
+          </Show>
 
-        <button class="split-pane" title="Split right" onClick={props.onSplit} innerHTML={SquareSplitHorizontal} />
-        <button class="split-pane-down" title="Split down" onClick={props.onSplitDown} innerHTML={SquareSplitVertical} />
-        <Show when={props.closable}>
-          <button class="close-pane" title="Close pane" onClick={props.onClose} innerHTML={X} />
-        </Show>
+          <div class="board-hue">
+            <TonePicker
+              value={props.bgColor}
+              onChange={props.updateBgColor}
+              title="Board color"
+              direction="down"
+              portal
+            />
+          </div>
+          <button
+            class="theme-toggle"
+            title={theme() === Theme.Dark ? "Light mode" : "Dark mode"}
+            onClick={toggleTheme}
+            innerHTML={theme() === Theme.Dark ? Sun : Moon}
+          />
+
+          <div class="toolbar-zoom">
+            <button
+              class="zoom-fit"
+              title="Fit all notes"
+              onClick={props.onFit}
+              innerHTML={Maximize}
+            />
+            <button title="Zoom out" onClick={props.onZoomOut}>
+              −
+            </button>
+            <button class="zoom-reset" title="Reset view" onClick={props.onZoomReset}>
+              {Math.round(props.zoom * 100)}%
+            </button>
+            <button title="Zoom in" onClick={props.onZoomIn}>
+              +
+            </button>
+          </div>
+
+          <button
+            class="split-pane"
+            title="Split right"
+            onClick={props.onSplit}
+            innerHTML={SquareSplitHorizontal}
+          />
+          <button
+            class="split-pane-down"
+            title="Split down"
+            onClick={props.onSplitDown}
+            innerHTML={SquareSplitVertical}
+          />
+          <Show when={props.closable}>
+            <button class="close-pane" title="Close pane" onClick={props.onClose} innerHTML={X} />
+          </Show>
+        </div>
       </div>
-    </div>
     </>
   );
 };

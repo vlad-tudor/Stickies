@@ -53,24 +53,52 @@ export const StickyTableStrip = (props: StickyTableStripProps) => {
         onMouseDown={(e) => e.preventDefault()} // keep the editor selection
       >
         <div class="table-strip-group">
-          <button class="table-strip-btn" title="Add row above"
-            onClick={addRowAbove} innerHTML={ArrowUpToLine} />
-          <button class="table-strip-btn" title="Add row below"
-            onClick={() => run((c) => c.addRowAfter())} innerHTML={ArrowDownToLine} />
-          <button class="table-strip-btn" title="Delete row"
-            onClick={() => run((c) => c.deleteRow())} innerHTML={Trash2} />
+          <button
+            class="table-strip-btn"
+            title="Add row above"
+            onClick={addRowAbove}
+            innerHTML={ArrowUpToLine}
+          />
+          <button
+            class="table-strip-btn"
+            title="Add row below"
+            onClick={() => run((c) => c.addRowAfter())}
+            innerHTML={ArrowDownToLine}
+          />
+          <button
+            class="table-strip-btn"
+            title="Delete row"
+            onClick={() => run((c) => c.deleteRow())}
+            innerHTML={Trash2}
+          />
         </div>
         <div class="table-strip-group">
-          <button class="table-strip-btn" title="Add column left"
-            onClick={() => run((c) => c.addColumnBefore())} innerHTML={ArrowLeftToLine} />
-          <button class="table-strip-btn" title="Add column right"
-            onClick={() => run((c) => c.addColumnAfter())} innerHTML={ArrowRightToLine} />
-          <button class="table-strip-btn" title="Delete column"
-            onClick={() => run((c) => c.deleteColumn())} innerHTML={Trash2} />
+          <button
+            class="table-strip-btn"
+            title="Add column left"
+            onClick={() => run((c) => c.addColumnBefore())}
+            innerHTML={ArrowLeftToLine}
+          />
+          <button
+            class="table-strip-btn"
+            title="Add column right"
+            onClick={() => run((c) => c.addColumnAfter())}
+            innerHTML={ArrowRightToLine}
+          />
+          <button
+            class="table-strip-btn"
+            title="Delete column"
+            onClick={() => run((c) => c.deleteColumn())}
+            innerHTML={Trash2}
+          />
         </div>
         <div class="table-strip-group">
-          <button class="table-strip-btn" title="Toggle header row"
-            onClick={() => run((c) => c.toggleHeaderRow())} innerHTML={PanelTop} />
+          <button
+            class="table-strip-btn"
+            title="Toggle header row"
+            onClick={() => run((c) => c.toggleHeaderRow())}
+            innerHTML={PanelTop}
+          />
         </div>
       </div>
     </Show>

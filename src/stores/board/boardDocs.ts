@@ -58,12 +58,9 @@ export type YNote = Y.Map<NoteFieldValue | Y.XmlFragment>;
 // init flag | bgColor tone | board name
 export type MetaValue = boolean | Tone | string;
 
-export const stickyMapOf = (doc: Y.Doc): Y.Map<YNote> =>
-  doc.getMap(DocMap.Stickies);
-export const threadMapOf = (doc: Y.Doc): Y.Map<Thread> =>
-  doc.getMap(DocMap.Threads);
-export const metaMapOf = (doc: Y.Doc): Y.Map<MetaValue> =>
-  doc.getMap(DocMap.Meta);
+export const stickyMapOf = (doc: Y.Doc): Y.Map<YNote> => doc.getMap(DocMap.Stickies);
+export const threadMapOf = (doc: Y.Doc): Y.Map<Thread> => doc.getMap(DocMap.Threads);
+export const metaMapOf = (doc: Y.Doc): Y.Map<MetaValue> => doc.getMap(DocMap.Meta);
 
 // The one Yjs -> plain boundary. yjs types toJSON() as any; every field write
 // into a YNote goes through setYNoteFields, so after stripping the body
@@ -107,10 +104,7 @@ export const allDocIds = (): string[] => [...docs.keys()];
 
 // Run `mutate` in a transaction on the board's doc; observers update the
 // projection synchronously before this returns. False if the board is gone.
-export const transact = (
-  boardId: string,
-  mutate: (doc: Y.Doc) => void,
-): boolean => {
+export const transact = (boardId: string, mutate: (doc: Y.Doc) => void): boolean => {
   const doc = docs.get(boardId);
   if (!doc) return false;
   doc.transact(() => mutate(doc));
@@ -149,20 +143,14 @@ export const setNoteFieldsInDoc = (
 
 // ── note body fragments (co-editing) ──
 
-const noteBodyFragmentOf = (
-  doc: Y.Doc,
-  stickyId: string,
-): Y.XmlFragment | undefined => {
+const noteBodyFragmentOf = (doc: Y.Doc, stickyId: string): Y.XmlFragment | undefined => {
   const value = stickyMapOf(doc).get(stickyId)?.get(NOTE_BODY_KEY);
   return value instanceof Y.XmlFragment ? value : undefined;
 };
 
 // Whether a note is fragment-backed (true co-editing available). Legacy notes
 // become fragment-backed the first time someone edits them.
-export const noteHasBodyFragment = (
-  boardId: string,
-  stickyId: string,
-): boolean => {
+export const noteHasBodyFragment = (boardId: string, stickyId: string): boolean => {
   const doc = docOf(boardId);
   return !!doc && !!noteBodyFragmentOf(doc, stickyId);
 };
@@ -170,10 +158,7 @@ export const noteHasBodyFragment = (
 // The note's EXISTING body fragment, or undefined — never creates one (unlike
 // ensureNoteBody). For read-only viewers (a peer's live edit), which must not
 // mint a competing fragment that would collide on the note's body key.
-export const noteBodyFragment = (
-  boardId: string,
-  stickyId: string,
-): Y.XmlFragment | undefined => {
+export const noteBodyFragment = (boardId: string, stickyId: string): Y.XmlFragment | undefined => {
   const doc = docOf(boardId);
   return doc ? noteBodyFragmentOf(doc, stickyId) : undefined;
 };
@@ -181,10 +166,7 @@ export const noteBodyFragment = (
 // Get-or-create a note's body fragment (created EMPTY — the creating editor
 // seeds it from the mirrored HTML). Creation is guarded upstream by the
 // editing hold, so two clients can't mint competing fragments for one note.
-export const ensureNoteBody = (
-  boardId: string,
-  stickyId: string,
-): Y.XmlFragment | undefined => {
+export const ensureNoteBody = (boardId: string, stickyId: string): Y.XmlFragment | undefined => {
   const doc = docOf(boardId);
   const yNote = doc ? stickyMapOf(doc).get(stickyId) : undefined;
   if (!doc || !yNote) return undefined;

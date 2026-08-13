@@ -57,10 +57,7 @@ export const replaceLeaf = (
 };
 
 // Remove the leaf for `paneId`; collapse single-child splits; null if it empties out.
-export const removeLeaf = (
-  node: LayoutNode,
-  paneId: string,
-): LayoutNode | null => {
+export const removeLeaf = (node: LayoutNode, paneId: string): LayoutNode | null => {
   if (node.type === NodeType.Leaf) {
     return node.paneId === paneId ? null : node;
   }
@@ -143,10 +140,7 @@ export function computeLayout(node: LayoutNode | null): {
   return { paneRects, dividers };
 }
 
-export function findSplit(
-  node: LayoutNode | null,
-  splitId: string,
-): SplitNode | null {
+export function findSplit(node: LayoutNode | null, splitId: string): SplitNode | null {
   if (!node || node.type === NodeType.Leaf) return null;
   if (node.id === splitId) return node;
   for (const child of node.children) {

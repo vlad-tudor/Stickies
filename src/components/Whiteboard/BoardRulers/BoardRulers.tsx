@@ -31,15 +31,22 @@ export const BoardRulers = (props: BoardRulersProps) => {
 
   // visible major-tick world values along each axis (drive the labels)
   const hTicks = createMemo<number[]>(() => {
-    const z = vp.zoom(), px = vp.pan().x, w = props.size().w, step = major();
+    const z = vp.zoom(),
+      px = vp.pan().x,
+      w = props.size().w,
+      step = major();
     const out: number[] = [];
     for (let v = Math.ceil(-px / z / step) * step; px + v * z <= w; v += step) out.push(v);
     return out;
   });
   const vTicks = createMemo<number[]>(() => {
-    const z = vp.zoom(), py = vp.pan().y, h = props.size().h, step = major();
+    const z = vp.zoom(),
+      py = vp.pan().y,
+      h = props.size().h,
+      step = major();
     const out: number[] = [];
-    for (let v = Math.ceil((CHROME_TOP - py) / z / step) * step; py + v * z <= h; v += step) out.push(v);
+    for (let v = Math.ceil((CHROME_TOP - py) / z / step) * step; py + v * z <= h; v += step)
+      out.push(v);
     return out;
   });
 

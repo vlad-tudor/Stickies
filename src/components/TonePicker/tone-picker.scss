@@ -31,7 +31,9 @@
   gap: 0.35rem;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
 
   &.is-open {
     opacity: 1;
@@ -52,12 +54,16 @@
 .tone-picker.up .tone-pop:not(.portal) {
   bottom: calc(100% + 0.4rem);
   transform: translate(-50%, 0.25rem);
-  &.is-open { transform: translate(-50%, 0); }
+  &.is-open {
+    transform: translate(-50%, 0);
+  }
 }
 .tone-picker.down .tone-pop:not(.portal) {
   top: calc(100% + 0.4rem);
   transform: translate(-50%, -0.25rem);
-  &.is-open { transform: translate(-50%, 0); }
+  &.is-open {
+    transform: translate(-50%, 0);
+  }
 }
 
 // Portaled variant: fixed to the viewport (left/top set inline from the dot's rect),
@@ -67,8 +73,16 @@
   position: fixed;
   z-index: 2000;
   color: var(--ink);
-  &.up { transform: translate(-50%, calc(-100% + 0.25rem)); }
-  &.up.is-open { transform: translate(-50%, -100%); }
-  &.down { transform: translate(-50%, -0.25rem); }
-  &.down.is-open { transform: translate(-50%, 0); }
+  &.up {
+    transform: translate(-50%, calc(-100% + 0.25rem));
+  }
+  &.up.is-open {
+    transform: translate(-50%, -100%);
+  }
+  &.down {
+    transform: translate(-50%, -0.25rem);
+  }
+  &.down.is-open {
+    transform: translate(-50%, 0);
+  }
 }

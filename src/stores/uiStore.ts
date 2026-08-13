@@ -1,12 +1,7 @@
 import { createSignal } from "solid-js";
 import { raiseSticky } from "./stickyStore";
 import { noteHasBodyFragment } from "./board/boardDocs";
-import {
-  remoteHoldOn,
-  holdSticky,
-  releaseHold,
-  HoldKind,
-} from "./board/presence";
+import { remoteHoldOn, holdSticky, releaseHold, HoldKind } from "./board/presence";
 
 // The single sticky currently being edited (its id), or null. Global so only
 // one editor/toolbar can exist at a time — independent of focus/blur, which is
@@ -25,15 +20,19 @@ export const clearStickySelection = (): void => {
 
 // in-progress thread drag: source sticky id + current cursor in WORLD coords,
 // or null when not connecting. Drives the live "rubber-band" line.
-export const [pendingThread, setPendingThread] = createSignal<
-  { from: string; to: { x: number; y: number } } | null
->(null);
+export const [pendingThread, setPendingThread] = createSignal<{
+  from: string;
+  to: { x: number; y: number };
+} | null>(null);
 
 // selected thread (for the delete popover): its board + id + the SCREEN point
 // where it was clicked (the popover anchors there), or null.
-export const [selectedThread, setSelectedThread] = createSignal<
-  { boardId: string; id: string; x: number; y: number } | null
->(null);
+export const [selectedThread, setSelectedThread] = createSignal<{
+  boardId: string;
+  id: string;
+  x: number;
+  y: number;
+} | null>(null);
 
 // True while ANY drag/resize/pan is in progress (a counter, so overlapping
 // gestures balance). Screen-derived overlays (off-screen markers, thread clipping)

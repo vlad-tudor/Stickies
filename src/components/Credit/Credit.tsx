@@ -9,13 +9,10 @@ export const Credit = () => {
   return (
     <div class="app-credit">
       <span class="app-credit__version">v{__APP_VERSION__}</span>
-      <span class="app-credit__sep" aria-hidden="true">·</span>
-      <a
-        class="app-credit__link"
-        href={PORTFOLIO_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
+      <span class="app-credit__sep" aria-hidden="true">
+        ·
+      </span>
+      <a class="app-credit__link" href={PORTFOLIO_URL} target="_blank" rel="noopener noreferrer">
         by Tudor-Vlad
         <span class="app-credit__arrow" aria-hidden="true" innerHTML={ArrowUpRight} />
       </a>

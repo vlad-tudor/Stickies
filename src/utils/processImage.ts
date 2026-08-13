@@ -12,7 +12,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number):
 }
 
 export async function processImage(
-  file: File
+  file: File,
 ): Promise<{ blob: Blob; width: number; height: number }> {
   // from-image respects EXIF orientation so portrait photos aren't sideways
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });

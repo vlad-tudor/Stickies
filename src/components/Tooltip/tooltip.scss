@@ -2,7 +2,7 @@
 // centred over the hovered control. Positioned fixed at the trigger's edge midpoint.
 .app-tooltip {
   position: fixed;
-  z-index: 3500;            // above the dialog too
+  z-index: 3500; // above the dialog too
   pointer-events: none;
   max-width: 16rem;
   padding: 0.3rem 0.55rem;
@@ -16,9 +16,15 @@
   box-shadow: var(--shadow-2);
   animation: tooltip-in 0.1s ease;
 }
-.app-tooltip.above { transform: translate(-50%, -100%); }
-.app-tooltip.below { transform: translate(-50%, 0); }
+.app-tooltip.above {
+  transform: translate(-50%, -100%);
+}
+.app-tooltip.below {
+  transform: translate(-50%, 0);
+}
 
 @keyframes tooltip-in {
-  from { opacity: 0; }
+  from {
+    opacity: 0;
+  }
 }

@@ -12,8 +12,8 @@
 .whiteboard-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;        // fallback
-  height: 100dvh;       // device height (accounts for mobile browser chrome)
+  height: 100vh; // fallback
+  height: 100dvh; // device height (accounts for mobile browser chrome)
   overflow: hidden;
 }
 
@@ -64,29 +64,60 @@
   background: color-mix(in srgb, var(--accent-soft) 22%, transparent);
   border: 1px solid color-mix(in srgb, var(--ink-mid) 45%, transparent);
   border-radius: var(--radius-chrome);
-  transition: inset 0.08s ease, width 0.08s ease, height 0.08s ease;
+  transition:
+    inset 0.08s ease,
+    width 0.08s ease,
+    height 0.08s ease;
 }
-.zone-center { inset: 0; }
-.zone-left   { left: 0;  top: 0; bottom: 0; width: 50%; }
-.zone-right  { right: 0; top: 0; bottom: 0; width: 50%; }
-.zone-top    { left: 0; right: 0; top: 0;    height: 50%; }
-.zone-bottom { left: 0; right: 0; bottom: 0; height: 50%; }
+.zone-center {
+  inset: 0;
+}
+.zone-left {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+}
+.zone-right {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+}
+.zone-top {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 50%;
+}
+.zone-bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 50%;
+}
 
 // drag-to-resize gutter between two panes (absolute, on a split boundary)
 .pane-divider {
   position: absolute;
-  z-index: 1100;             // grabbable above pane chrome
+  z-index: 1100; // grabbable above pane chrome
   touch-action: none;
   background: var(--paper-deep);
-  &.row { cursor: col-resize; }
-  &.col { cursor: row-resize; }
-  &:active { background: var(--accent-soft); }
+  &.row {
+    cursor: col-resize;
+  }
+  &.col {
+    cursor: row-resize;
+  }
+  &:active {
+    background: var(--accent-soft);
+  }
 }
 
 .whiteboard {
-  position: absolute;        // laid out by the split tree (left/top/width/height inline)
-  overflow: hidden;          // clip panned / zoomed-out stickies
-  touch-action: none;        // touch pan/drag instead of native page scroll
+  position: absolute; // laid out by the split tree (left/top/width/height inline)
+  overflow: hidden; // clip panned / zoomed-out stickies
+  touch-action: none; // touch pan/drag instead of native page scroll
   // (2-finger content scroll is additionally blocked via a touchmove guard in Whiteboard.tsx)
 
   // base paper fill (user/board color)
@@ -121,7 +152,9 @@
   // a cross-pane sticky drag is hovering here → brighten + ring as the drop target
   &.drop-target {
     box-shadow: inset 0 0 0 3px var(--ink-mid);
-    &::before { display: none; } // drop the recede scrim while it's the target
+    &::before {
+      display: none;
+    } // drop the recede scrim while it's the target
   }
 }
 
@@ -133,18 +166,20 @@
   position: fixed;
   z-index: 2000;
   pointer-events: none;
-  transform-origin: 0 0;   // scale from the top-left; left/top already include the grab offset
+  transform-origin: 0 0; // scale from the top-left; left/top already include the grab offset
   animation: sticky-ghost-in 0.12s ease;
 
   .sticky {
-    position: relative;   // in-flow (the real note is absolute in the board) so the
-    top: auto;            // wrapper takes its size and translate(-50%) centers it
+    position: relative; // in-flow (the real note is absolute in the board) so the
+    top: auto; // wrapper takes its size and translate(-50%) centers it
     left: auto;
     margin: 0;
   }
 }
 @keyframes sticky-ghost-in {
-  from { opacity: 0; }
+  from {
+    opacity: 0;
+  }
 }
 
 // Pan/zoom transform wrapper. Zero-size at the board's top-left so bare-board
@@ -163,7 +198,7 @@
 // by .whiteboard's overflow. pointer-events:none so bare-board pan still works.
 .board-grid {
   position: absolute;
-  z-index: -2;            // below threads (-1) and notes (>= 0)
+  z-index: -2; // below threads (-1) and notes (>= 0)
   left: -32000px;
   top: -32000px;
   width: 64000px;
@@ -185,7 +220,7 @@
   top: -32000px;
   width: 64000px;
   height: 64000px;
-  z-index: 100000;        // above notes; still inside the viewport (below chrome)
+  z-index: 100000; // above notes; still inside the viewport (below chrome)
   overflow: visible;
   pointer-events: none;
 
@@ -197,10 +232,12 @@
     pointer-events: none;
 
     &.faded {
-      stroke-opacity: 0.12;          // where it crosses a note (very faint)
-      stroke-dasharray: 6 5;         // ...and dashed
+      stroke-opacity: 0.12; // where it crosses a note (very faint)
+      stroke-dasharray: 6 5; // ...and dashed
     }
-    &.pending { stroke-opacity: 0.6; }
+    &.pending {
+      stroke-opacity: 0.6;
+    }
 
     // selected thread (popover open): bolder + fully opaque, even the faded parts
     &.selected {
@@ -212,7 +249,7 @@
 
   .thread-hit {
     stroke: transparent;
-    stroke-width: 14;     // generous click target over the gap segments only
+    stroke-width: 14; // generous click target over the gap segments only
     fill: none;
     pointer-events: stroke;
     cursor: pointer;
@@ -220,7 +257,9 @@
 
   // fatter tap target on touch devices (no precise cursor)
   @media (pointer: coarse) {
-    .thread-hit { stroke-width: 28; }
+    .thread-hit {
+      stroke-width: 28;
+    }
   }
 }
 
@@ -228,7 +267,7 @@
 .thread-popover {
   position: fixed;
   z-index: 1100;
-  transform: translate(-50%, -130%);   // float just above the click point
+  transform: translate(-50%, -130%); // float just above the click point
   background: var(--paper-soft);
   border: 1px solid var(--ink-faint);
   border-radius: var(--radius-chrome);
@@ -252,7 +291,10 @@
       display: flex;
       width: 0.95rem;
       height: 0.95rem;
-      svg { width: 100%; height: 100%; }
+      svg {
+        width: 100%;
+        height: 100%;
+      }
     }
   }
 }
@@ -264,7 +306,7 @@
 .offscreen-indicator {
   position: absolute;
   z-index: 900;
-  transform: translate(-50%, -50%);   // centre on the computed edge point
+  transform: translate(-50%, -50%); // centre on the computed edge point
   width: 2.4rem;
   height: 2.4rem;
   padding: 0;
@@ -286,13 +328,20 @@
     color: var(--ink-mid);
     transform-origin: center;
 
-    svg { width: 1.3rem; height: 1.3rem; display: block; }
+    svg {
+      width: 1.3rem;
+      height: 1.3rem;
+      display: block;
+    }
   }
 }
 
 // pop-in for an off-screen marker; keeps the centring translate so it doesn't jump
 @keyframes offscreen-marker-in {
-  from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
 }
 
 // zoom controls now live in the actions toolbar (see whiteboard-actions.scss)

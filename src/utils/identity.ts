@@ -10,16 +10,35 @@ const IDENTITY_KEY = "stickies.identity";
 export type Identity = { name: string; color: Tone };
 
 const ADJECTIVES = [
-  "Amber", "Brisk", "Calm", "Dapper", "Eager", "Fleet",
-  "Gentle", "Keen", "Lucky", "Mellow", "Nimble", "Quiet",
+  "Amber",
+  "Brisk",
+  "Calm",
+  "Dapper",
+  "Eager",
+  "Fleet",
+  "Gentle",
+  "Keen",
+  "Lucky",
+  "Mellow",
+  "Nimble",
+  "Quiet",
 ];
 const ANIMALS = [
-  "Fox", "Owl", "Otter", "Lynx", "Heron", "Badger",
-  "Swift", "Mole", "Wren", "Hare", "Newt", "Crane",
+  "Fox",
+  "Owl",
+  "Otter",
+  "Lynx",
+  "Heron",
+  "Badger",
+  "Swift",
+  "Mole",
+  "Wren",
+  "Hare",
+  "Newt",
+  "Crane",
 ];
 
-const pick = <T>(list: readonly T[]): T =>
-  list[Math.floor(Math.random() * list.length)];
+const pick = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
 
 const generate = (): Identity => ({
   name: `${pick(ADJECTIVES)} ${pick(ANIMALS)}`,

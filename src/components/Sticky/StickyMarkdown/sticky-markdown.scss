@@ -1,16 +1,16 @@
 .sticky-markdown {
   flex: auto;
   width: 100%;
-  min-height: calc(
-    var(--total-sticky-height) - var(--total-sticky-handle-height)
-  );
+  min-height: calc(var(--total-sticky-height) - var(--total-sticky-handle-height));
   overflow-y: auto;
-  touch-action: pan-y;   // the note content is the only touch-scrollable thing
+  touch-action: pan-y; // the note content is the only touch-scrollable thing
   scrollbar-color: var(--ink-faint) transparent;
   scrollbar-width: thin;
 }
 
-.sticky-markdown.rendered { cursor: text; } // hint: click to edit
+.sticky-markdown.rendered {
+  cursor: text;
+} // hint: click to edit
 
 // ---- shared prose: rendered view AND the WYSIWYG editor surface ----
 // Identical styling so entering/leaving edit causes no visible reflow.
@@ -24,17 +24,28 @@
   color: inherit;
   outline: none;
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-serif);
     font-weight: 600;
     line-height: 1.2;
     margin: 0.6em 0 0.3em;
   }
-  h1 { font-size: 1.3rem; }
-  h2 { font-size: 1.15rem; }
-  h3 { font-size: 1.02rem; }
+  h1 {
+    font-size: 1.3rem;
+  }
+  h2 {
+    font-size: 1.15rem;
+  }
+  h3 {
+    font-size: 1.02rem;
+  }
 
-  p { margin: 0.5em 0; }
+  p {
+    margin: 0.5em 0;
+  }
 
   a {
     color: inherit;
@@ -65,28 +76,41 @@
     border-radius: var(--radius-chrome);
     overflow-x: auto;
 
-    code { background: none; padding: 0; }
+    code {
+      background: none;
+      padding: 0;
+    }
   }
 
-  ul, ol { padding-left: 1.25rem; margin: 0.5em 0; }
+  ul,
+  ol {
+    padding-left: 1.25rem;
+    margin: 0.5em 0;
+  }
 
   table {
     border-collapse: collapse;
-    table-layout: fixed;   // honor colgroup widths; rendered == editor (no reflow)
+    table-layout: fixed; // honor colgroup widths; rendered == editor (no reflow)
     // always span the note; !important beats prosemirror's inline px width so
     // column resize REDISTRIBUTES within the note instead of growing past it.
     width: 100% !important;
     margin: 0.5em 0;
 
-    th, td {
+    th,
+    td {
       border: 1px solid var(--ink-faint);
       padding: 0.25em 0.5em;
       text-align: left;
     }
-    th { background: var(--head-tint); font-weight: 600; }
+    th {
+      background: var(--head-tint);
+      font-weight: 600;
+    }
   }
 
-  img { max-width: 100%; }
+  img {
+    max-width: 100%;
+  }
 
   // In the static rendered view, empty text blocks have no trailing <br> (the
   // editor inserts one), so they collapse — making tables/code/paragraphs squish
@@ -94,10 +118,17 @@
   // line box of exactly `line-height`, matching the editor's <br> to the pixel.
   // (Editor empties contain a <br>, so :empty never matches there.)
   p:empty::after,
-  h1:empty::after, h2:empty::after, h3:empty::after, h4:empty::after,
-  pre code:empty::after { content: "\200b"; }
+  h1:empty::after,
+  h2:empty::after,
+  h3:empty::after,
+  h4:empty::after,
+  pre code:empty::after {
+    content: "\200b";
+  }
 
-  &:first-child { margin-top: 0; }
+  &:first-child {
+    margin-top: 0;
+  }
 }
 
 // Preserve runs of spaces (e.g. "[  ]") in the rendered view. The editor surface
@@ -114,7 +145,9 @@
 // `padding` shorthand so it isn't clobbered). Matches editor text Y exactly:
 // editor = toolbar(--toolbar-h) + ProseMirror padding-top(0.5rem); rendered =
 // the same total — so entering edit never shifts the text.
-.sticky-markdown.rendered { padding-top: calc(var(--toolbar-h) + 0.5rem); }
+.sticky-markdown.rendered {
+  padding-top: calc(var(--toolbar-h) + 0.5rem);
+}
 
 // The read-only fragment view (a peer's live edit): purely display. Pointer
 // events pass through to the sticky root so a click opens OUR editor instead of
@@ -122,7 +155,9 @@
 // ProseMirror inherits the shared prose styling via the `.rendered` class.
 .sticky-fragment-view {
   pointer-events: none;
-  .ProseMirror { outline: none; }
+  .ProseMirror {
+    outline: none;
+  }
 }
 
 // ---- editor (note being edited) ----
@@ -132,23 +167,25 @@
 .sticky-editor {
   flex: auto;
   position: relative;
-  min-height: calc(
-    var(--total-sticky-height) - var(--total-sticky-handle-height)
-  );
+  min-height: calc(var(--total-sticky-height) - var(--total-sticky-handle-height));
   overflow: hidden;
 }
 
 .sticky-markdown-edit {
   position: absolute;
-  inset: var(--toolbar-h) 0 0 0;   // start below the toolbar strip
+  inset: var(--toolbar-h) 0 0 0; // start below the toolbar strip
   overflow-y: auto;
-  touch-action: pan-y;             // editor content scrolls on touch
+  touch-action: pan-y; // editor content scrolls on touch
   scrollbar-color: var(--ink-faint) transparent;
   scrollbar-width: thin;
 
-  .ProseMirror { min-height: 100%; }
+  .ProseMirror {
+    min-height: 100%;
+  }
   // selected table cell highlight
-  .selectedCell { background: var(--tint-press); }
+  .selectedCell {
+    background: var(--tint-press);
+  }
 
   // wide tables scroll inside the note instead of overflowing it. The wrapper is
   // a block-formatting context (overflow), which would otherwise CONTAIN the
@@ -158,11 +195,16 @@
     overflow-x: auto;
     margin: 0.5em 0;
   }
-  .tableWrapper > table { margin: 0; }
+  .tableWrapper > table {
+    margin: 0;
+  }
 
   // cells need a positioning context for the resize handle + a grabbable min size
   .ProseMirror td,
-  .ProseMirror th { position: relative; min-width: 3em; }
+  .ProseMirror th {
+    position: relative;
+    min-width: 3em;
+  }
 
   // column drag-to-resize bar (ProseMirror inserts it near a column boundary)
   .column-resize-handle {
@@ -175,7 +217,9 @@
     cursor: col-resize;
     z-index: 3;
   }
-  .ProseMirror.resize-cursor { cursor: col-resize; }
+  .ProseMirror.resize-cursor {
+    cursor: col-resize;
+  }
 }
 
 .sticky-toolbar {
@@ -185,8 +229,8 @@
   right: 0;
   z-index: 1;
   display: flex;
-  flex-wrap: nowrap;          // fixed height; scroll if too narrow
-  align-items: center;        // center buttons + dividers vertically
+  flex-wrap: nowrap; // fixed height; scroll if too narrow
+  align-items: center; // center buttons + dividers vertically
   gap: 0.1rem;
   height: var(--toolbar-h);
   box-sizing: border-box;
@@ -195,9 +239,11 @@
   background: var(--head-tint);
   overflow-x: auto;
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
-  touch-action: pan-x;        // horizontal swipe scrolls the toolbar on touch
+  touch-action: pan-x; // horizontal swipe scrolls the toolbar on touch
   // runs flush to both sticky edges — reads as full-width; the transparent resize
   // handles overlay on top (z 4 > toolbar z 1) so edge-drag still works.
 }
@@ -217,9 +263,15 @@
   cursor: pointer;
   opacity: 0.65;
 
-  svg { width: 100%; height: 100%; }
+  svg {
+    width: 100%;
+    height: 100%;
+  }
 
-  &.is-active { opacity: 1; background: var(--tint-press); }
+  &.is-active {
+    opacity: 1;
+    background: var(--tint-press);
+  }
 }
 
 // ── collaboration carets (y-prosemirror cursor plugin) ──

@@ -55,7 +55,10 @@ export const Pane = (props: PaneProps) => {
     return r ? { x: r.left, y: r.top } : { x: 0, y: 0 };
   };
   const vp = createViewport(`stickies.view.${props.paneId}`, origin);
-  const pane = createPane(() => props.boardId, () => props.focused);
+  const pane = createPane(
+    () => props.boardId,
+    () => props.focused,
+  );
 
   // Pane size (its own rect) — drives off-screen indicator + ruler math. Measured
   // so it's correct once panes no longer fill the window.
@@ -263,7 +266,9 @@ export const Pane = (props: PaneProps) => {
           <BoardRulers size={size} />
           <ThreadPopover />
 
-          <Show when={boardDrag()}> {/* board drag-to-split drop layer (pointer-driven) */}
+          <Show when={boardDrag()}>
+            {" "}
+            {/* board drag-to-split drop layer (pointer-driven) */}
             <div class="pane-drop-layer" data-pane-id={props.paneId}>
               <Show when={boardDrag()?.overPaneId === props.paneId && boardDrag()?.zone}>
                 {(zone) => <div class={`pane-drop-zone zone-${zone()}`} />}

@@ -9,8 +9,8 @@
 // ============================================================
 
 .ruler {
-  position: absolute;      // within the pane (was window-fixed)
-  z-index: 800;            // above notes (chrome), below actions/zoom (1000)
+  position: absolute; // within the pane (was window-fixed)
+  z-index: 800; // above notes (chrome), below actions/zoom (1000)
   pointer-events: none;
   background-color: var(--paper-soft);
 }
@@ -52,13 +52,13 @@
   user-select: none;
 
   &.is-origin {
-    color: var(--ink);     // emphasise the origin (0) over plain ticks
+    color: var(--ink); // emphasise the origin (0) over plain ticks
     font-weight: 600;
   }
 }
 
 .ruler-h .ruler-label {
-  top: 2px;                // sit at the outer edge; ticks hug the bottom
+  top: 2px; // sit at the outer edge; ticks hug the bottom
   transform: translateX(-50%);
 }
 
@@ -68,12 +68,12 @@
 }
 
 .ruler-corner {
-  position: absolute;      // within the pane (was window-fixed)
+  position: absolute; // within the pane (was window-fixed)
   top: 4.75rem;
   left: 0;
   width: 1.25rem;
   height: 1.25rem;
-  z-index: 801;            // over both strips' top-left overlap
+  z-index: 801; // over both strips' top-left overlap
   padding: 0;
   pointer-events: auto;
   cursor: pointer;
@@ -93,5 +93,7 @@
     border-radius: 50%;
     border: 1px solid var(--ink-soft);
   }
-  &:active::after { background: var(--ink-soft); }
+  &:active::after {
+    background: var(--ink-soft);
+  }
 }

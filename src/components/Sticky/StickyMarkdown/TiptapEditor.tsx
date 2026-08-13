@@ -47,11 +47,11 @@ export const TiptapEditor = (props: TiptapEditorProps) => {
           toolbarEl,
           exiting
             ? { opacity: 0, translateY: -6, duration: MOTION.leave, ease: "inQuad" }
-            : { opacity: 1, translateY: 0, duration: MOTION.enter, ease: "outCubic" }
+            : { opacity: 1, translateY: 0, duration: MOTION.enter, ease: "outCubic" },
         );
       },
-      { defer: true }
-    )
+      { defer: true },
+    ),
   );
 
   onMount(() => {
@@ -112,28 +112,71 @@ export const TiptapEditor = (props: TiptapEditorProps) => {
             class="sticky-toolbar"
             ref={(el) => {
               toolbarEl = el;
-              animate(el, { opacity: [0, 1], translateY: [-6, 0], duration: MOTION.enter, ease: "outCubic" });
+              animate(el, {
+                opacity: [0, 1],
+                translateY: [-6, 0],
+                duration: MOTION.enter,
+                ease: "outCubic",
+              });
             }}
             onMouseDown={(e) => e.preventDefault()}
           >
-            <button class={cls(active("bold"))} title="Bold"
-              onClick={() => ed().chain().focus().toggleBold().run()} innerHTML={Bold} />
-            <button class={cls(active("italic"))} title="Italic"
-              onClick={() => ed().chain().focus().toggleItalic().run()} innerHTML={Italic} />
-            <button class={cls(active("underline"))} title="Underline"
-              onClick={() => ed().chain().focus().toggleUnderline().run()} innerHTML={UnderlineIcon} />
-            <button class={cls(active("heading", { level: 1 }))} title="Heading 1"
-              onClick={() => ed().chain().focus().toggleHeading({ level: 1 }).run()} innerHTML={Heading1} />
-            <button class={cls(active("heading", { level: 2 }))} title="Heading 2"
-              onClick={() => ed().chain().focus().toggleHeading({ level: 2 }).run()} innerHTML={Heading2} />
-            <button class={cls(active("bulletList"))} title="Bullet list"
-              onClick={() => ed().chain().focus().toggleBulletList().run()} innerHTML={List} />
-            <button class={cls(active("orderedList"))} title="Numbered list"
-              onClick={() => ed().chain().focus().toggleOrderedList().run()} innerHTML={ListOrdered} />
-            <button class={cls(active("codeBlock"))} title="Code block"
-              onClick={() => ed().chain().focus().toggleCodeBlock().run()} innerHTML={SquareCode} />
-            <button class="sticky-tool" title="Insert table"
-              onClick={() => ed().chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} innerHTML={TableIcon} />
+            <button
+              class={cls(active("bold"))}
+              title="Bold"
+              onClick={() => ed().chain().focus().toggleBold().run()}
+              innerHTML={Bold}
+            />
+            <button
+              class={cls(active("italic"))}
+              title="Italic"
+              onClick={() => ed().chain().focus().toggleItalic().run()}
+              innerHTML={Italic}
+            />
+            <button
+              class={cls(active("underline"))}
+              title="Underline"
+              onClick={() => ed().chain().focus().toggleUnderline().run()}
+              innerHTML={UnderlineIcon}
+            />
+            <button
+              class={cls(active("heading", { level: 1 }))}
+              title="Heading 1"
+              onClick={() => ed().chain().focus().toggleHeading({ level: 1 }).run()}
+              innerHTML={Heading1}
+            />
+            <button
+              class={cls(active("heading", { level: 2 }))}
+              title="Heading 2"
+              onClick={() => ed().chain().focus().toggleHeading({ level: 2 }).run()}
+              innerHTML={Heading2}
+            />
+            <button
+              class={cls(active("bulletList"))}
+              title="Bullet list"
+              onClick={() => ed().chain().focus().toggleBulletList().run()}
+              innerHTML={List}
+            />
+            <button
+              class={cls(active("orderedList"))}
+              title="Numbered list"
+              onClick={() => ed().chain().focus().toggleOrderedList().run()}
+              innerHTML={ListOrdered}
+            />
+            <button
+              class={cls(active("codeBlock"))}
+              title="Code block"
+              onClick={() => ed().chain().focus().toggleCodeBlock().run()}
+              innerHTML={SquareCode}
+            />
+            <button
+              class="sticky-tool"
+              title="Insert table"
+              onClick={() =>
+                ed().chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+              }
+              innerHTML={TableIcon}
+            />
           </div>
         )}
       </Show>

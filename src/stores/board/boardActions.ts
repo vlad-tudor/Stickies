@@ -131,9 +131,7 @@ export function loadBoards(): void {
     // JSON.parse is untyped; this cast states the persisted snapshot format
     const snapshot = JSON.parse(raw) as BoardStore;
     for (const board of snapshot.boards) hydrateBoard(normalizeBoard(board));
-    const activeIsLive = store.boards.some(
-      (board) => board.id === snapshot.activeBoardId,
-    );
+    const activeIsLive = store.boards.some((board) => board.id === snapshot.activeBoardId);
     setStore(
       StoreKey.ActiveBoardId,
       activeIsLive ? snapshot.activeBoardId : (store.boards[0]?.id ?? ""),
@@ -148,10 +146,7 @@ export function loadBoards(): void {
   if (shared) {
     // auto-name with the import date (no prompt); rename via the tab if wanted
     const stamp = new Date().toLocaleDateString();
-    const name = deduplicateName(
-      `${shared.name} (imported ${stamp})`,
-      store.boards,
-    );
+    const name = deduplicateName(`${shared.name} (imported ${stamp})`, store.boards);
 
     const sharedStickies = normalizeStickies(shared.stickies);
     const board = makeBoard(
@@ -170,9 +165,7 @@ export function loadBoards(): void {
 // ── registry CRUD ──
 
 export function createBoard(name?: string): string {
-  const finalName = name
-    ? deduplicateName(name, store.boards)
-    : nextBoardName(store.boards);
+  const finalName = name ? deduplicateName(name, store.boards) : nextBoardName(store.boards);
   const board = makeBoard(finalName);
   registerBoard(board, true);
   persist();
@@ -218,9 +211,7 @@ export function deleteBoard(id: string): void {
   }
   clearDocPersistence(id); // drop the stored update log with the board
   dropBoard(id);
-  setStore(StoreKey.Boards, (existing) =>
-    existing.filter((board) => board.id !== id),
-  );
+  setStore(StoreKey.Boards, (existing) => existing.filter((board) => board.id !== id));
 
   // if we deleted the active board, switch to a neighbour (or none if empty)
   if (store.activeBoardId === id) {
@@ -269,17 +260,13 @@ export function reorderBoardTo(id: string, toIndex: number): void {
   const reordered = [...store.boards];
   const [moved] = reordered.splice(from, 1);
   reordered.splice(Math.max(0, Math.min(toIndex, reordered.length)), 0, moved);
-  const unchanged = reordered.every(
-    (board, index) => board.id === store.boards[index].id,
-  );
+  const unchanged = reordered.every((board, index) => board.id === store.boards[index].id);
   if (unchanged) return;
   setStore(StoreKey.Boards, reordered);
   persist();
 }
 
 export function updateBoardBgColor(boardId: string, color: Tone): void {
-  const changed = transact(boardId, (doc) =>
-    metaMapOf(doc).set(MetaKey.BgColor, color),
-  );
+  const changed = transact(boardId, (doc) => metaMapOf(doc).set(MetaKey.BgColor, color));
   if (changed) persist();
 }

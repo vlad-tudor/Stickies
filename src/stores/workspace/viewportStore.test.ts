@@ -80,10 +80,7 @@ describe("zoomAt", () => {
 
 describe("view restore", () => {
   test("a saved view restores pan and zoom", () => {
-    localStorage.setItem(
-      "restore.view",
-      JSON.stringify({ pan: { x: 11, y: 22 }, zoom: 1.25 }),
-    );
+    localStorage.setItem("restore.view", JSON.stringify({ pan: { x: 11, y: 22 }, zoom: 1.25 }));
     createRoot((dispose) => {
       const viewport = createViewport("restore.view");
       expect(viewport.pan()).toEqual({ x: 11, y: 22 });
@@ -93,10 +90,7 @@ describe("view restore", () => {
   });
 
   test("an out-of-range saved zoom is clamped on restore", () => {
-    localStorage.setItem(
-      "restore.view",
-      JSON.stringify({ pan: { x: 0, y: 0 }, zoom: 99 }),
-    );
+    localStorage.setItem("restore.view", JSON.stringify({ pan: { x: 0, y: 0 }, zoom: 99 }));
     createRoot((dispose) => {
       const viewport = createViewport("restore.view");
       expect(viewport.zoom()).toBe(2);

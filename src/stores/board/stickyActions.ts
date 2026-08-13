@@ -24,13 +24,7 @@ import {
   geometryDirtyFor,
   persist,
 } from "./boardProjection";
-import {
-  remoteHoldOn,
-  holdSticky,
-  releaseHold,
-  isPresenceLive,
-  HoldKind,
-} from "./presence";
+import { remoteHoldOn, holdSticky, releaseHold, isPresenceLive, HoldKind } from "./presence";
 
 // Board CONTENT mutations: stickies and the threads linking them. Every write
 // goes through the board's doc (transact) — the projection follows via the
@@ -53,8 +47,7 @@ export function addThread(boardId: string, from: string, to: string): void {
   // skip duplicates (either direction)
   const duplicate = board.threads.some(
     (thread) =>
-      (thread.from === from && thread.to === to) ||
-      (thread.from === to && thread.to === from),
+      (thread.from === from && thread.to === to) || (thread.from === to && thread.to === from),
   );
   if (duplicate) return;
 
@@ -78,9 +71,7 @@ export const updateStickyNote = (
   stickyId: string,
   update: Partial<StickyNote>,
 ) => {
-  const changed = transact(boardId, (doc) =>
-    setNoteFieldsInDoc(doc, stickyId, update),
-  );
+  const changed = transact(boardId, (doc) => setNoteFieldsInDoc(doc, stickyId, update));
   if (changed) persist();
 };
 
@@ -96,9 +87,7 @@ const flushLiveGeometry = (boardId: string): void => {
   const dirtyIds = geometryDirtyFor(boardId);
   const boardIdx = boardIndex(boardId);
   if (!dirtyIds || dirtyIds.size === 0 || boardIdx === -1) return;
-  const inFlight = store.boards[boardIdx].stickies.filter((sticky) =>
-    dirtyIds.has(sticky.id),
-  );
+  const inFlight = store.boards[boardIdx].stickies.filter((sticky) => dirtyIds.has(sticky.id));
   transact(boardId, (doc) => {
     for (const note of inFlight) {
       setNoteFieldsInDoc(doc, note.id, {
@@ -125,24 +114,13 @@ const scheduleLiveGeometryFlush = (boardId: string): void => {
 // The note is marked geometry-dirty; commitStickies() (pointer release) writes
 // the final geometry into the doc. Live boards additionally stream the motion
 // (scheduleLiveGeometryFlush).
-export const moveStickyNote = (
-  boardId: string,
-  stickyId: string,
-  position: [number, number],
-) => {
+export const moveStickyNote = (boardId: string, stickyId: string, position: [number, number]) => {
   if (remoteHoldOn(boardId, stickyId)) return; // a peer is holding this note
   const [boardIdx, stickyIdx] = locate(boardId, stickyId);
   if (stickyIdx === -1) return;
   markGeometryDirty(boardId, stickyId);
   holdSticky(boardId, stickyId, HoldKind.Moving);
-  setStore(
-    StoreKey.Boards,
-    boardIdx,
-    BoardKey.Stickies,
-    stickyIdx,
-    NoteKey.Position,
-    position,
-  );
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, stickyIdx, NoteKey.Position, position);
   scheduleLiveGeometryFlush(boardId);
 };
 
@@ -156,14 +134,7 @@ export const resizeStickyNote = (
   if (stickyIdx === -1) return;
   markGeometryDirty(boardId, stickyId);
   holdSticky(boardId, stickyId, HoldKind.Moving);
-  setStore(
-    StoreKey.Boards,
-    boardIdx,
-    BoardKey.Stickies,
-    stickyIdx,
-    NoteKey.Dimensions,
-    dimensions,
-  );
+  setStore(StoreKey.Boards, boardIdx, BoardKey.Stickies, stickyIdx, NoteKey.Dimensions, dimensions);
   scheduleLiveGeometryFlush(boardId);
 };
 
@@ -181,9 +152,7 @@ export const commitStickies = () => {
     const pendingNotes =
       boardIdx === -1
         ? []
-        : store.boards[boardIdx].stickies.filter((sticky) =>
-            dirtyIds.has(sticky.id),
-          );
+        : store.boards[boardIdx].stickies.filter((sticky) => dirtyIds.has(sticky.id));
     dropGeometryDirty(boardId); // clear FIRST so the sync reads the doc's values
     if (pendingNotes.length === 0) continue;
     transact(boardId, (doc) => {
@@ -214,9 +183,7 @@ export const raiseSticky = (boardId: string, stickyId: string) => {
   if (stickyIdx === -1) return;
   const topZ = nextZ(boardIdx) - 1;
   if (store.boards[boardIdx].stickies[stickyIdx].z === topZ) return;
-  const changed = transact(boardId, (doc) =>
-    setNoteFieldsInDoc(doc, stickyId, { z: topZ + 1 }),
-  );
+  const changed = transact(boardId, (doc) => setNoteFieldsInDoc(doc, stickyId, { z: topZ + 1 }));
   if (changed) persist();
 };
 
@@ -244,9 +211,7 @@ export const moveStickyToBoard = (
   const targetBoardIdx = boardIndex(toBoardId);
   const sourceBoardIdx = boardIndex(fromBoardId);
   if (targetBoardIdx === -1 || sourceBoardIdx === -1) return;
-  const note = store.boards[sourceBoardIdx].stickies.find(
-    (sticky) => sticky.id === stickyId,
-  );
+  const note = store.boards[sourceBoardIdx].stickies.find((sticky) => sticky.id === stickyId);
   if (!note) return;
 
   // arrives on top of the TARGET board's stack
@@ -276,16 +241,11 @@ export const clearAllStickies = (boardId: string) => {
 };
 
 // New notes always land on top — z is assigned here, never by the caller.
-export const createStickyNote = (
-  boardId: string,
-  sticky: Omit<StickyNote, "z">,
-) => {
+export const createStickyNote = (boardId: string, sticky: Omit<StickyNote, "z">) => {
   const boardIdx = boardIndex(boardId);
   if (boardIdx === -1) return;
   const stacked: StickyNote = { ...sticky, z: nextZ(boardIdx) };
-  const changed = transact(boardId, (doc) =>
-    stickyMapOf(doc).set(stacked.id, noteToY(stacked)),
-  );
+  const changed = transact(boardId, (doc) => stickyMapOf(doc).set(stacked.id, noteToY(stacked)));
   if (changed) persist();
 };
 
@@ -301,8 +261,6 @@ export const duplicateStickyNote = (boardId: string, stickyId: string) => {
     position: [source.position[0] + 24, source.position[1] + 24],
     z: nextZ(boardIdx),
   };
-  const changed = transact(boardId, (doc) =>
-    stickyMapOf(doc).set(clone.id, noteToY(clone)),
-  );
+  const changed = transact(boardId, (doc) => stickyMapOf(doc).set(clone.id, noteToY(clone)));
   if (changed) persist();
 };

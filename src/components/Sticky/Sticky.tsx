@@ -151,7 +151,10 @@ export const Sticky = (props: StickyProps) => {
     node.setPointerCapture(e.pointerId);
 
     const track = (ev: PointerEvent) =>
-      setPendingThread({ from: props.sticky.id, to: vp.eventToWorld({ x: ev.clientX, y: ev.clientY }) });
+      setPendingThread({
+        from: props.sticky.id,
+        to: vp.eventToWorld({ x: ev.clientX, y: ev.clientY }),
+      });
     track(e);
 
     const onMove = (ev: PointerEvent) => track(ev);
@@ -170,11 +173,14 @@ export const Sticky = (props: StickyProps) => {
   };
 
   const onStickyDelete = async () => {
-    if (!(await confirmDialog("Delete this sticky note?", {
-      title: "Delete note",
-      confirmText: "Delete",
-      danger: true,
-    }))) return;
+    if (
+      !(await confirmDialog("Delete this sticky note?", {
+        title: "Delete note",
+        confirmText: "Delete",
+        danger: true,
+      }))
+    )
+      return;
     if (editingStickyId() === props.sticky.id) exitEditing();
     if (selectedStickyId() === props.sticky.id) clearStickySelection();
     // Animate OUT first, then remove from the store on complete — the node stays
@@ -199,10 +205,7 @@ export const Sticky = (props: StickyProps) => {
     >
       <StickyDragHandle
         moveBy={([dTop, dLeft]) =>
-          props.moveSticky([
-            props.sticky.position[0] + dTop,
-            props.sticky.position[1] + dLeft,
-          ])
+          props.moveSticky([props.sticky.position[0] + dTop, props.sticky.position[1] + dLeft])
         }
         onDragStart={(e) => {
           // grab offset within the note (world units) → the ghost hangs from the
@@ -239,10 +242,7 @@ export const Sticky = (props: StickyProps) => {
 
       <Show when={remoteHold()}>
         {(hold) => (
-          <div
-            class="sticky-remote-hold"
-            style={{ "background-color": toneVar(hold().color) }}
-          >
+          <div class="sticky-remote-hold" style={{ "background-color": toneVar(hold().color) }}>
             {hold().name}
           </div>
         )}

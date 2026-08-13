@@ -21,7 +21,12 @@ export const AppDialog = () => {
       {(d) => (
         // backdrop press = cancel; stop it on the panel so inside presses don't dismiss
         <div class="dialog-backdrop" onPointerDown={() => resolveDialog(false)}>
-          <div class="dialog" role="dialog" aria-modal="true" onPointerDown={(e) => e.stopPropagation()}>
+          <div
+            class="dialog"
+            role="dialog"
+            aria-modal="true"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <Show when={d().title}>{(t) => <h2 class="dialog-title">{t()}</h2>}</Show>
             <p class="dialog-message">{d().message}</p>
             <div class="dialog-actions">

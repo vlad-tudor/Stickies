@@ -17,11 +17,7 @@ const providers = new Map<string, IndexeddbPersistence>();
 // Attach IDB persistence to a board's doc. `onSynced` fires once the stored
 // update log has been applied (the moment to decide whether the doc still
 // needs seeding from the JSON snapshot).
-export function attachDocPersistence(
-  boardId: string,
-  doc: Y.Doc,
-  onSynced?: () => void
-): void {
+export function attachDocPersistence(boardId: string, doc: Y.Doc, onSynced?: () => void): void {
   if (!canPersistDocs || providers.has(boardId)) return;
   const provider = new IndexeddbPersistence(`${DB_PREFIX}${boardId}`, doc);
   providers.set(boardId, provider);

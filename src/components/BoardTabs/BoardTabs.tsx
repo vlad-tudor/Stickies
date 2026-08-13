@@ -45,7 +45,8 @@ export const BoardTabs = (props: BoardTabsProps) => {
 
   // A press in progress (pre-drag). Becomes a drag once it travels DRAG_THRESHOLD;
   // otherwise it's a tap → select.
-  let press: { pointerId: number; x: number; y: number; boardId: string; el: HTMLElement } | null = null;
+  let press: { pointerId: number; x: number; y: number; boardId: string; el: HTMLElement } | null =
+    null;
   let suppressClick = false; // swallow the synthetic click that can follow a drag
 
   // Drag scratch, measured ONCE when the drag begins (the order isn't mutated mid-drag,
@@ -103,21 +104,25 @@ export const BoardTabs = (props: BoardTabsProps) => {
   const onTabClose = async (e: MouseEvent, board: Board) => {
     e.stopPropagation();
     if (boards().length <= 1) return;
-    if (await confirmDialog(`Delete "${board.name}" and all its notes?`, {
-      title: "Delete board",
-      confirmText: "Delete",
-      danger: true,
-    })) {
+    if (
+      await confirmDialog(`Delete "${board.name}" and all its notes?`, {
+        title: "Delete board",
+        confirmText: "Delete",
+        danger: true,
+      })
+    ) {
       deleteBoard(board.id);
     }
   };
 
   const onTabDuplicate = async (e: MouseEvent, board: Board) => {
     e.stopPropagation();
-    if (await confirmDialog("Copy all its notes and connections into a new board?", {
-      title: `Duplicate "${board.name}"`,
-      confirmText: "Duplicate",
-    })) {
+    if (
+      await confirmDialog("Copy all its notes and connections into a new board?", {
+        title: `Duplicate "${board.name}"`,
+        confirmText: "Duplicate",
+      })
+    ) {
       const newId = duplicateBoard(board.id);
       if (newId) props.onSelect(newId); // open the copy in this pane
     }
@@ -156,12 +161,21 @@ export const BoardTabs = (props: BoardTabsProps) => {
       // ── dragged below the strip → drop-onto-pane (split): ghost + pane preview ──
       setMode("split");
       setOffsetX(0);
-      setGhost({ x: e.clientX, y: e.clientY, name: boards().find((b) => b.id === dragId())?.name ?? "" });
-      const layer = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>(".pane-drop-layer");
+      setGhost({
+        x: e.clientX,
+        y: e.clientY,
+        name: boards().find((b) => b.id === dragId())?.name ?? "",
+      });
+      const layer = document
+        .elementFromPoint(e.clientX, e.clientY)
+        ?.closest<HTMLElement>(".pane-drop-layer");
       const paneId = layer?.dataset.paneId;
       if (layer && paneId) {
         const r = layer.getBoundingClientRect();
-        setBoardDragOver(paneId, zoneAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height));
+        setBoardDragOver(
+          paneId,
+          zoneAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height),
+        );
       } else {
         clearBoardDragOver();
       }
@@ -211,8 +225,13 @@ export const BoardTabs = (props: BoardTabsProps) => {
 
   return (
     <div class="board-tabs">
-      <button class="board-tab-add" title="New board" onClick={() => props.onSelect(createBoard())}>+</button>
-      <div class={`board-tabs-list${dragId() && mode() === "reorder" ? " reordering" : ""}`} ref={listEl}>
+      <button class="board-tab-add" title="New board" onClick={() => props.onSelect(createBoard())}>
+        +
+      </button>
+      <div
+        class={`board-tabs-list${dragId() && mode() === "reorder" ? " reordering" : ""}`}
+        ref={listEl}
+      >
         <For each={boards()}>
           {(board, index) => (
             <div
@@ -267,10 +286,7 @@ export const BoardTabs = (props: BoardTabsProps) => {
                   expands it with the peer count */}
               <Show when={sessionFor(board.id)}>
                 {(live) => (
-                  <span
-                    class="board-tab-live"
-                    title={`Live — ${live().peers} here`}
-                  >
+                  <span class="board-tab-live" title={`Live — ${live().peers} here`}>
                     <span class="board-tab-live-dot" />
                     <Show when={board.id === props.boardId}>
                       <span class="board-tab-live-count">{live().peers}</span>
@@ -279,10 +295,7 @@ export const BoardTabs = (props: BoardTabsProps) => {
                 )}
               </Show>
               {boards().length > 1 && (
-                <button
-                  class="board-tab-close"
-                  onClick={(e) => onTabClose(e, board)}
-                >
+                <button class="board-tab-close" onClick={(e) => onTabClose(e, board)}>
                   {"✕"}
                 </button>
               )}

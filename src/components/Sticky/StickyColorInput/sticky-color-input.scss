@@ -8,8 +8,8 @@
 .sticky-color-input {
   position: absolute;
   top: 0;
-  right: 4rem;                   // in the band, just left of the copy button (right: 2rem)
-  z-index: 5;                    // stay clickable over the top resize rim (z 4)
+  right: 4rem; // in the band, just left of the copy button (right: 2rem)
+  z-index: 5; // stay clickable over the top resize rim (z 4)
   width: 2rem;
   height: var(--total-sticky-handle-height, 2rem);
   display: flex;

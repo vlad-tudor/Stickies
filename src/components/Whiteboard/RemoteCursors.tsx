@@ -31,10 +31,7 @@ export const RemoteCursors = () => {
               stroke-width="1.2"
             />
           </svg>
-          <span
-            class="remote-cursor-name"
-            style={{ "background-color": toneVar(cursor.color) }}
-          >
+          <span class="remote-cursor-name" style={{ "background-color": toneVar(cursor.color) }}>
             {cursor.name}
           </span>
         </div>

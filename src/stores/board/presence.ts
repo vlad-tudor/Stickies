@@ -79,14 +79,12 @@ const awarenessByBoard = new Map<string, Awareness>();
 const detachByBoard = new Map<string, () => void>();
 
 // boardId -> stickyId -> the freshest remote claim on it
-const [remoteHolds, setRemoteHolds] = createStore<
-  Record<string, Record<string, RemoteHold>>
->({});
+const [remoteHolds, setRemoteHolds] = createStore<Record<string, Record<string, RemoteHold>>>({});
 
 // boardId -> clientId (as string key) -> that peer's board cursor
-const [remoteCursors, setRemoteCursors] = createStore<
-  Record<string, Record<string, RemoteCursor>>
->({});
+const [remoteCursors, setRemoteCursors] = createStore<Record<string, Record<string, RemoteCursor>>>(
+  {},
+);
 
 // Ticks while any session is attached, so lease expiry is reactive.
 const [now, setNow] = createSignal(Date.now());
@@ -124,8 +122,7 @@ const rebuildBoardPresence = (boardId: string, awareness: Awareness): void => {
       // an UNCHANGED claim (awareness renews resend the same state) keeps its
       // original seenAt — otherwise idle holders would never expire
       const existing = previousHolds[stickyId];
-      const unchanged =
-        existing && existing.clientId === clientId && existing.claimedAt === at;
+      const unchanged = existing && existing.clientId === clientId && existing.claimedAt === at;
       nextHolds[stickyId] = {
         stickyId,
         kind,
@@ -180,8 +177,7 @@ export const detachPresence = (boardId: string): void => {
 
 // Whether this board is in a live session (presence attached) — cheap gate for
 // live-only work like the mid-drag geometry flush.
-export const isPresenceLive = (boardId: string): boolean =>
-  awarenessByBoard.has(boardId);
+export const isPresenceLive = (boardId: string): boolean => awarenessByBoard.has(boardId);
 
 // The session's awareness instance (in-editor peer carets bind to it).
 export const awarenessFor = (boardId: string): Awareness | undefined =>
@@ -191,11 +187,7 @@ export const awarenessFor = (boardId: string): Awareness | undefined =>
 
 // Claim (or keep alive) a hold on a sticky. Throttled: refreshing the same
 // claim rebroadcasts at most every HEARTBEAT_MIN_MS.
-export const holdSticky = (
-  boardId: string,
-  stickyId: string,
-  kind: HoldKind,
-): void => {
+export const holdSticky = (boardId: string, stickyId: string, kind: HoldKind): void => {
   const awareness = awarenessByBoard.get(boardId);
   if (!awareness) return; // board isn't in a live session — nothing to claim
   const at = Date.now();
@@ -244,10 +236,7 @@ export const clearCursor = (boardId: string): void => {
 
 // A peer's UNEXPIRED hold on this sticky, if any. Reactive: re-evaluates as
 // claims change and as leases tick toward expiry.
-export const remoteHoldOn = (
-  boardId: string,
-  stickyId: string,
-): RemoteHold | undefined => {
+export const remoteHoldOn = (boardId: string, stickyId: string): RemoteHold | undefined => {
   const hold = remoteHolds[boardId]?.[stickyId];
   if (!hold) return undefined;
   const fresh = now() - hold.seenAt <= HOLD_LEASE_MS[hold.kind];
@@ -264,7 +253,5 @@ export const remoteCursorsOn = (boardId: string): RemoteCursor[] => {
   const cursors = remoteCursors[boardId];
   if (!cursors) return [];
   const current = now();
-  return Object.values(cursors).filter(
-    (cursor) => current - cursor.seenAt <= CURSOR_LEASE_MS,
-  );
+  return Object.values(cursors).filter((cursor) => current - cursor.seenAt <= CURSOR_LEASE_MS);
 };

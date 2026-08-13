@@ -63,10 +63,7 @@ const spawnPeer = (local: Y.Doc): Y.Doc => {
 // Deliver `source`'s missing updates to `target` (one direction — what a
 // provider does per message).
 const deliver = (source: Y.Doc, target: Y.Doc): void => {
-  Y.applyUpdate(
-    target,
-    Y.encodeStateAsUpdate(source, Y.encodeStateVector(target)),
-  );
+  Y.applyUpdate(target, Y.encodeStateAsUpdate(source, Y.encodeStateVector(target)));
 };
 
 // Full exchange in both directions (a sync round).
@@ -195,9 +192,7 @@ describe("body fragments (the co-editing channel)", () => {
     const peer = spawnPeer(local);
 
     // a peer "types": content lands inside the shared fragment
-    const peerFragment = stickyMapOf(peer)
-      .get("a")!
-      .get("body") as Y.XmlFragment;
+    const peerFragment = stickyMapOf(peer).get("a")!.get("body") as Y.XmlFragment;
     peer.transact(() => {
       const paragraph = new Y.XmlElement("paragraph");
       paragraph.insert(0, [new Y.XmlText("typed remotely")]);
@@ -301,11 +296,11 @@ describe("concurrent edits", () => {
     // both docs identical, projection reflects the merged truth
     expect(stickyMapOf(local).toJSON()).toEqual(stickyMapOf(peer).toJSON());
     expect(threadMapOf(local).toJSON()).toEqual(threadMapOf(peer).toJSON());
-    expect(stickies().map((sticky) => sticky.id).sort()).toEqual([
-      "a",
-      "local-2",
-      "peer-2",
-    ]);
+    expect(
+      stickies()
+        .map((sticky) => sticky.id)
+        .sort(),
+    ).toEqual(["a", "local-2", "peer-2"]);
     expect(projectionNote("a")!.content).toBe("<p>peer version</p>");
     expect(threads().length).toBe(1);
   });

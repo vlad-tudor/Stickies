@@ -28,7 +28,7 @@ function openDb(): Promise<IDBDatabase> {
 
 async function run<T>(
   mode: IDBTransactionMode,
-  op: (store: IDBObjectStore) => IDBRequest
+  op: (store: IDBObjectStore) => IDBRequest,
 ): Promise<T> {
   const db = await openDb();
   return new Promise<T>((resolve, reject) => {

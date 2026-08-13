@@ -52,8 +52,7 @@ const note = (id: string, over: Partial<StickyNote> = {}): StickyNote => ({
 });
 
 // topmost note of the current board (stacking = max z)
-const topNote = (): StickyNote =>
-  stickies().reduce((top, s) => (s.z > top.z ? s : top));
+const topNote = (): StickyNote => stickies().reduce((top, s) => (s.z > top.z ? s : top));
 
 const board = (id: string, name: string, over: Partial<Board> = {}): Board => ({
   id,
@@ -242,7 +241,7 @@ describe("board CRUD", () => {
           threads: [{ id: "t1", from: "s1", to: "s2" }],
         }),
       ],
-      "a"
+      "a",
     );
     const copyId = duplicateBoard("a");
     expect(copyId).not.toBeNull();
@@ -418,7 +417,11 @@ describe("sticky CRUD", () => {
     createStickyNote(bid, note("c"));
     raiseSticky(bid, "a");
     expect(topNote().id).toBe("a");
-    expect(stickies().map((s) => s.id).sort()).toEqual(["a", "b", "c"]);
+    expect(
+      stickies()
+        .map((s) => s.id)
+        .sort(),
+    ).toEqual(["a", "b", "c"]);
   });
 
   test("z-order survives a persistence round-trip (compacted)", () => {
@@ -464,7 +467,7 @@ describe("sticky CRUD", () => {
         }),
         board("dst", "Dst", { stickies: [note("d")] }),
       ],
-      "src"
+      "src",
     );
     moveStickyToBoard("s1", "src", "dst", { x: 50, y: 70 });
     const src = boards().find((b) => b.id === "src")!;

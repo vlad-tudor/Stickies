@@ -9,12 +9,7 @@
 // Consumers import from here; the internals (store/setStore, doc access,
 // dirty-geometry plumbing) stay inside the board/ modules.
 
-export {
-  MIN_STICKY_WIDTH,
-  MIN_STICKY_HEIGHT,
-  stickyCenter,
-  threadAnchor,
-} from "~/domain/board";
+export { MIN_STICKY_WIDTH, MIN_STICKY_HEIGHT, stickyCenter, threadAnchor } from "~/domain/board";
 export type { ImageRef, StickyNote, Thread, Board } from "~/domain/board";
 
 export {
