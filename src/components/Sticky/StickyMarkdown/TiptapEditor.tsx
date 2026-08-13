@@ -14,6 +14,7 @@ import {
   SquareCode,
   Table as TableIcon,
 } from "lucide-static";
+import { Icon } from "~/components/Icon/Icon";
 import { setActiveEditor, bumpEditorTick } from "~/stores/editorStore";
 import { MOTION } from "~/utils/motion";
 import { stickyBodyExtensions } from "./editorExtensions";
@@ -125,58 +126,67 @@ export const TiptapEditor = (props: TiptapEditorProps) => {
               class={cls(active("bold"))}
               title="Bold"
               onClick={() => ed().chain().focus().toggleBold().run()}
-              innerHTML={Bold}
-            />
+            >
+              <Icon svg={Bold} />
+            </button>
             <button
               class={cls(active("italic"))}
               title="Italic"
               onClick={() => ed().chain().focus().toggleItalic().run()}
-              innerHTML={Italic}
-            />
+            >
+              <Icon svg={Italic} />
+            </button>
             <button
               class={cls(active("underline"))}
               title="Underline"
               onClick={() => ed().chain().focus().toggleUnderline().run()}
-              innerHTML={UnderlineIcon}
-            />
+            >
+              <Icon svg={UnderlineIcon} />
+            </button>
             <button
               class={cls(active("heading", { level: 1 }))}
               title="Heading 1"
               onClick={() => ed().chain().focus().toggleHeading({ level: 1 }).run()}
-              innerHTML={Heading1}
-            />
+            >
+              <Icon svg={Heading1} />
+            </button>
             <button
               class={cls(active("heading", { level: 2 }))}
               title="Heading 2"
               onClick={() => ed().chain().focus().toggleHeading({ level: 2 }).run()}
-              innerHTML={Heading2}
-            />
+            >
+              <Icon svg={Heading2} />
+            </button>
             <button
               class={cls(active("bulletList"))}
               title="Bullet list"
               onClick={() => ed().chain().focus().toggleBulletList().run()}
-              innerHTML={List}
-            />
+            >
+              <Icon svg={List} />
+            </button>
             <button
               class={cls(active("orderedList"))}
               title="Numbered list"
               onClick={() => ed().chain().focus().toggleOrderedList().run()}
-              innerHTML={ListOrdered}
-            />
+            >
+              <Icon svg={ListOrdered} />
+            </button>
             <button
               class={cls(active("codeBlock"))}
               title="Code block"
               onClick={() => ed().chain().focus().toggleCodeBlock().run()}
-              innerHTML={SquareCode}
-            />
+            >
+              <Icon svg={SquareCode} />
+            </button>
             <button
               class="sticky-tool"
               title="Insert table"
               onClick={() =>
                 ed().chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
               }
-              innerHTML={TableIcon}
-            />
+            >
+              <Icon svg={TableIcon} />
+            </button>
           </div>
         )}
       </Show>

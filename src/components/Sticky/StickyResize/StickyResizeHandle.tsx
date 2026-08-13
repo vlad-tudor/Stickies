@@ -35,6 +35,7 @@ type StickyResizeHandleProps = {
 // All math is absolute from a start snapshot (no per-frame drift); deltas ÷ zoom.
 export const StickyResizeHandle = (props: StickyResizeHandleProps) => {
   const vp = useViewport();
+  // eslint-disable-next-line solid/reactivity -- dir is fixed for a handle instance (static RESIZE_DIRS)
   const dir = props.dir;
   const north = dir.includes("n");
   const south = dir.includes("s");

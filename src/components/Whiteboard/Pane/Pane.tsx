@@ -54,6 +54,7 @@ export const Pane = (props: PaneProps) => {
     const r = boardRef?.getBoundingClientRect();
     return r ? { x: r.left, y: r.top } : { x: 0, y: 0 };
   };
+  // eslint-disable-next-line solid/reactivity -- paneId only seeds the persistence key; pane identity is stable
   const vp = createViewport(`stickies.view.${props.paneId}`, origin);
   const pane = createPane(
     () => props.boardId,

@@ -10,6 +10,7 @@ import {
   PanelTop,
   Trash2,
 } from "lucide-static";
+import { Icon } from "~/components/Icon/Icon";
 
 import "./sticky-table-strip.scss";
 
@@ -53,52 +54,55 @@ export const StickyTableStrip = (props: StickyTableStripProps) => {
         onMouseDown={(e) => e.preventDefault()} // keep the editor selection
       >
         <div class="table-strip-group">
-          <button
-            class="table-strip-btn"
-            title="Add row above"
-            onClick={addRowAbove}
-            innerHTML={ArrowUpToLine}
-          />
+          <button class="table-strip-btn" title="Add row above" onClick={addRowAbove}>
+            <Icon svg={ArrowUpToLine} />
+          </button>
           <button
             class="table-strip-btn"
             title="Add row below"
             onClick={() => run((c) => c.addRowAfter())}
-            innerHTML={ArrowDownToLine}
-          />
+          >
+            <Icon svg={ArrowDownToLine} />
+          </button>
           <button
             class="table-strip-btn"
             title="Delete row"
             onClick={() => run((c) => c.deleteRow())}
-            innerHTML={Trash2}
-          />
+          >
+            <Icon svg={Trash2} />
+          </button>
         </div>
         <div class="table-strip-group">
           <button
             class="table-strip-btn"
             title="Add column left"
             onClick={() => run((c) => c.addColumnBefore())}
-            innerHTML={ArrowLeftToLine}
-          />
+          >
+            <Icon svg={ArrowLeftToLine} />
+          </button>
           <button
             class="table-strip-btn"
             title="Add column right"
             onClick={() => run((c) => c.addColumnAfter())}
-            innerHTML={ArrowRightToLine}
-          />
+          >
+            <Icon svg={ArrowRightToLine} />
+          </button>
           <button
             class="table-strip-btn"
             title="Delete column"
             onClick={() => run((c) => c.deleteColumn())}
-            innerHTML={Trash2}
-          />
+          >
+            <Icon svg={Trash2} />
+          </button>
         </div>
         <div class="table-strip-group">
           <button
             class="table-strip-btn"
             title="Toggle header row"
             onClick={() => run((c) => c.toggleHeaderRow())}
-            innerHTML={PanelTop}
-          />
+          >
+            <Icon svg={PanelTop} />
+          </button>
         </div>
       </div>
     </Show>

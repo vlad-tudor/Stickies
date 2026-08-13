@@ -7,7 +7,7 @@ import {
   renameBoard,
   reorderBoardTo,
   sessionFor,
-  Board,
+  type Board,
 } from "~/stores/stickyStore";
 import {
   startBoardDrag,
@@ -20,6 +20,7 @@ import {
 } from "~/stores/workspace/paneLayoutStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { Pencil, CopyPlus } from "lucide-static";
+import { Icon } from "~/components/Icon/Icon";
 import "./board-tabs.scss";
 
 // One pane's tab strip: shows all boards, highlights the pane's current board, and
@@ -255,16 +256,18 @@ export const BoardTabs = (props: BoardTabsProps) => {
                     e.stopPropagation();
                     startRename(board.id);
                   }}
-                  innerHTML={Pencil}
-                />
+                >
+                  <Icon svg={Pencil} />
+                </button>
               )}
               {board.id === props.boardId && editingId() !== board.id && (
                 <button
                   class="board-tab-dup"
                   title="Duplicate board"
                   onClick={(e) => onTabDuplicate(e, board)}
-                  innerHTML={CopyPlus}
-                />
+                >
+                  <Icon svg={CopyPlus} />
+                </button>
               )}
               {editingId() === board.id ? (
                 <input

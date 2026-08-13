@@ -29,6 +29,7 @@ import {
   Trash2,
   Radio,
 } from "lucide-static";
+import { Icon } from "~/components/Icon/Icon";
 import "./whiteboard-actions.scss";
 
 // screen-space anchor for new notes: just under the "+" button
@@ -154,9 +155,12 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
             class="clear-all-stickies"
             title="Clear all stickies"
             onClick={onClearAllStickies}
-            innerHTML={Trash2}
-          />
-          <button class="share-board" title="Share board" onClick={onShare} innerHTML={Share2} />
+          >
+            <Icon svg={Trash2} />
+          </button>
+          <button class="share-board" title="Share board" onClick={onShare}>
+            <Icon svg={Share2} />
+          </button>
           <button
             class="go-live"
             classList={{ live: !!session() }}
@@ -166,18 +170,16 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
                 : "Start live session"
             }
             onClick={onGoLive}
-            innerHTML={Radio}
-          />
+          >
+            <Icon svg={Radio} />
+          </button>
           <Show when={session()}>
             {(live) => (
               <>
                 <span class="live-count">{live().peers}</span>
-                <button
-                  class="end-live"
-                  title="End live session"
-                  onClick={onEndLive}
-                  innerHTML={X}
-                />
+                <button class="end-live" title="End live session" onClick={onEndLive}>
+                  <Icon svg={X} />
+                </button>
               </>
             )}
           </Show>
@@ -195,41 +197,35 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
             class="theme-toggle"
             title={theme() === Theme.Dark ? "Light mode" : "Dark mode"}
             onClick={toggleTheme}
-            innerHTML={theme() === Theme.Dark ? Sun : Moon}
-          />
+          >
+            <Icon svg={theme() === Theme.Dark ? Sun : Moon} />
+          </button>
 
           <div class="toolbar-zoom">
-            <button
-              class="zoom-fit"
-              title="Fit all notes"
-              onClick={props.onFit}
-              innerHTML={Maximize}
-            />
-            <button title="Zoom out" onClick={props.onZoomOut}>
+            <button class="zoom-fit" title="Fit all notes" onClick={() => props.onFit()}>
+              <Icon svg={Maximize} />
+            </button>
+            <button title="Zoom out" onClick={() => props.onZoomOut()}>
               −
             </button>
-            <button class="zoom-reset" title="Reset view" onClick={props.onZoomReset}>
+            <button class="zoom-reset" title="Reset view" onClick={() => props.onZoomReset()}>
               {Math.round(props.zoom * 100)}%
             </button>
-            <button title="Zoom in" onClick={props.onZoomIn}>
+            <button title="Zoom in" onClick={() => props.onZoomIn()}>
               +
             </button>
           </div>
 
-          <button
-            class="split-pane"
-            title="Split right"
-            onClick={props.onSplit}
-            innerHTML={SquareSplitHorizontal}
-          />
-          <button
-            class="split-pane-down"
-            title="Split down"
-            onClick={props.onSplitDown}
-            innerHTML={SquareSplitVertical}
-          />
+          <button class="split-pane" title="Split right" onClick={() => props.onSplit()}>
+            <Icon svg={SquareSplitHorizontal} />
+          </button>
+          <button class="split-pane-down" title="Split down" onClick={() => props.onSplitDown()}>
+            <Icon svg={SquareSplitVertical} />
+          </button>
           <Show when={props.closable}>
-            <button class="close-pane" title="Close pane" onClick={props.onClose} innerHTML={X} />
+            <button class="close-pane" title="Close pane" onClick={() => props.onClose()}>
+              <Icon svg={X} />
+            </button>
           </Show>
         </div>
       </div>

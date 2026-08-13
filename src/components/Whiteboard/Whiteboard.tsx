@@ -1,5 +1,6 @@
 import { createEffect, createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import { Copy } from "lucide-static";
+import { Icon } from "~/components/Icon/Icon";
 import { Pane } from "./Pane/Pane";
 import { StickyMarkdown } from "../Sticky/StickyMarkdown/StickyMarkdown";
 import { StickyImage } from "../Sticky/StickyImage/StickyImage";
@@ -243,7 +244,9 @@ export const Whiteboard = () => {
                     <span class="sticky-title-label">{g().title}</span>
                   </div>
                   <StickyColorInput color={s().color} updateColor={() => {}} />
-                  <button class="sticky-copy-button" tabindex={-1} innerHTML={Copy} />
+                  <button class="sticky-copy-button" tabindex={-1}>
+                    <Icon svg={Copy} />
+                  </button>
                   <StickyDeleteButton deleteSticky={() => {}} />
                   <Show
                     when={s().image}

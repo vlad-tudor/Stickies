@@ -1,7 +1,7 @@
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import type * as Y from "yjs";
 import {
-  StickyNote,
+  type StickyNote,
   ensureNoteBody,
   noteBodyFragment,
   awarenessFor,
@@ -10,6 +10,7 @@ import {
 } from "~/stores/stickyStore";
 import { usePane } from "~/stores/workspace/paneContext";
 import { MOTION } from "~/utils/motion";
+import { sanitizeHtml } from "~/utils/sanitizeHtml";
 import { TiptapEditor } from "./TiptapEditor";
 import { StickyFragmentView } from "./StickyFragmentView";
 
@@ -39,6 +40,7 @@ export const StickyMarkdown = (props: StickyMarkdownProps) => {
   // Keep the editor mounted for MOTION.leave after editing ends, so its toolbar can
   // animate out (`exiting`). The rendered view is pixel-identical, so the final swap
   // is invisible — only the toolbar is seen fading.
+  // eslint-disable-next-line solid/reactivity -- initial value only; the effect below tracks changes
   const [showEditor, setShowEditor] = createSignal(props.editing);
   const [exiting, setExiting] = createSignal(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -66,7 +68,10 @@ export const StickyMarkdown = (props: StickyMarkdownProps) => {
         // display only — focus/enter-edit is granted by the sticky root pointerdown
         <Show
           when={peerEditingFragment()}
-          fallback={<div class="sticky-markdown rendered" innerHTML={props.sticky.content} />}
+          fallback={
+            // eslint-disable-next-line solid/no-innerhtml -- sanitized; peer HTML is untrusted
+            <div class="sticky-markdown rendered" innerHTML={sanitizeHtml(props.sticky.content)} />
+          }
         >
           {(fragment) => (
             <StickyFragmentView fragment={fragment()} awareness={awarenessFor(pane.boardId())} />

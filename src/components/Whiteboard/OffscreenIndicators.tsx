@@ -5,6 +5,7 @@ import { useViewport } from "~/stores/workspace/viewportStore";
 import { isInteracting } from "~/stores/uiStore";
 import { toneVar, type Tone } from "~/utils/tones";
 import { ChevronRight } from "lucide-static";
+import { Icon } from "~/components/Icon/Icon";
 
 const MARGIN = 22; // keep markers off the very edge
 const CHROME_TOP = 76; // tab + actions bars cover the top — visible area starts here
@@ -69,11 +70,9 @@ export const OffscreenIndicators = (props: { size: () => { w: number; h: number 
           title="Jump to off-screen note"
           onClick={() => centerOn(m.id)}
         >
-          <span
-            class="arrow"
-            style={{ transform: `rotate(${m.angle}deg)` }}
-            innerHTML={ChevronRight}
-          />
+          <span class="arrow" style={{ transform: `rotate(${m.angle}deg)` }}>
+            <Icon svg={ChevronRight} />
+          </span>
         </button>
       )}
     </For>

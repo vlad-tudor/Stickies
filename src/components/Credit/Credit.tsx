@@ -1,4 +1,5 @@
 import { ArrowUpRight } from "lucide-static";
+import { Icon } from "~/components/Icon/Icon";
 import { PORTFOLIO_URL } from "~/config";
 import "./credit.scss";
 
@@ -14,7 +15,9 @@ export const Credit = () => {
       </span>
       <a class="app-credit__link" href={PORTFOLIO_URL} target="_blank" rel="noopener noreferrer">
         by Tudor-Vlad
-        <span class="app-credit__arrow" aria-hidden="true" innerHTML={ArrowUpRight} />
+        <span class="app-credit__arrow" aria-hidden="true">
+          <Icon svg={ArrowUpRight} />
+        </span>
       </a>
     </div>
   );

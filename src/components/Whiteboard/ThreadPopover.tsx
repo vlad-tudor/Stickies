@@ -4,6 +4,7 @@ import { deleteThread } from "~/stores/stickyStore";
 import { selectedThread, setSelectedThread } from "~/stores/uiStore";
 import { MOTION } from "~/utils/motion";
 import { Trash2 } from "lucide-static";
+import { Icon } from "~/components/Icon/Icon";
 
 // Fade out every segment of a thread (across panes), then prune it from the store —
 // node-stays-mounted exit, same trick as the sticky delete.
@@ -33,7 +34,9 @@ export const ThreadPopover = () => (
         onPointerDown={(e) => e.stopPropagation()}
       >
         <button onClick={() => removeThreadAnimated(t().boardId, t().id)}>
-          <span class="ico" innerHTML={Trash2} />
+          <span class="ico">
+            <Icon svg={Trash2} />
+          </span>
           Remove
         </button>
       </div>

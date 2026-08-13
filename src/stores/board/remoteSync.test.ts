@@ -208,6 +208,7 @@ describe("body fragments (the co-editing channel)", () => {
     expect("body" in projected).toBe(false);
     expect(projected.content).toBe("<p>hi</p>");
   });
+
 });
 
 describe("concurrent edits", () => {

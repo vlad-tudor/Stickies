@@ -1,8 +1,9 @@
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import { animate } from "animejs";
 import { Copy } from "lucide-static";
+import { Icon } from "~/components/Icon/Icon";
 import {
-  StickyNote,
+  type StickyNote,
   addThread,
   remoteHoldOn,
   holdSticky,
@@ -99,9 +100,9 @@ export const Sticky = (props: StickyProps) => {
   const [title, setTitle] = createSignal("");
   createEffect(() => {
     if (editing()) return; // frozen while typing
-    const tmp = document.createElement("div");
-    tmp.innerHTML = props.sticky.content;
-    const text = (tmp.textContent ?? "").replace(/\s+/g, " ").trim();
+    // DOMParser documents are inert — peer HTML can't load images or run handlers here
+    const doc = new DOMParser().parseFromString(props.sticky.content, "text/html");
+    const text = (doc.body.textContent ?? "").replace(/\s+/g, " ").trim();
     const base = text || `Sticky ${props.seq}`;
     setTitle(base.length > 10 ? base.slice(0, 10).trimEnd() + "…" : base);
   });
@@ -248,12 +249,9 @@ export const Sticky = (props: StickyProps) => {
         )}
       </Show>
 
-      <button
-        class="sticky-copy-button"
-        title="Duplicate note"
-        onClick={onDuplicate}
-        innerHTML={Copy}
-      />
+      <button class="sticky-copy-button" title="Duplicate note" onClick={onDuplicate}>
+        <Icon svg={Copy} />
+      </button>
 
       <StickyDeleteButton deleteSticky={onStickyDelete} />
 
