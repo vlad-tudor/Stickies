@@ -21,6 +21,7 @@ import {
   addThread,
   ensureNoteBody,
   noteHasBodyFragment,
+  observeNoteBody,
   type StickyNote,
 } from "~/stores/stickyStore";
 import {
@@ -209,6 +210,59 @@ describe("body fragments (the co-editing channel)", () => {
     expect(projected.content).toBe("<p>hi</p>");
   });
 
+  test("observeNoteBody fires on fragment creation, tracks the new fragment, stops on unsubscribe", () => {
+    const { boardId, local } = freshBoard();
+    createStickyNote(boardId, makeNote("a", { content: "<p>legacy</p>" }));
+    const peer = spawnPeer(local);
+
+    let fired = 0;
+    const stop = observeNoteBody(boardId, "a", () => {
+      fired += 1;
+    });
+
+    // a peer seeds the legacy note: the body key appears remotely
+    const peerNote = stickyMapOf(peer).get("a")!;
+    peer.transact(() => peerNote.set("body", new Y.XmlFragment()));
+    deliver(peer, local);
+    expect(fired).toBe(1);
+
+    // the watcher re-attached to the NEW fragment instance: peer typing fires
+    const peerFragment = peerNote.get("body") as Y.XmlFragment;
+    peer.transact(() => {
+      const paragraph = new Y.XmlElement("paragraph");
+      paragraph.insert(0, [new Y.XmlText("typed remotely")]);
+      peerFragment.insert(0, [paragraph]);
+    });
+    deliver(peer, local);
+    expect(fired).toBe(2);
+
+    stop();
+    peer.transact(() => peerFragment.insert(1, [new Y.XmlElement("paragraph")]));
+    deliver(peer, local);
+    expect(fired).toBe(2);
+  });
+
+  test("observeNoteBody fires on deep edits to an existing fragment", () => {
+    const { boardId, local } = freshBoard();
+    createStickyNote(boardId, makeNote("a", { content: "<p>hi</p>" }));
+    ensureNoteBody(boardId, "a");
+    const peer = spawnPeer(local);
+
+    let fired = 0;
+    const stop = observeNoteBody(boardId, "a", () => {
+      fired += 1;
+    });
+
+    const peerFragment = stickyMapOf(peer).get("a")!.get("body") as Y.XmlFragment;
+    peer.transact(() => {
+      const paragraph = new Y.XmlElement("paragraph");
+      paragraph.insert(0, [new Y.XmlText("typed remotely")]);
+      peerFragment.insert(0, [paragraph]);
+    });
+    deliver(peer, local);
+    expect(fired).toBe(1);
+    stop();
+  });
 });
 
 describe("concurrent edits", () => {

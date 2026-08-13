@@ -13,6 +13,7 @@ import { MOTION } from "~/utils/motion";
 import { sanitizeHtml } from "~/utils/sanitizeHtml";
 import { TiptapEditor } from "./TiptapEditor";
 import { StickyFragmentView } from "./StickyFragmentView";
+import { useNoteBodyHtml } from "./useNoteBodyHtml";
 
 import "./sticky-markdown.scss";
 
@@ -61,6 +62,14 @@ export const StickyMarkdown = (props: StickyMarkdownProps) => {
   });
   onCleanup(() => clearTimeout(timer));
 
+  // Fragment-backed notes render from the converged fragment; legacy notes
+  // (undefined) fall back to the mirrored `content` string.
+  const fragmentHtml = useNoteBodyHtml(
+    () => pane.boardId(),
+    () => props.sticky.id,
+    () => !showEditor(),
+  );
+
   return (
     <Show
       when={showEditor()}
@@ -69,8 +78,11 @@ export const StickyMarkdown = (props: StickyMarkdownProps) => {
         <Show
           when={peerEditingFragment()}
           fallback={
-            // eslint-disable-next-line solid/no-innerhtml -- sanitized; peer HTML is untrusted
-            <div class="sticky-markdown rendered" innerHTML={sanitizeHtml(props.sticky.content)} />
+            <div
+              class="sticky-markdown rendered"
+              // eslint-disable-next-line solid/no-innerhtml -- both branches sanitized; peer HTML is untrusted
+              innerHTML={fragmentHtml() ?? sanitizeHtml(props.sticky.content)}
+            />
           }
         >
           {(fragment) => (

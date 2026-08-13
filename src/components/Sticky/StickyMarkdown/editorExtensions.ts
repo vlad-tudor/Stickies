@@ -1,4 +1,5 @@
-import { type Extensions } from "@tiptap/core";
+import { generateHTML, type Extensions } from "@tiptap/core";
+import { yXmlFragmentToProsemirrorJSON } from "y-prosemirror";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
@@ -44,3 +45,12 @@ export const stickyBodyExtensions = (opts: {
   }
   return extensions;
 };
+
+// Schema-only extension set for serializing outside any editor — generateHTML
+// reads marks/nodes; plugins never instantiate.
+const schemaExtensions = stickyBodyExtensions({});
+
+// A note's body fragment rendered to HTML: the same converged content an
+// editor bound to it would show, without mounting one.
+export const fragmentToHtml = (fragment: Y.XmlFragment): string =>
+  generateHTML(yXmlFragmentToProsemirrorJSON(fragment), schemaExtensions);

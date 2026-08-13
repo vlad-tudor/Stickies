@@ -163,6 +163,35 @@ export const noteBodyFragment = (boardId: string, stickyId: string): Y.XmlFragme
   return doc ? noteBodyFragmentOf(doc, stickyId) : undefined;
 };
 
+// Watch a note's body: fires on deep fragment edits AND when the fragment
+// first appears on the note (a peer seeding a legacy note replaces the body
+// key, so the watcher re-attaches to the new fragment instance). Returns the
+// unsubscribe; a missing doc/note is a no-op.
+export const observeNoteBody = (
+  boardId: string,
+  stickyId: string,
+  onChange: () => void,
+): (() => void) => {
+  const doc = docOf(boardId);
+  const yNote = doc ? stickyMapOf(doc).get(stickyId) : undefined;
+  if (!doc || !yNote) return () => {};
+  let fragment = noteBodyFragmentOf(doc, stickyId);
+  const onFragmentChange = (): void => onChange();
+  fragment?.observeDeep(onFragmentChange);
+  const onNoteChange = (event: Y.YMapEvent<NoteFieldValue | Y.XmlFragment>): void => {
+    if (!event.keysChanged.has(NOTE_BODY_KEY)) return;
+    fragment?.unobserveDeep(onFragmentChange);
+    fragment = noteBodyFragmentOf(doc, stickyId);
+    fragment?.observeDeep(onFragmentChange);
+    onChange();
+  };
+  yNote.observe(onNoteChange);
+  return () => {
+    yNote.unobserve(onNoteChange);
+    fragment?.unobserveDeep(onFragmentChange);
+  };
+};
+
 // Get-or-create a note's body fragment (created EMPTY — the creating editor
 // seeds it from the mirrored HTML). Creation is guarded upstream by the
 // editing hold, so two clients can't mint competing fragments for one note.

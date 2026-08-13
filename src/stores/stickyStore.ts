@@ -57,7 +57,12 @@ export {
   type RemoteCursor,
 } from "./board/presence";
 
-export { ensureNoteBody, noteHasBodyFragment, noteBodyFragment } from "./board/boardDocs";
+export {
+  ensureNoteBody,
+  noteHasBodyFragment,
+  noteBodyFragment,
+  observeNoteBody,
+} from "./board/boardDocs";
 
 export {
   addThread,
