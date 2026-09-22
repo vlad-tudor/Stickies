@@ -13,6 +13,13 @@ services:
 
   # collab relay (see relay/Dockerfile) — wss://collab.<domain>; Traefik
   # terminates TLS and proxies the WebSocket upgrade to plain ws inside.
+  #
+  # Abuse controls are config-only: the relay is stock y-websocket with no
+  # controls of its own, and room ids are unguessable (content is capability-
+  # protected) but anyone can open unlimited rooms. If these caps prove
+  # insufficient, the next step is a custom relay entrypoint (own `ws` server +
+  # `setupWSConnection`) that can cap rooms per connection and evict idle ones —
+  # neither is expressible in Traefik.
   stickies-relay:
     image: stickies-relay:latest
     restart: unless-stopped
@@ -20,10 +27,54 @@ services:
       - infra-net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.stickies-relay.rule=Host(`collab.${DOMAIN}`)"
+      # Origin pins the relay to the deployed app. This filters browsers, NOT
+      # clients: any non-browser can spoof the header. It also 404s requests
+      # with no Origin at all, so an Uptime Kuma monitor must hit
+      # http://stickies-relay:1234 directly on infra-net, not go via Traefik.
+      - "traefik.http.routers.stickies-relay.rule=Host(`collab.${DOMAIN}`) && Header(`Origin`, `https://stickies.${DOMAIN}`)"
       - "traefik.http.routers.stickies-relay.entrypoints=websecure"
       - "traefik.http.routers.stickies-relay.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.stickies-relay.middlewares=stickies-relay-total,stickies-relay-inflight,stickies-relay-rate"
       - "traefik.http.services.stickies-relay.loadbalancer.server.port=1234"
+
+      # A WebSocket stays in-flight for its whole lifetime, so this is the
+      # concurrent-socket cap. One socket per LIVE board per tab (collabSession
+      # keys providers by boardId), so 20 is ~3x a realistic 3-boards-x-2-tabs.
+      #
+      # ipstrategy is load-bearing: without sourcecriterion, inflightreq keys on
+      # requestHost, which is the same value for every request here — making the
+      # cap GLOBAL rather than per-IP, with no warning. depth=0 drops out of the
+      # parsed config as a zero value, but it is what instantiates ipStrategy.
+      # Verify after deploy: the Traefik log should say "Using IPStrategy" for
+      # this middleware, not "Using RequestHost".
+      - "traefik.http.middlewares.stickies-relay-inflight.inflightreq.amount=20"
+      - "traefik.http.middlewares.stickies-relay-inflight.inflightreq.sourcecriterion.ipstrategy.depth=0"
+
+      # Ceiling across ALL clients. `requestHost` is one shared bucket here
+      # (every request through this router carries the same Host), which is
+      # exactly the behaviour that makes it wrong for the per-IP cap above.
+      # The two compose: saturating this needs >=10 distinct source IPs,
+      # because each one is held to 20.
+      #
+      # This bounds sockets, not memory. Each room holds a Y.Doc in RAM with no
+      # TTL, so 200 clients opening a fresh room each is still 200 live docs —
+      # room count is what would actually exhaust the VPS, and Traefik cannot
+      # see it. That needs the custom relay entrypoint.
+      #
+      # Trade-off accepted: once this trips, EVERY new connection gets 429,
+      # legitimate ones included. It converts "relay falls over" into "relay
+      # refuses new sessions", which is the better failure but is still denial.
+      - "traefik.http.middlewares.stickies-relay-total.inflightreq.amount=200"
+      - "traefik.http.middlewares.stickies-relay-total.inflightreq.sourcecriterion.requesthost=true"
+
+      # Caps the upgrade handshake only — no effect on traffic over an already
+      # open socket. Client backoff is exponential 100ms -> maxBackoffTime 2500,
+      # so steady state is <0.5 rps per socket and average=5 is never reached;
+      # burst is what absorbs the thundering herd after a relay restart. burst
+      # MUST be set explicitly: Traefik defaults it to 1, not unlimited.
+      - "traefik.http.middlewares.stickies-relay-rate.ratelimit.average=5"
+      - "traefik.http.middlewares.stickies-relay-rate.ratelimit.burst=20"
+      - "traefik.http.middlewares.stickies-relay-rate.ratelimit.sourcecriterion.ipstrategy.depth=0"
 
 networks:
   infra-net:
