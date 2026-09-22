@@ -20,7 +20,12 @@ import {
   type StickyNote,
 } from "~/stores/stickyStore";
 import { editSticky, editingStickyId, exitEditing } from "~/stores/uiStore";
-import { remoteHoldOn, HoldKind } from "~/stores/board/presence";
+import {
+  remoteHoldOn,
+  yieldsEditorToPeer,
+  HoldKind,
+  type RemoteHold,
+} from "~/stores/board/presence";
 import {
   freshLiveBoard,
   releaseLiveBoards,
@@ -151,5 +156,58 @@ describe("a peer's hold gates the editor", () => {
     peerClaims(peer, awareness, "shared", HoldKind.Editing);
     editSticky(boardId, "shared");
     expect(editingStickyId()).toBe("shared");
+  });
+});
+
+// The edit-race tie-break used to be reachable only by rendering Sticky.tsx —
+// which needs a pane context, a viewport and a dozen child components, none of
+// which have anything to do with the rule. It now lives in presence as a pure
+// function, so the policy can be stated directly.
+describe("the edit-claim race is settled by the lower client id", () => {
+  const peerHold = (clientId: number): RemoteHold => ({
+    stickyId: "a",
+    kind: HoldKind.Editing,
+    name: "Peer",
+    color: "sky",
+    clientId,
+    claimedAt: 0,
+    seenAt: 0,
+  });
+
+  const base = {
+    hold: peerHold(1),
+    editing: true,
+    noteHasFragment: false,
+    ourClientId: 2,
+  };
+
+  test("we yield when the peer's client id is lower", () => {
+    expect(yieldsEditorToPeer(base)).toBe(true);
+  });
+
+  test("we keep the editor when ours is lower", () => {
+    expect(yieldsEditorToPeer({ ...base, hold: peerHold(3) })).toBe(false);
+  });
+
+  test("equal ids yield to nobody", () => {
+    // can't happen with real awareness ids, but the comparison must stay strict
+    // — a `<=` here would have BOTH sides back out and nobody hold the editor
+    expect(yieldsEditorToPeer({ ...base, hold: peerHold(2) })).toBe(false);
+  });
+
+  test("a fragment-backed note never evicts, even losing the race", () => {
+    // character-level merge makes co-editing safe; eviction is only for the
+    // seeding window before a fragment exists
+    expect(yieldsEditorToPeer({ ...base, noteHasFragment: true })).toBe(false);
+  });
+
+  test("nothing happens when we are not editing, or there is no hold", () => {
+    expect(yieldsEditorToPeer({ ...base, editing: false })).toBe(false);
+    expect(yieldsEditorToPeer({ ...base, hold: undefined })).toBe(false);
+  });
+
+  test("a board outside a live session never evicts", () => {
+    // presenceClientId is undefined with no awareness attached
+    expect(yieldsEditorToPeer({ ...base, ourClientId: undefined })).toBe(false);
   });
 });

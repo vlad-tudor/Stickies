@@ -16,13 +16,7 @@ import {
   type StickyNote,
 } from "~/stores/stickyStore";
 import { stickyMapOf } from "~/stores/board/boardDocs";
-import {
-  freshBoard,
-  freshLiveBoard,
-  releaseLiveBoards,
-  makeNote,
-  sleep,
-} from "~/test/liveBoard";
+import { freshBoard, freshLiveBoard, releaseLiveBoards, makeNote, sleep } from "~/test/liveBoard";
 
 // > LIVE_DRAG_FLUSH_MS (90) in stickyActions, with room for timer slop.
 const PAST_FLUSH_MS = 120;

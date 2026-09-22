@@ -48,6 +48,7 @@ export {
   holdSticky,
   releaseHold,
   presenceClientId,
+  yieldsEditorToPeer,
   publishCursor,
   clearCursor,
   remoteCursorsOn,

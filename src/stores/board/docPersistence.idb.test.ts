@@ -35,10 +35,7 @@ const freshBoardId = (): string => `idb-board-${Date.now()}-${nextBoardId++}`;
 const writeSnapshot = (board: Board): void => {
   localStorage.clear();
   window.location.hash = "";
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({ boards: [board], activeBoardId: board.id }),
-  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards: [board], activeBoardId: board.id }));
 };
 
 // Hydration finishes asynchronously (y-indexeddb's `synced` event), and nothing
@@ -53,7 +50,8 @@ const waitFor = async (predicate: () => boolean, label: string): Promise<void> =
 
 const docNoteIds = (boardId: string): string[] => [...stickyMapOf(docOf(boardId)!).keys()].sort();
 
-const hydrated = (boardId: string): boolean => Boolean(metaMapOf(docOf(boardId)!).get(MetaKey.Init));
+const hydrated = (boardId: string): boolean =>
+  Boolean(metaMapOf(docOf(boardId)!).get(MetaKey.Init));
 
 describe("doc persistence is actually on in this project", () => {
   test("canPersistDocs is true", () => {
@@ -101,7 +99,11 @@ describe("hydrateBoard decides seed vs resume on the init flag", () => {
       () => stickies().some((sticky) => sticky.id === "doc-only"),
       "projection synced from doc",
     );
-    expect(stickies().map((sticky) => sticky.id).sort()).toEqual(["a", "doc-only"]);
+    expect(
+      stickies()
+        .map((sticky) => sticky.id)
+        .sort(),
+    ).toEqual(["a", "doc-only"]);
     expect(activeBoardId()).toBe(boardId);
   });
 });

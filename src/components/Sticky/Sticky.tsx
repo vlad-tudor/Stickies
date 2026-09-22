@@ -8,6 +8,7 @@ import {
   remoteHoldOn,
   holdSticky,
   presenceClientId,
+  yieldsEditorToPeer,
   noteHasBodyFragment,
   HoldKind,
 } from "~/stores/stickyStore";
@@ -81,16 +82,21 @@ export const Sticky = (props: StickyProps) => {
   // A live-session peer's unexpired hold on this note (editing or moving it).
   const remoteHold = () => remoteHoldOn(pane.boardId(), props.sticky.id);
 
-  // Edit-claim race on a LEGACY note (both opened before either claim or the
-  // body fragment propagated): the LOWER awareness client id keeps the editor —
-  // deterministic on both sides. Fragment-backed notes co-edit freely, so no
-  // eviction applies there.
+  // Lose the edit-claim race on a legacy note and we back out of the editor.
+  // The rule itself lives in presence (yieldsEditorToPeer) so it can be tested
+  // without standing up this component; only `remoteHold` and `editing` are
+  // reactive, so reading the other two eagerly costs no extra tracking.
   createEffect(() => {
-    const hold = remoteHold();
-    if (!hold || !editing()) return;
-    if (noteHasBodyFragment(pane.boardId(), props.sticky.id)) return;
-    const ourClientId = presenceClientId(pane.boardId());
-    if (ourClientId !== undefined && hold.clientId < ourClientId) exitEditing();
+    if (
+      yieldsEditorToPeer({
+        hold: remoteHold(),
+        editing: editing(),
+        noteHasFragment: noteHasBodyFragment(pane.boardId(), props.sticky.id),
+        ourClientId: presenceClientId(pane.boardId()),
+      })
+    ) {
+      exitEditing();
+    }
   });
 
   // Title is derived from the note's text (titles abolished), capped at 10 chars

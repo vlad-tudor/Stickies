@@ -248,6 +248,25 @@ export const remoteHoldOn = (boardId: string, stickyId: string): RemoteHold | un
 export const presenceClientId = (boardId: string): number | undefined =>
   awarenessByBoard.get(boardId)?.clientID;
 
+// Edit-claim race on a LEGACY note: both sides opened it before either claim —
+// or the body fragment — propagated, and one of them has to back out. The LOWER
+// awareness client id keeps the editor: both sides compute the same answer from
+// the same two numbers, with no clock comparison to skew. Fragment-backed notes
+// co-edit freely (character-level merge + carets), so no eviction applies there.
+//
+// Pure on purpose: the component owning the editor just feeds it what it has.
+export const yieldsEditorToPeer = (input: {
+  hold: RemoteHold | undefined;
+  editing: boolean;
+  noteHasFragment: boolean;
+  ourClientId: number | undefined;
+}): boolean => {
+  if (!input.hold || !input.editing) return false;
+  if (input.noteHasFragment) return false; // co-editing is safe here
+  if (input.ourClientId === undefined) return false; // not in a session
+  return input.hold.clientId < input.ourClientId;
+};
+
 // Every peer's fresh cursor on a board (stale ones drop out as `now` ticks).
 export const remoteCursorsOn = (boardId: string): RemoteCursor[] => {
   const cursors = remoteCursors[boardId];
