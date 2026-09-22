@@ -8,10 +8,12 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "bun test --conditions=browser",
+    "test": "bun run test:unit && bun run test:idb",
     "relay": "HOST=localhost PORT=1234 y-websocket-server",
     "build": "bun run typecheck && bun run lint && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:idb": "bun test --conditions=browser --preload ./src/test/setup-idb.ts src/stores/board/docPersistence.idb.test.ts",
+    "test:unit": "bun test --conditions=browser --path-ignore-patterns=\"**/*.idb.test.ts\""
   },
   "dependencies": {
     "@fontsource/fraunces": "^5.2.9",
@@ -49,6 +51,7 @@
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-solid": "^0.14.5",
+    "fake-indexeddb": "^6.2.5",
     "prettier": "^3.9.6",
     "sass": "^1.79.4",
     "typescript": "^6.0.3",
