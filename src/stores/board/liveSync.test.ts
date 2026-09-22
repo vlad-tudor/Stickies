@@ -4,70 +4,34 @@
 // real session spends a drag inside, and it is the one the undo/redo origin
 // work will disturb, so it needs to be reachable under test first.
 //
-// No server and no production change are required to reach it: the gate is just
-// `awarenessByBoard.has(boardId)`, so attaching a bare `new Awareness(doc)` is
-// enough to turn a board live. That is the same seam `presence-fields.test.ts`
-// already relies on.
+// No server and no production change are required to reach it; see
+// ~/test/liveBoard for how the harness turns a board live.
 import { test, expect, describe, afterEach } from "bun:test";
 import type * as Y from "yjs";
-import { Awareness } from "y-protocols/awareness";
 import {
-  loadBoards,
-  activeBoardId,
   stickies,
   createStickyNote,
   moveStickyNote,
   commitStickies,
   type StickyNote,
 } from "~/stores/stickyStore";
-import { docOf, stickyMapOf } from "~/stores/board/boardDocs";
-import { attachPresence, detachPresence } from "~/stores/board/presence";
+import { stickyMapOf } from "~/stores/board/boardDocs";
+import {
+  freshBoard,
+  freshLiveBoard,
+  releaseLiveBoards,
+  makeNote,
+  sleep,
+} from "~/test/liveBoard";
 
 // > LIVE_DRAG_FLUSH_MS (90) in stickyActions, with room for timer slop.
 const PAST_FLUSH_MS = 120;
-
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
-const makeNote = (id: string, over: Partial<StickyNote> = {}): StickyNote => ({
-  id,
-  position: [0, 0],
-  dimensions: [300, 320],
-  content: "",
-  color: "cream",
-  z: 0,
-  ...over,
-});
-
-// Fresh single-board store; returns the board id and its live local doc.
-const freshBoard = (): { boardId: string; local: Y.Doc } => {
-  localStorage.clear();
-  window.location.hash = "";
-  loadBoards();
-  const boardId = activeBoardId();
-  const local = docOf(boardId);
-  if (!local) throw new Error("active board has no doc");
-  return { boardId, local };
-};
-
-// Boards attached this test, detached in teardown: detachPresence also stops
-// presence's 500ms sweep once the last board lets go, so skipping it leaves an
-// interval dangling for the rest of the process.
-const attached = new Set<string>();
-
-const freshLiveBoard = (): { boardId: string; local: Y.Doc; awareness: Awareness } => {
-  const { boardId, local } = freshBoard();
-  const awareness = new Awareness(local);
-  attachPresence(boardId, awareness);
-  attached.add(boardId);
-  return { boardId, local, awareness };
-};
 
 afterEach(() => {
   // bun runs every test file in ONE process, so a pending flush would otherwise
   // fire into the next test's board.
   commitStickies();
-  for (const boardId of attached) detachPresence(boardId);
-  attached.clear();
+  releaseLiveBoards();
 });
 
 const docPosition = (local: Y.Doc, id: string): unknown =>
