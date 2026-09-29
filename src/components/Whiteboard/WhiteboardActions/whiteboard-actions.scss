@@ -72,6 +72,11 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
   }
 
   // primary action — the one tonal accent

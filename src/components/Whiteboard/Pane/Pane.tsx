@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, Show } from "solid-js";
 import { BoardTabs } from "../../BoardTabs/BoardTabs";
 import { WhiteboardActions } from "../WhiteboardActions/WhiteboardActions";
 import { RenderStickies } from "../RenderStickies";
@@ -26,6 +26,8 @@ import {
   showBoardInFocusedPane,
   boardDrag,
   stickyDrag,
+  canSplit,
+  SplitDir,
   type Rect,
 } from "~/stores/workspace/paneLayoutStore";
 import { toneVar } from "~/utils/tones";
@@ -64,12 +66,17 @@ export const Pane = (props: PaneProps) => {
   // Pane size (its own rect) — drives off-screen indicator + ruler math. Measured
   // so it's correct once panes no longer fill the window.
   const [size, setSize] = createSignal({ w: window.innerWidth, h: window.innerHeight });
+  const measure = () => {
+    const r = boardRef.getBoundingClientRect();
+    setSize({ w: r.width, h: r.height });
+  };
+
+  // The split tree can resize a pane before the browser has painted (a split, a divider
+  // drag), and ResizeObserver only delivers at paint — which would leave size(), and the
+  // split guard reading it, a frame behind. Re-measure the moment the rect changes.
+  createEffect(on(() => props.rect, measure));
 
   onMount(() => {
-    const measure = () => {
-      const r = boardRef.getBoundingClientRect();
-      setSize({ w: r.width, h: r.height });
-    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(boardRef);
@@ -249,6 +256,8 @@ export const Pane = (props: PaneProps) => {
             onFit={fitAll}
             onSplit={props.onSplit}
             onSplitDown={props.onSplitDown}
+            canSplit={canSplit(size().w, size().h, SplitDir.Row)}
+            canSplitDown={canSplit(size().w, size().h, SplitDir.Col)}
             onClose={props.onClose}
             closable={props.closable}
           />

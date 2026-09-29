@@ -1,4 +1,4 @@
-import { createEffect, createMemo, For, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createMemo, For, Index, onCleanup, onMount, Show } from "solid-js";
 import { Copy } from "lucide-static";
 import { Icon } from "~/components/Icon/Icon";
 import { Pane } from "./Pane/Pane";
@@ -30,6 +30,8 @@ import {
   showBoardInFocusedPane,
   computeLayout,
   findSplit,
+  dividerDragWeights,
+  SplitDir,
   stickyDrag,
   type Divider,
   type Rect,
@@ -38,7 +40,6 @@ import { toneVar } from "~/utils/tones";
 
 import "./whiteboard.scss";
 
-const MIN_PANE_PX = 240; // a pane can't be dragged narrower/shorter than this
 const FULL: Rect = { x: 0, y: 0, w: 1, h: 1 };
 
 // Layout shell: a row/col split tree of board panes. Panes render FLAT (keyed by
@@ -110,35 +111,31 @@ export const Whiteboard = () => {
   const ghostContrast = () => theme();
 
   // Drag a divider: shift weight between the two children of its split node. Listen
-  // on window (not the element) so the drag survives the divider being re-created as
-  // the layout recomputes each frame. Absolute-from-start math (no drift).
+  // on window (not the element) so a fast drag that outruns the divider keeps tracking.
+  // Absolute-from-start math (no drift).
   const startResize = (e: PointerEvent, d: Divider) => {
     e.preventDefault();
     const node = findSplit(layout(), d.nodeId);
     if (!node) return;
     beginInteraction(); // overlays go cheap + pane relayout coalesced to a frame
     const rowRect = rowRef.getBoundingClientRect();
-    const axisPx = (d.dir === "row" ? rowRect.width : rowRect.height) * d.span;
+    const axisPx = (d.dir === SplitDir.Row ? rowRect.width : rowRect.height) * d.span;
     const startSizes = [...node.sizes];
-    const total = startSizes.reduce((a, b) => a + b, 0);
-    const pairTotal = startSizes[d.index] + startSizes[d.index + 1];
-    const minW = (MIN_PANE_PX / axisPx) * total;
-    const startPos = d.dir === "row" ? e.clientX : e.clientY;
+    const startPos = d.dir === SplitDir.Row ? e.clientX : e.clientY;
 
     // coalesce to one layout write per animation frame (relayout is the cost)
     let raf = 0;
-    let pendingA: number | null = null;
+    let pending: [number, number] | null = null;
     const apply = () => {
       raf = 0;
-      if (pendingA != null) {
-        resizeSplit(d.nodeId, d.index, pendingA, pairTotal - pendingA);
-        pendingA = null;
+      if (pending) {
+        resizeSplit(d.nodeId, d.index, pending[0], pending[1]);
+        pending = null;
       }
     };
     const onMove = (ev: PointerEvent) => {
-      const cur = d.dir === "row" ? ev.clientX : ev.clientY;
-      const dW = ((cur - startPos) / axisPx) * total;
-      pendingA = Math.max(minW, Math.min(pairTotal - minW, startSizes[d.index] + dW));
+      const cur = d.dir === SplitDir.Row ? ev.clientX : ev.clientY;
+      pending = dividerDragWeights(startSizes, d.index, axisPx, cur - startPos);
       if (!raf) raf = requestAnimationFrame(apply);
     };
     const onUp = () => {
@@ -201,15 +198,17 @@ export const Whiteboard = () => {
               />
             )}
           </For>
-          <For each={computed().dividers}>
+          {/* Index (not For): a resize drag rewrites the divider list every frame, and
+              reference keying would rebuild the very element the pointer is holding. */}
+          <Index each={computed().dividers}>
             {(d) => (
               <div
-                class={`pane-divider ${d.dir}`}
-                style={dividerStyle(d)}
-                onPointerDown={(e) => startResize(e, d)}
+                class={`pane-divider ${d().dir}`}
+                style={dividerStyle(d())}
+                onPointerDown={(e) => startResize(e, d())}
               />
             )}
-          </For>
+          </Index>
         </div>
       </Show>
 

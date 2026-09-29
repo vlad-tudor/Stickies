@@ -150,6 +150,41 @@ export function findSplit(node: LayoutNode | null, splitId: string): SplitNode |
   return null;
 }
 
+// ── divider drag (resize two adjacent children of a split) ──
+
+// A pane is never laid out narrower/shorter than this along the split axis.
+export const MIN_PANE_PX = 240;
+
+// The flex weights a divider drag lands on, for the two children either side of it.
+// `axisPx` is the split's own pixel extent along its axis, `deltaPx` the pointer's
+// total travel since the drag began (absolute, so a drag can't drift).
+//
+// The MIN_PANE_PX floor is capped at half the pair: once two adjacent panes are
+// together narrower than 2 x MIN_PANE_PX the raw floor exceeds the raw ceiling, the
+// clamp inverts, and the result stops tracking the pointer — the divider snaps to a
+// fixed weight and freezes there. Narrower still and the sibling's weight goes
+// negative, which computeLayout turns into panes that overflow their region and slide
+// off-screen. Capping pins a cramped pair to its midpoint instead.
+export function dividerDragWeights(
+  sizes: number[],
+  index: number,
+  axisPx: number,
+  deltaPx: number,
+): [number, number] {
+  const pairTotal = sizes[index] + sizes[index + 1];
+  if (!(axisPx > 0)) return [sizes[index], sizes[index + 1]];
+  const total = sizes.reduce((sum, size) => sum + size, 0) || 1;
+  const minWeight = Math.min((MIN_PANE_PX / axisPx) * total, pairTotal / 2);
+  const shift = (deltaPx / axisPx) * total;
+  const before = Math.max(minWeight, Math.min(pairTotal - minWeight, sizes[index] + shift));
+  return [before, pairTotal - before];
+}
+
+// Whether a pane has room to become two panes that both clear MIN_PANE_PX. Splitting
+// past this is what creates the cramped pairs dividerDragWeights has to pin.
+export const canSplit = (paneW: number, paneH: number, dir: SplitDir): boolean =>
+  (dir === SplitDir.Row ? paneW : paneH) >= MIN_PANE_PX * 2;
+
 // ── 4-way drop zones (drag a board tab onto a pane) ──
 
 export const Zone = {
@@ -183,6 +218,14 @@ export const zoneAt = (pointX: number, pointY: number): DropZone => {
   if (nearest === edgeDistance.right) return Zone.Right;
   if (nearest === edgeDistance.top) return Zone.Top;
   return Zone.Bottom;
+};
+
+// An edge drop asks for a split; on a pane with no room for one it degrades to a
+// replace, so the preview and the drop agree and no unusable pane is created.
+export const dropZoneFor = (zone: DropZone, paneW: number, paneH: number): DropZone => {
+  if (zone === Zone.Center) return zone;
+  const dir = zone === Zone.Left || zone === Zone.Right ? SplitDir.Row : SplitDir.Col;
+  return canSplit(paneW, paneH, dir) ? zone : Zone.Center;
 };
 
 // Highest numeric id suffix across a tree's nodes plus `extraIds` — so a

@@ -30,7 +30,18 @@ import type { Tone } from "~/utils/tones";
 // The focused pane's board is mirrored to the global active board, so board-tab
 // UI and share follow the pane the user is working in.
 // Re-exported domain pieces keep one import site for layout consumers.
-export { computeLayout, findSplit, zoneAt, DROP_EDGE, SplitDir, Zone } from "~/domain/layout";
+export {
+  computeLayout,
+  findSplit,
+  zoneAt,
+  dropZoneFor,
+  dividerDragWeights,
+  canSplit,
+  MIN_PANE_PX,
+  DROP_EDGE,
+  SplitDir,
+  Zone,
+} from "~/domain/layout";
 export type { LayoutNode, SplitNode, LeafNode, Rect, Divider, DropZone } from "~/domain/layout";
 
 export type PaneDef = { id: string; boardId: string };

@@ -45,6 +45,8 @@ type WhiteboardActionsProps = {
   onFit: () => void;
   onSplit: () => void;
   onSplitDown: () => void;
+  canSplit: boolean; // false → the pane has no room to halve; the control is disabled
+  canSplitDown: boolean;
   onClose: () => void;
   closable: boolean;
 };
@@ -216,10 +218,20 @@ export const WhiteboardActions = (props: WhiteboardActionsProps) => {
             </button>
           </div>
 
-          <button class="split-pane" title="Split right" onClick={() => props.onSplit()}>
+          <button
+            class="split-pane"
+            title={props.canSplit ? "Split right" : "Too narrow to split"}
+            disabled={!props.canSplit}
+            onClick={() => props.onSplit()}
+          >
             <Icon svg={SquareSplitHorizontal} />
           </button>
-          <button class="split-pane-down" title="Split down" onClick={() => props.onSplitDown()}>
+          <button
+            class="split-pane-down"
+            title={props.canSplitDown ? "Split down" : "Too short to split"}
+            disabled={!props.canSplitDown}
+            onClick={() => props.onSplitDown()}
+          >
             <Icon svg={SquareSplitVertical} />
           </button>
           <Show when={props.closable}>

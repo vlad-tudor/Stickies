@@ -17,6 +17,7 @@ import {
   dropBoardIntoPane,
   boardDrag,
   zoneAt,
+  dropZoneFor,
 } from "~/stores/workspace/paneLayoutStore";
 import { confirmDialog } from "~/stores/dialogStore";
 import { Pencil, CopyPlus } from "lucide-static";
@@ -173,10 +174,9 @@ export const BoardTabs = (props: BoardTabsProps) => {
       const paneId = layer?.dataset.paneId;
       if (layer && paneId) {
         const r = layer.getBoundingClientRect();
-        setBoardDragOver(
-          paneId,
-          zoneAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height),
-        );
+        const zone = zoneAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+        // a pane with no room to split previews (and drops as) a replace instead
+        setBoardDragOver(paneId, dropZoneFor(zone, r.width, r.height));
       } else {
         clearBoardDragOver();
       }
