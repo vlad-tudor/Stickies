@@ -2,7 +2,7 @@ import { createSignal } from "solid-js";
 import { createStore, produce, reconcile } from "solid-js/store";
 import type { Awareness } from "y-protocols/awareness";
 import type { Tone } from "~/utils/tones";
-import type { Identity } from "~/utils/identity";
+import { localIdentity, type Identity } from "~/utils/identity";
 
 // Ephemeral presence over each live session's awareness channel: which peer is
 // HOLDING which sticky (editing it, or moving/resizing it). Holds are leases —
@@ -62,15 +62,18 @@ const CURSOR_MIN_INTERVAL_MS = 40;
 type PublishedHold = { stickyId: string; kind: HoldKind; at: number };
 type PublishedCursor = { x: number; y: number; at: number };
 
-// What a peer's awareness state looks like to us (fields are set by
-// collabSession ("user") and this module ("hold"/"pointer")). NB: the pointer
-// field must NOT be named "cursor" — y-prosemirror's collaboration-cursor plugin
-// owns that awareness key for editor selections ({anchor,head}) and calls
-// createRelativePositionFromJSON on it every transaction; a board-pointer
-// {x,y} there crashes the plugin (json.type of undefined) and takes the editor
-// down with it. Keep the two cursor concepts on separate awareness fields.
+// What a peer's awareness state looks like to us. This module writes every
+// field the app publishes ("identity"/"hold"/"pointer"); two names are OFF
+// LIMITS because the editor's collaboration-cursor shares the channel and owns
+// them (presence-fields.test.ts pins both):
+// - "cursor": editor selections ({anchor,head}). The plugin calls
+//   createRelativePositionFromJSON on it every transaction; a board pointer
+//   {x,y} there crashes the plugin and takes the editor down with it.
+// - "user": the caret label. Tiptap and y-prosemirror hardcode the name, and
+//   Tiptap writes its colour as a CSS var string — sharing it with our Tone
+//   identity broke every hold/pointer colour from a peer's first editor open.
 type PeerState = {
-  user?: Identity;
+  identity?: Identity;
   hold?: PublishedHold | null;
   pointer?: PublishedCursor | null;
 };
@@ -115,7 +118,7 @@ const rebuildBoardPresence = (boardId: string, awareness: Awareness): void => {
   awareness.getStates().forEach((state, clientId) => {
     if (clientId === awareness.clientID) return; // remote peers only
     const peer = state as PeerState;
-    if (!peer.user) return;
+    if (!peer.identity) return;
 
     if (peer.hold) {
       const { stickyId, kind, at } = peer.hold;
@@ -126,8 +129,8 @@ const rebuildBoardPresence = (boardId: string, awareness: Awareness): void => {
       nextHolds[stickyId] = {
         stickyId,
         kind,
-        name: peer.user.name,
-        color: peer.user.color,
+        name: peer.identity.name,
+        color: peer.identity.color,
         clientId,
         claimedAt: at,
         seenAt: unchanged ? existing.seenAt : localNow,
@@ -140,8 +143,8 @@ const rebuildBoardPresence = (boardId: string, awareness: Awareness): void => {
       const moved = !existing || existing.x !== peer.pointer.x || existing.y !== peer.pointer.y;
       nextCursors[cursorKey] = {
         clientId,
-        name: peer.user.name,
-        color: peer.user.color,
+        name: peer.identity.name,
+        color: peer.identity.color,
         x: peer.pointer.x,
         y: peer.pointer.y,
         seenAt: moved ? localNow : existing.seenAt,
@@ -156,6 +159,10 @@ const rebuildBoardPresence = (boardId: string, awareness: Awareness): void => {
 // Wire a session's awareness into presence (called by collabSession).
 export const attachPresence = (boardId: string, awareness: Awareness): void => {
   if (awarenessByBoard.has(boardId)) return;
+  // Announce who we are. REQUIRED, not cosmetic: y-websocket only propagates a
+  // client's awareness entry once it has set local state — without this, peers
+  // never see each other and the peer count stays at 1.
+  awareness.setLocalStateField("identity", localIdentity());
   awarenessByBoard.set(boardId, awareness);
   const apply = () => rebuildBoardPresence(boardId, awareness);
   awareness.on("change", apply);

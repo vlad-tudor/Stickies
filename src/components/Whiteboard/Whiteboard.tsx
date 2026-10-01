@@ -17,6 +17,7 @@ import {
 import { beginInteraction, endInteraction } from "~/stores/uiStore";
 import { theme } from "~/stores/themeStore";
 import { getViewport } from "~/stores/workspace/viewportStore";
+import { createPane, PaneProvider } from "~/stores/workspace/paneContext";
 import {
   panes,
   layout,
@@ -250,12 +251,24 @@ export const Whiteboard = () => {
                   <Show
                     when={s().image}
                     fallback={
-                      <StickyMarkdown
-                        sticky={s()}
-                        editing={false}
-                        onExit={() => {}}
-                        updateContent={() => {}}
-                      />
+                      // Note content reads its note through a pane (body fragment, peer
+                      // holds), so the clone needs one: the SOURCE board's, never focused
+                      // (no editor). Without it usePane throws mid-update, and Solid never
+                      // re-runs the effects that update abandoned — every Pane's pan
+                      // transform froze until reload.
+                      <PaneProvider
+                        value={createPane(
+                          () => g().fromBoardId,
+                          () => false,
+                        )}
+                      >
+                        <StickyMarkdown
+                          sticky={s()}
+                          editing={false}
+                          onExit={() => {}}
+                          updateContent={() => {}}
+                        />
+                      </PaneProvider>
                     }
                   >
                     <StickyImage image={s().image!} />

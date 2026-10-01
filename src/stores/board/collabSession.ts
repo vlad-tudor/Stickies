@@ -2,7 +2,6 @@ import { createStore, produce } from "solid-js/store";
 import { WebsocketProvider } from "y-websocket";
 import { COLLAB_WS_URL } from "~/config";
 import { newId } from "~/utils/id";
-import { localIdentity } from "~/utils/identity";
 import { clearHash, joinUrlFor, readJoinRoomFromHash } from "~/utils/urlState";
 import { docOf } from "./boardDocs";
 import { boardIndex } from "./boardProjection";
@@ -62,10 +61,7 @@ const connect = (boardId: string, roomId: string): boolean => {
   providers.set(boardId, provider);
   setSessions(boardId, { roomId, status: SessionStatus.Connecting, peers: 1 });
 
-  // Announce who we are. REQUIRED, not cosmetic: y-websocket only propagates a
-  // client's awareness entry once it has set local state — without this, peers
-  // never see each other and the peer count stays at 1.
-  provider.awareness.setLocalStateField("user", localIdentity());
+  // also announces our identity, which peer counting depends on (see presence)
   attachPresence(boardId, provider.awareness);
 
   provider.on("status", (event: { status: string }) => {

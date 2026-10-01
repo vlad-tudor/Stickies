@@ -59,11 +59,11 @@ export const releaseLiveBoards = (): void => {
 };
 
 // A second participant. The identity matters: rebuildBoardPresence ignores any
-// awareness state without a `user` field, so a peer that never introduces
+// awareness state without an `identity` field, so a peer that never introduces
 // itself is invisible no matter what else it publishes.
 export const spawnPresencePeer = (name = "Peer", color: Tone = "sky"): Awareness => {
   const peer = new Awareness(new Y.Doc());
-  peer.setLocalStateField("user", { name, color });
+  peer.setLocalStateField("identity", { name, color });
   return peer;
 };
 
